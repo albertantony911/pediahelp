@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
-export default function FailedPage() {
+function FailedContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
 
-  // Generate a temporary payment link (you'll implement this in the next step)
   const tempPaymentLink = `/payment/retry?bookingId=${bookingId}&token=unique-token`;
 
   return (
@@ -19,5 +19,13 @@ export default function FailedPage() {
         Retry Payment
       </Link>
     </div>
+  );
+}
+
+export default function FailedPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+      <FailedContent />
+    </Suspense>
   );
 }

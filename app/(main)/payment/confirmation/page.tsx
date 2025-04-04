@@ -1,8 +1,9 @@
-"use client"; 
+"use client";
 
-import { useSearchParams } from "next/navigation"; // Import useSearchParams
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
 
@@ -12,5 +13,13 @@ export default function ConfirmationPage() {
       <p>Booking ID: {bookingId}</p>
       <p>Your booking has been confirmed.</p>
     </div>
+  );
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Loading confirmation...</div>}>
+      <ConfirmationContent />
+    </Suspense>
   );
 }
