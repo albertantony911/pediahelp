@@ -51,7 +51,7 @@ export default function Footer() {
           <p className="text-foreground/60">
             &copy; {getCurrentYear()} Built by{" "}
             <Link href="https://x.com/serge_0v" target="_blank" rel="noopener">
-              @serge_0v
+              blackwoodbox
             </Link>
             .
           </p>

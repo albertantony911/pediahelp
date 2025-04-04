@@ -1,3 +1,5 @@
+console.log("🔥 NEXT_PUBLIC_SITE_URL =", process.env.NEXT_PUBLIC_SITE_URL);
+
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
