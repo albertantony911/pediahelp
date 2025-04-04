@@ -177,13 +177,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
           </p>
         </div>
       </div>
-
-      {/* About Section */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-2">About the Doctor</h2>
-        <p className="text-gray-700">{doctor.about ?? 'No information available.'}</p>
-      </div>
-
+      
       {/* CTA Buttons */}
       <div className="mt-10 flex gap-4">
         <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
@@ -193,6 +187,14 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
           Ask Your Doctor
         </button>
       </div>
+          
+      {/* About Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-2">About the Doctor</h2>
+        <p className="text-gray-700">{doctor.about ?? 'No information available.'}</p>
+      </div>
+
+
 
       {/* Reviews Section */}
       <div className="mt-12">
