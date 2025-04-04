@@ -183,7 +183,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
       {/* CTA Buttons */}
       <div className="mt-10 flex gap-4">
         <Link
-        href={`/consultation/${doctor.slug.current}`}
+        href={`/consultation/${doctor.slug.current}/booking`}
         aria-label={`Book consultation with ${doctor.name}`}
         className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition inline-block text-center"
         >
