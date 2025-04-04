@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 import { notFound } from 'next/navigation';
@@ -180,9 +182,14 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
       
       {/* CTA Buttons */}
       <div className="mt-10 flex gap-4">
-        <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-          Book Consultation
-        </button>
+        <Link
+        href={`/consultation/${doctor.slug.current}`}
+        aria-label={`Book consultation with ${doctor.name}`}
+        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition inline-block text-center"
+        >
+        Book Consultation
+        </Link>
+
         <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition">
           Ask Your Doctor
         </button>
