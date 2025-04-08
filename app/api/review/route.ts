@@ -1,80 +1,34 @@
+// app/api/review/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { groq } from 'next-sanity'
 import { createClient } from 'next-sanity'
 
-// Simple in-memory rate limiting
-const rateLimitMap = new Map<string, { count: number; lastRequest: number }>()
-const RATE_LIMIT = 5
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
-
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET
-const token = process.env.SANITY_API_TOKEN
-
-if (!projectId || !dataset || !token) {
-  console.error('❌ Missing required Sanity env variables')
-}
-
 const client = createClient({
-  projectId,
-  dataset,
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   apiVersion: '2024-10-18',
   useCdn: false,
-  token,
+  token: process.env.SANITY_API_TOKEN!,
 })
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') || 'unknown'
-  const now = Date.now()
-
-  // Rate limit
-  const rateData = rateLimitMap.get(ip) || { count: 0, lastRequest: now }
-
-  if (now - rateData.lastRequest > RATE_LIMIT_WINDOW) {
-    rateData.count = 0
-    rateData.lastRequest = now
-  }
-
-  if (rateData.count >= RATE_LIMIT) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      { status: 429 }
-    )
-  }
-
-  rateData.count += 1
-  rateLimitMap.set(ip, rateData)
-
-  // Parse body
-  let body
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
-
+  const body = await req.json()
   const { name, rating, comment, doctorId } = body
 
   if (!name || !rating || !comment || !doctorId) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Check doctor
-  try {
-    const doctor = await client.fetch(
-      groq`*[_type == "doctor" && _id == $id][0]`,
-      { id: doctorId }
-    )
+  // Fetch doctor and slug
+  const doctor = await client.fetch(
+    groq`*[_type == "doctor" && _id == $id][0]{ slug }`,
+    { id: doctorId }
+  )
 
-    if (!doctor) {
-      return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
-    }
-  } catch (err) {
-    console.error('🔴 Error checking doctor existence:', err)
-    return NextResponse.json({ error: 'Could not validate doctor' }, { status: 500 })
+  if (!doctor || !doctor.slug?.current) {
+    return NextResponse.json({ error: 'Doctor not found or missing slug' }, { status: 404 })
   }
 
-  // Submit review
   try {
     const review = {
       _type: 'review',
@@ -91,17 +45,23 @@ export async function POST(req: NextRequest) {
 
     const result = await client.create(review)
 
+    // 🔁 Revalidate doctor profile by slug
+    const slug = doctor.slug.current
+    const revalidateRes = await fetch(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/doctors/${slug}&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
+    )
+
+    if (!revalidateRes.ok) {
+      console.warn('❗ Revalidation failed:', await revalidateRes.text())
+    }
+
     return NextResponse.json({ success: true, id: result._id })
   } catch (error: any) {
     console.error('🔴 Failed to submit review:', error)
 
-    if (error.statusCode === 403) {
-      return NextResponse.json(
-        { error: 'Unauthorized to write. Check SANITY_API_TOKEN.' },
-        { status: 403 }
-      )
-    }
-
-    return NextResponse.json({ error: 'Review submission failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message || 'Review submission failed' },
+      { status: 500 }
+    )
   }
 }

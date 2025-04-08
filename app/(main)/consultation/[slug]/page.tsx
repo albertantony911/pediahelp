@@ -5,8 +5,10 @@ import { client } from '@/sanity/lib/client';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import DoctorReview from '@/components/blocks/forms/doctor-review';
+import DoctorReviews from '@/components/blocks/DoctorReviews'
 
-export const revalidate = 60;
+
+export const revalidate = 86400;
 
 // 1. Define Types
 interface Doctor {
@@ -206,24 +208,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
 
 
       {/* Reviews Section */}
-      <div className="mt-12">
-        <h3 className="text-lg font-semibold mb-2">Ratings & Reviews</h3>
-        {reviews.length === 0 ? (
-          <p className="text-sm text-gray-500">No reviews yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {reviews.map((review) => (
-              <li key={review._id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{review.name}</p>
-                  <p className="text-yellow-600">⭐ {review.rating}/5</p>
-                </div>
-                <p className="text-sm mt-2 text-gray-700">{review.comment}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <DoctorReviews reviews={reviews} />
 
       {/* Review Form */}
       <DoctorReview doctorId={doctorId} />

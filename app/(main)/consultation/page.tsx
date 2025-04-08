@@ -10,6 +10,7 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveUserInfo } from '@/lib/cookies';
 
+
 export default function BookingFormPage() {
   const router = useRouter();
   const params = useParams(); // Get dynamic route parameters
