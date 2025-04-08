@@ -23,20 +23,33 @@ export default function OTPReviewForm({ doctorId }: Props) {
   const recaptchaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+    const containerId = 'recaptcha-container'
+
+    if (typeof window !== 'undefined') {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear()
+          window.recaptchaVerifier = undefined
+          document.getElementById(containerId)?.replaceChildren()
+        } catch (e) {
+          console.warn('Cleanup error:', e)
+        }
+      }
+
       try {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        const verifier = new RecaptchaVerifier(auth, containerId, {
           size: 'invisible',
           callback: (response: any) => {
-            console.log('reCAPTCHA solved', response)
+            console.log('CAPTCHA solved:', response)
           },
         })
-        verifier.render().catch(console.error)
         window.recaptchaVerifier = verifier
+        verifier.render()
       } catch (error) {
-        console.error('reCAPTCHA init failed:', error)
+        console.error('Failed to initialize reCAPTCHA:', error)
       }
     }
+
     return () => {
       if (window.recaptchaVerifier?.clear) {
         window.recaptchaVerifier.clear()
