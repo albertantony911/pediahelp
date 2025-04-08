@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { toast } from 'sonner'
@@ -14,9 +14,9 @@ export default function OTPReviewForm({ doctorId }: Props) {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [name, setName] = useState('')
-  const [confirmationResult, setConfirmationResult] = useState<any>(null)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
+  const [confirmationResult, setConfirmationResult] = useState<any>(null)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -27,16 +27,16 @@ export default function OTPReviewForm({ doctorId }: Props) {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
+          callback: (response: any) => {
+            console.log('reCAPTCHA solved', response)
+          },
         })
-        verifier.render().catch((err) => {
-          console.error('reCAPTCHA render error:', err)
-        })
+        verifier.render().catch(console.error)
         window.recaptchaVerifier = verifier
       } catch (error) {
-        console.error('Failed to initialize reCAPTCHA:', error)
+        console.error('reCAPTCHA init failed:', error)
       }
     }
-
     return () => {
       if (window.recaptchaVerifier?.clear) {
         window.recaptchaVerifier.clear()
@@ -46,9 +46,9 @@ export default function OTPReviewForm({ doctorId }: Props) {
   }, [])
 
   const handleSendOTP = async () => {
-    if (!phone.startsWith('+91') || phone.length !== 13) {
+    if (!/^\+91\d{10}$/.test(phone)) {
       toast.error('Invalid phone number', {
-        description: 'Make sure it starts with +91 and has 10 digits.',
+        description: 'Must start with +91 followed by 10 digits.',
       })
       return
     }
@@ -61,12 +61,12 @@ export default function OTPReviewForm({ doctorId }: Props) {
       setConfirmationResult(confirmation)
       setStep('otp')
       toast.success('OTP sent!', {
-        description: 'Check your phone for the OTP.',
+        description: 'Check your phone.',
       })
-    } catch (error) {
-      console.error(error)
+    } catch (error: any) {
+      console.error('OTP send error:', error.code, error.message)
       toast.error('Failed to send OTP', {
-        description: 'Try again or check the phone number.',
+        description: error?.message || 'Check number and try again.',
       })
     }
   }
@@ -78,25 +78,20 @@ export default function OTPReviewForm({ doctorId }: Props) {
       toast.success('OTP verified!', {
         description: 'You can now submit your review.',
       })
-    } catch (error) {
-      console.error('OTP verification failed:', error)
+    } catch (error: any) {
+      console.error('OTP verification error:', error.code, error.message)
       toast.error('Invalid OTP', {
-        description: 'Please try again.',
+        description: error?.message || 'Try again.',
       })
     }
   }
 
   const handleSubmitReview = async () => {
-    if (!name.trim()) {
-      toast.warning('Name required', {
-        description: 'Please enter your name.',
-      })
-      return
-    }
-
-    if (!comment.trim()) {
-      toast.warning('Comment required', {
-        description: 'Please write something before submitting.',
+    if (!name.trim() || !comment.trim()) {
+      toast.warning('Missing fields', {
+        description: !name.trim()
+          ? 'Please enter your name.'
+          : 'Please enter your comment.',
       })
       return
     }
@@ -109,20 +104,20 @@ export default function OTPReviewForm({ doctorId }: Props) {
         body: JSON.stringify({ name, rating, comment, doctorId }),
       })
 
-      if (res.ok) {
-        setSubmitted(true)
-        setComment('')
-        setName('')
-        toast.success('Review submitted!')
-        window.location.reload()
-      } else {
+      if (!res.ok) {
         const errorData = await res.json()
-        throw new Error(errorData.error || 'Submission error')
+        throw new Error(errorData.error || 'Submission failed')
       }
-    } catch (error) {
-      console.error('Submit error:', error)
+
+      setSubmitted(true)
+      setName('')
+      setComment('')
+      toast.success('Review submitted!')
+      window.location.reload()
+    } catch (error: any) {
+      console.error('Review submit error:', error.message)
       toast.error('Submission failed', {
-        description: 'Please try again.',
+        description: error?.message || 'Try again.',
       })
     } finally {
       setLoading(false)
@@ -187,9 +182,7 @@ export default function OTPReviewForm({ doctorId }: Props) {
             className="border rounded px-2 py-1"
           >
             {[5, 4, 3, 2, 1].map((r) => (
-              <option key={r} value={r}>
-                {r} Stars
-              </option>
+              <option key={r} value={r}>{r} Stars</option>
             ))}
           </select>
 
