@@ -1,60 +1,81 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { client } from '@/sanity/lib/client';
-import { groq } from 'next-sanity';
+import { NextRequest, NextResponse } from 'next/server'
+import { groq } from 'next-sanity'
+import { createClient } from 'next-sanity'
 
-// Simple in-memory rate limiting (for demonstration purposes)
-const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
-const RATE_LIMIT = 5; // Max 5 requests
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour window
+// Simple in-memory rate limiting
+const rateLimitMap = new Map<string, { count: number; lastRequest: number }>()
+const RATE_LIMIT = 5
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
+
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET
+const token = process.env.SANITY_API_TOKEN
+
+if (!projectId || !dataset || !token) {
+  console.error('❌ Missing required Sanity env variables')
+}
+
+const client = createClient({
+  projectId,
+  dataset,
+  apiVersion: '2024-10-18',
+  useCdn: false,
+  token,
+})
 
 export async function POST(req: NextRequest) {
-  // Get the client's IP address (or phone number for better tracking)
-  const ip = req.headers.get('x-forwarded-for') || 'unknown';
-  const body = await req.json();
-  const { name, rating, comment, doctorId } = body;
+  const ip = req.headers.get('x-forwarded-for') || 'unknown'
+  const now = Date.now()
 
-  // Rate limiting logic
-  const now = Date.now();
-  const rateLimitData = rateLimitMap.get(ip) || { count: 0, lastRequest: now };
+  // Rate limit
+  const rateData = rateLimitMap.get(ip) || { count: 0, lastRequest: now }
 
-  if (now - rateLimitData.lastRequest > RATE_LIMIT_WINDOW) {
-    // Reset the counter if the window has expired
-    rateLimitData.count = 0;
-    rateLimitData.lastRequest = now;
+  if (now - rateData.lastRequest > RATE_LIMIT_WINDOW) {
+    rateData.count = 0
+    rateData.lastRequest = now
   }
 
-  if (rateLimitData.count >= RATE_LIMIT) {
+  if (rateData.count >= RATE_LIMIT) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 }
-    );
+    )
   }
 
-  rateLimitData.count += 1;
-  rateLimitMap.set(ip, rateLimitData);
+  rateData.count += 1
+  rateLimitMap.set(ip, rateData)
 
-  // Validate request body
-  if (!name || !rating || !comment || !doctorId) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-  }
-
-  // Validate that the doctorId corresponds to an existing doctor
-  const doctorExists = await client.fetch(
-    groq`*[_type == "doctor" && _id == $id][0]`,
-    { id: doctorId }
-  );
-
-  if (!doctorExists) {
-    return NextResponse.json({ error: 'Doctor not found' }, { status: 404 });
-  }
-
+  // Parse body
+  let body
   try {
-    // Check if the client has a token (for debugging)
-    if (!process.env.SANITY_API_TOKEN) {
-      throw new Error('Sanity API token is not configured. Mutations are not allowed.');
-    }
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
-    // Create the review document
+  const { name, rating, comment, doctorId } = body
+
+  if (!name || !rating || !comment || !doctorId) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Check doctor
+  try {
+    const doctor = await client.fetch(
+      groq`*[_type == "doctor" && _id == $id][0]`,
+      { id: doctorId }
+    )
+
+    if (!doctor) {
+      return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
+    }
+  } catch (err) {
+    console.error('🔴 Error checking doctor existence:', err)
+    return NextResponse.json({ error: 'Could not validate doctor' }, { status: 500 })
+  }
+
+  // Submit review
+  try {
     const review = {
       _type: 'review',
       name,
@@ -64,29 +85,23 @@ export async function POST(req: NextRequest) {
         _type: 'reference',
         _ref: doctorId,
       },
-      approved: true, // auto-publish
+      approved: true,
       submittedAt: new Date().toISOString(),
-    };
-
-    // Ensure we're only creating a review document
-    if (review._type !== 'review') {
-      throw new Error('Invalid document type. Only "review" documents can be created.');
     }
 
-    await client.create(review);
+    const result = await client.create(review)
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id: result._id })
   } catch (error: any) {
-    console.error('Review submission error:', error);
+    console.error('🔴 Failed to submit review:', error)
+
     if (error.statusCode === 403) {
       return NextResponse.json(
-        { error: 'Insufficient permissions to create a review. Please contact support.' },
+        { error: 'Unauthorized to write. Check SANITY_API_TOKEN.' },
         { status: 403 }
-      );
+      )
     }
-    return NextResponse.json(
-      { error: error.message || 'Something went wrong' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: 'Review submission failed' }, { status: 500 })
   }
 }
