@@ -1,4 +1,3 @@
-// components/blocks/DoctorReviews.tsx
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,22 +19,32 @@ export default function DoctorReviews({ reviews }: Props) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-5 mt-8">
       {reviews.map((review) => (
-        <Card key={review._id} className="shadow-sm border-gray-200">
-          <CardHeader className="flex flex-row items-start justify-between pb-2">
-            <div>
-              <CardTitle className="text-base font-semibold">{review.name}</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(review.submittedAt))} ago
-              </p>
+        <Card
+          key={review._id}
+          className="border border-muted bg-background shadow-sm rounded-xl transition hover:shadow-md"
+        >
+          <CardHeader className="pb-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold text-foreground">
+                  {review.name}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(review.submittedAt), { addSuffix: true })}
+                </p>
+              </div>
+              <div className="text-sm text-yellow-500 font-medium">
+                {'⭐'.repeat(review.rating)}
+              </div>
             </div>
-            <span className="text-yellow-500 font-medium text-sm whitespace-nowrap">
-              {'⭐'.repeat(review.rating)}
-            </span>
           </CardHeader>
+
           <CardContent>
-            <p className="text-sm text-gray-700 whitespace-pre-line">{review.comment}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {review.comment}
+            </p>
           </CardContent>
         </Card>
       ))}

@@ -3,21 +3,42 @@
 import { useEffect, useState } from 'react'
 import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { toast } from 'sonner'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import Cookies from 'js-cookie'
-import { CheckCircle2, AlertCircle } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { toast } from 'sonner'
+import clsx from 'clsx'
+
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
+import { CheckCircle2, AlertCircle, Star } from 'lucide-react'
 
 interface Props {
   doctorId: string
+}
+
+function ValidatedField({
+  children,
+  isValid,
+}: {
+  children: React.ReactNode
+  isValid: boolean
+}) {
+  return (
+    <div className="relative">
+      {children}
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+        {isValid ? (
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+        ) : (
+          <AlertCircle className="h-4 w-4 text-red-500" />
+        )}
+      </span>
+    </div>
+  )
 }
 
 export default function ReviewForm({ doctorId }: Props) {
@@ -37,31 +58,25 @@ export default function ReviewForm({ doctorId }: Props) {
   const isReadyToSendOtp = isNameValid && isPhoneValid && isCommentValid && rating
 
   useEffect(() => {
-    const containerId = 'recaptcha-review-container'
     if (typeof window !== 'undefined') {
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear()
-          window.recaptchaVerifier = undefined
-          document.getElementById(containerId)?.replaceChildren()
-        } catch (e) {
-          console.warn('Cleanup error:', e)
-        }
+      if (window.recaptchaVerifier?.clear) {
+        window.recaptchaVerifier.clear()
+        window.recaptchaVerifier = undefined
+        document.getElementById('recaptcha-review-container')?.replaceChildren()
       }
 
       try {
-        const verifier = new RecaptchaVerifier(auth, containerId, {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-review-container', {
           size: 'invisible',
-          callback: (response: any) => console.log('CAPTCHA solved:', response),
+          callback: () => {},
         })
         window.recaptchaVerifier = verifier
         verifier.render()
-      } catch (error) {
-        console.error('Failed to initialize reCAPTCHA:', error)
+      } catch (e) {
+        console.error('reCAPTCHA error:', e)
       }
     }
 
-    // Load from cookie
     const saved = Cookies.get('pedia_review_info')
     if (saved) {
       try {
@@ -71,36 +86,21 @@ export default function ReviewForm({ doctorId }: Props) {
         setRating(parsed.rating || 5)
       } catch {}
     }
-
-    return () => {
-      if (window.recaptchaVerifier?.clear) {
-        window.recaptchaVerifier.clear()
-        window.recaptchaVerifier = undefined
-      }
-    }
   }, [])
 
   const handleSendOTP = async () => {
     if (!isReadyToSendOtp) {
-      toast.error('Please fill in all fields before sending OTP.')
+      toast.error('Please fill all fields before sending OTP.')
       return
     }
 
     try {
-      const verifier = window.recaptchaVerifier
-      if (!verifier) throw new Error('reCAPTCHA verifier missing')
-
-      const confirmation = await signInWithPhoneNumber(auth, `+91${phone}`, verifier)
+      const confirmation = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier)
       setConfirmationResult(confirmation)
       setOtpSent(true)
-      toast.success('OTP sent!', {
-        description: `Sent to +91${phone}`,
-      })
-    } catch (error: any) {
-      console.error('OTP send error:', error.code, error.message)
-      toast.error('Failed to send OTP', {
-        description: error?.message || 'Try again later.',
-      })
+      toast.success('OTP sent successfully to +91' + phone)
+    } catch (err: any) {
+      toast.error('Failed to send OTP', { description: err?.message })
     }
   }
 
@@ -117,131 +117,145 @@ export default function ReviewForm({ doctorId }: Props) {
         body: JSON.stringify({ name, rating, comment, doctorId }),
       })
 
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.error || 'Submission failed')
-      }
+      if (!res.ok) throw new Error((await res.json())?.error || 'Failed to submit review')
 
-      // Save to cookie for reuse
       Cookies.set('pedia_review_info', JSON.stringify({ name, rating, comment }), { expires: 7 })
-
-      toast.success('Review submitted!')
+      toast.success('Review submitted successfully!')
       setSubmitted(true)
-    } catch (error: any) {
-      console.error('OTP or submission error:', error.code || error.message)
-      toast.error('Failed to verify or submit', {
-        description: error?.message || 'Try again.',
-      })
+    } catch (err: any) {
+      toast.error('Failed to verify or submit', { description: err?.message })
     } finally {
       setSubmitting(false)
     }
   }
 
-  const renderStatusIcon = (valid: boolean) => (
-    <span className="absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none">
-      {valid ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-      ) : (
-        <AlertCircle className="h-4 w-4 text-red-500" />
-      )}
-    </span>
-  )
-
   if (submitted) {
     return (
       <div className="mt-12 border-t pt-6 text-center">
         <h3 className="text-xl font-semibold text-green-600">🎉 Thank you for your review!</h3>
-        <p className="text-muted-foreground text-sm mt-2">Your feedback helps others find the right pediatrician.</p>
+        <p className="text-muted-foreground text-sm mt-2">
+          Your feedback helps others find the right pediatrician.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="mt-12 border-t pt-6 max-w-xl">
-      <h3 className="text-lg font-semibold mb-4">Leave a Review</h3>
-
-      <div className="space-y-4">
-        <label className="block text-sm font-medium">Your Name</label>
-        <div className="relative">
-          <Input
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={otpSent}
-            aria-label="Your Name"
-          />
-          {name && !otpSent && renderStatusIcon(isNameValid)}
-        </div>
-
-        <label className="block text-sm font-medium">Rating</label>
-<Select value={String(rating)} onValueChange={(val) => setRating(Number(val))}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select rating" />
-  </SelectTrigger>
-  <SelectContent>
-    {[5, 4, 3, 2, 1].map((r) => (
-      <SelectItem key={r} value={String(r)}>
-        {r} Stars
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-        <label className="block text-sm font-medium">Your Comment</label>
-        <div className="relative">
-          <textarea
-            placeholder="Write your comment"
-            rows={3}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            disabled={otpSent}
-            className="w-full border rounded p-2"
-            aria-label="Comment"
-          />
-          {comment && !otpSent && renderStatusIcon(isCommentValid)}
-        </div>
-
-        <label className="block text-sm font-medium">Phone Number</label>
-        <div className="relative">
-          <div className="flex items-center border border-input rounded-md overflow-hidden">
-            <div className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm gap-1 shrink-0">
-              🇮🇳 +91
-            </div>
-            <input
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="Enter 10-digit mobile number"
-              disabled={otpSent}
-              className="w-full px-3 py-2 outline-none bg-transparent"
-              aria-label="Phone Number"
-            />
+    <div className="mt-12 max-w-xl border-t pt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Leave a Review</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Name */}
+          <div>
+            <Label>Your Name</Label>
+            <ValidatedField isValid={isNameValid}>
+              <Input
+                placeholder="Your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={otpSent}
+                className="pr-10"
+              />
+            </ValidatedField>
           </div>
-          {phone && !otpSent && renderStatusIcon(isPhoneValid)}
-        </div>
 
-        {!otpSent ? (
-          <Button onClick={handleSendOTP} disabled={!isReadyToSendOtp}>
-            Send OTP
-          </Button>
-        ) : (
-          <>
-            <Input
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              maxLength={6}
-              inputMode="numeric"
-              aria-label="OTP"
-            />
-            <Button onClick={handleVerifyOTP} disabled={submitting}>
-              {submitting ? 'Verifying...' : 'Verify & Submit Review'}
+          {/* Star Rating */}
+          <div className='flex flex-col  gap-2'>
+            <Label className="mb-1 block">Rating </Label>
+            <TooltipProvider>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <Tooltip key={val}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => !otpSent && setRating(val)}
+                        className={clsx(
+                          'transition-transform duration-150 ease-in-out',
+                          'hover:scale-110 focus:scale-110',
+                          'disabled:cursor-not-allowed'
+                        )}
+                        aria-label={`Rate ${val} star${val > 1 ? 's' : ''}`}
+                      >
+                        <Star
+                          className={clsx(
+                            'h-6 w-6 stroke-2 transition-colors',
+                            val <= rating
+                              ? 'fill-yellow-400 stroke-yellow-500'
+                              : 'fill-transparent stroke-gray-300 hover:stroke-yellow-400'
+                          )}
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{val} star{val > 1 ? 's' : ''}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          
+          </div>
+
+          {/* Comment */}
+          <div>
+            <Label>Comment</Label>
+            <ValidatedField isValid={isCommentValid}>
+              <Textarea
+                placeholder="Write your feedback..."
+                rows={4}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                disabled={otpSent}
+                className="pr-10"
+              />
+            </ValidatedField>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <Label>Mobile Number</Label>
+            <ValidatedField isValid={isPhoneValid}>
+              <div className="flex items-center border border-input rounded-md overflow-hidden bg-background">
+                <div className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm gap-1 shrink-0 text-gray-700">
+                  🇮🇳 +91
+                </div>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  disabled={otpSent}
+                  placeholder="Enter 10-digit mobile number"
+                  className="w-full px-3 py-2 bg-transparent outline-none text-sm"
+                />
+              </div>
+            </ValidatedField>
+          </div>
+
+          {/* OTP Input + Submit */}
+          {!otpSent ? (
+            <Button onClick={handleSendOTP} disabled={!isReadyToSendOtp} className="w-full">
+              Send OTP
             </Button>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <Input
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                inputMode="numeric"
+              />
+              <Button onClick={handleVerifyOTP} disabled={submitting} className="w-full">
+                {submitting ? 'Submitting...' : 'Verify & Submit Review'}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       <div id="recaptcha-review-container" className="mt-4" />
     </div>
