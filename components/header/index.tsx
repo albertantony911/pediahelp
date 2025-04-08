@@ -12,12 +12,12 @@ const navItems = [
   },
   {
     label: "Blog",
-    href: "/",
+    href: "/blog",
     target: false,
   },
   {
     label: "About",
-    href: "/",
+    href: "/about",
     target: false,
   },
 ];
