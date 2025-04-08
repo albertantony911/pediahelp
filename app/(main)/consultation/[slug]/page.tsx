@@ -4,7 +4,7 @@ import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import OTPReviewForm from '@/components/blocks/forms/OTPReviewForm';
+import OTPReviewForm from '@/components/blocks/forms/doctor-review';
 
 // 1. Define Types
 interface Doctor {

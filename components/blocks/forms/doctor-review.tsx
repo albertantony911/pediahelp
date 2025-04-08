@@ -37,7 +37,7 @@ export default function ReviewForm({ doctorId }: Props) {
   const isReadyToSendOtp = isNameValid && isPhoneValid && isCommentValid && rating
 
   useEffect(() => {
-    const containerId = 'recaptcha-container'
+    const containerId = 'recaptcha-review-container'
     if (typeof window !== 'undefined') {
       if (window.recaptchaVerifier) {
         try {
@@ -243,7 +243,7 @@ export default function ReviewForm({ doctorId }: Props) {
         )}
       </div>
 
-      <div id="recaptcha-container" className="mt-4" />
+      <div id="recaptcha-review-container" className="mt-4" />
     </div>
   )
 }
