@@ -4,7 +4,9 @@ import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import OTPReviewForm from '@/components/blocks/forms/doctor-review';
+import DoctorReview from '@/components/blocks/forms/doctor-review';
+
+export const revalidate = 60;
 
 // 1. Define Types
 interface Doctor {
@@ -224,7 +226,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
       </div>
 
       {/* Review Form */}
-      <OTPReviewForm doctorId={doctorId} />
+      <DoctorReview doctorId={doctorId} />
     </div>
   );
 }
