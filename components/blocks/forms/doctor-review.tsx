@@ -1,134 +1,212 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
-import Cookies from 'js-cookie'
-import { toast } from 'sonner'
-import clsx from 'clsx'
+import { useEffect, useState } from 'react';
+import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import Cookies from 'js-cookie';
+import { toast } from 'sonner';
+import clsx from 'clsx';
 
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { CheckCircle2, AlertCircle, Star } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Star } from 'lucide-react';
 
-interface Props {
-  doctorId: string
+// Validation component for form fields
+const ValidatedField = ({ children, isValid }: { children: React.ReactNode; isValid: boolean }) => (
+  <div className="relative">
+    {children}
+    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+      {isValid ? (
+        <CheckCircle2 className="h-4 w-4 text-green-600" />
+      ) : (
+        <AlertCircle className="h-4 w-4 text-red-500" />
+      )}
+    </span>
+  </div>
+);
+
+interface ReviewFormProps {
+  doctorId: string;
 }
 
-function ValidatedField({
-  children,
-  isValid,
-}: {
-  children: React.ReactNode
-  isValid: boolean
-}) {
-  return (
-    <div className="relative">
-      {children}
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-        {isValid ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-        ) : (
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        )}
-      </span>
-    </div>
-  )
-}
+export default function ReviewForm({ doctorId }: ReviewFormProps) {
+  // State management
+  const [formData, setFormData] = useState({
+    name: '',
+    rating: 5,
+    comment: '',
+    phone: '',
+    otp: '',
+  });
+  const [otpSent, setOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null); // Still using any here, will address later
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-export default function ReviewForm({ doctorId }: Props) {
-  const [name, setName] = useState('')
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [confirmationResult, setConfirmationResult] = useState<any>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  // Validation logic
+  const isPhoneValid = /^\d{10}$/.test(formData.phone);
+  const isNameValid = formData.name.trim().length > 0;
+  const isCommentValid = formData.comment.trim().length > 0;
+  const isFormValid = isNameValid && isPhoneValid && isCommentValid && formData.rating;
 
-  const isPhoneValid = /^\d{10}$/.test(phone)
-  const isNameValid = name.trim().length > 0
-  const isCommentValid = comment.trim().length > 0
-  const isReadyToSendOtp = isNameValid && isPhoneValid && isCommentValid && rating
-
+  // Effect for reCAPTCHA and form data persistence
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (window.recaptchaVerifier?.clear) {
-        window.recaptchaVerifier.clear()
-        window.recaptchaVerifier = undefined
-        document.getElementById('recaptcha-review-container')?.replaceChildren()
-      }
+    if (typeof window === 'undefined') return;
 
-      try {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-review-container', {
-          size: 'invisible',
-          callback: () => {},
-        })
-        window.recaptchaVerifier = verifier
-        verifier.render()
-      } catch (e) {
-        console.error('reCAPTCHA error:', e)
-      }
+    console.log('[reCAPTCHA] Initializing reCAPTCHA verifier...');
+    console.log('[Firebase ENV] API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+
+    // Clean up existing reCAPTCHA verifier
+    if (window.recaptchaVerifier) {
+      console.log('[reCAPTCHA] Clearing existing verifier...');
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = undefined;
     }
 
-    const saved = Cookies.get('pedia_review_info')
+    const container = document.getElementById('recaptcha-review-container');
+    if (container) container.innerHTML = '';
+
+    try {
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-review-container', {
+        size: 'invisible',
+        callback: (response: string) => { // Explicitly typing response as string
+          console.log('[reCAPTCHA] Verified:', response);
+        },
+        'expired-callback': () => {
+          console.log('[reCAPTCHA] Token expired');
+        },
+      });
+
+      window.recaptchaVerifier = verifier;
+
+      verifier.render().then((widgetId) => {
+        console.log('[reCAPTCHA] Rendered with widget ID:', widgetId);
+      }).catch((error) => {
+        console.error('[reCAPTCHA] Render error:', error);
+      });
+
+    } catch (error) {
+      console.error('[reCAPTCHA] Initialization error:', error);
+    }
+
+    // Restore cookie
+    const saved = Cookies.get('pedia_review_info');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved)
-        setName(parsed.name || '')
-        setComment(parsed.comment || '')
-        setRating(parsed.rating || 5)
-      } catch {}
+        const parsed = JSON.parse(saved);
+        setFormData((prev) => ({
+          ...prev,
+          name: parsed.name || '',
+          comment: parsed.comment || '',
+          rating: parsed.rating || 5,
+        }));
+        console.log('[Cookie] Restored saved review data.');
+      } catch (error) {
+        console.error('[Cookie] Error parsing saved review data:', error);
+      }
     }
-  }, [])
 
+    return () => {
+      if (window.recaptchaVerifier) {
+        console.log('[reCAPTCHA] Cleanup on unmount.');
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+    };
+  }, []);
+
+  // Handle form input changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle rating change
+  const handleRatingChange = (value: number) => {
+    if (!otpSent) {
+      setFormData((prev) => ({ ...prev, rating: value }));
+    }
+  };
+
+  // Send OTP to user's phone
   const handleSendOTP = async () => {
-    if (!isReadyToSendOtp) {
-      toast.error('Please fill all fields before sending OTP.')
-      return
+    if (!isFormValid) {
+      toast.error('Please fill all fields before sending OTP.');
+      console.warn('[OTP] Form validation failed:', formData);
+      return;
     }
 
     try {
-      const confirmation = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier)
-      setConfirmationResult(confirmation)
-      setOtpSent(true)
-      toast.success('OTP sent successfully to +91' + phone)
-    } catch (err: any) {
-      toast.error('Failed to send OTP', { description: err?.message })
+      console.log('[OTP] Attempting to verify reCAPTCHA...');
+      if (window.recaptchaVerifier) {
+        await window.recaptchaVerifier.verify();
+      } else {
+        console.error('[OTP] reCAPTCHA verifier missing!');
+        return;
+      }
+
+      console.log('[OTP] Sending OTP to:', `+91${formData.phone}`);
+      const confirmation = await signInWithPhoneNumber(auth, `+91${formData.phone}`, window.recaptchaVerifier);
+      console.log('[OTP] ConfirmationResult:', confirmation);
+
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+      toast.success(`OTP sent successfully to +91${formData.phone}`);
+    } catch (error: any) {
+      console.error('[OTP] Failed to send OTP:', error?.code, error?.message);
+      toast.error('Failed to send OTP', {
+        description: error?.message || 'Unexpected error',
+      });
     }
-  }
+  };
 
-  const handleVerifyOTP = async () => {
-    if (!confirmationResult) return
+  // Verify OTP and submit review
+  const handleVerifyAndSubmit = async () => {
+    if (!confirmationResult) return;
 
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      await confirmationResult.confirm(otp)
+      await confirmationResult.confirm(formData.otp);
 
-      const res = await fetch('/api/review', {
+      const response = await fetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, rating, comment, doctorId }),
-      })
+        body: JSON.stringify({
+          name: formData.name,
+          rating: formData.rating,
+          comment: formData.comment,
+          doctorId,
+        }),
+      });
 
-      if (!res.ok) throw new Error((await res.json())?.error || 'Failed to submit review')
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
 
-      Cookies.set('pedia_review_info', JSON.stringify({ name, rating, comment }), { expires: 7 })
-      toast.success('Review submitted successfully!')
-      setSubmitted(true)
-    } catch (err: any) {
-      toast.error('Failed to verify or submit', { description: err?.message })
+      Cookies.set('pedia_review_info', JSON.stringify({
+        name: formData.name,
+        rating: formData.rating,
+        comment: formData.comment,
+      }), { expires: 7 });
+      toast.success('Review submitted successfully!');
+      setSubmitted(true);
+    } catch (error: any) {
+      toast.error('Failed to verify or submit', { description: error.message });
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
+  // Render success message if submitted
   if (submitted) {
     return (
       <div className="mt-12 border-t pt-6 text-center">
@@ -136,8 +214,11 @@ export default function ReviewForm({ doctorId }: Props) {
         <p className="text-muted-foreground text-sm mt-2">
           Your feedback helps others find the right pediatrician.
         </p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Refresh Page
+        </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -147,23 +228,25 @@ export default function ReviewForm({ doctorId }: Props) {
           <CardTitle className="text-lg font-semibold">Leave a Review</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Name */}
+          {/* Name Field */}
           <div>
-            <Label>Your Name</Label>
+            <Label htmlFor="name">Your Name</Label>
             <ValidatedField isValid={isNameValid}>
               <Input
+                id="name"
+                name="name"
                 placeholder="Your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name}
+                onChange={handleChange}
                 disabled={otpSent}
                 className="pr-10"
               />
             </ValidatedField>
           </div>
 
-          {/* Star Rating */}
-          <div className='flex flex-col  gap-2'>
-            <Label className="mb-1 block">Rating </Label>
+          {/* Rating Field */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="rating">Rating</Label>
             <TooltipProvider>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((val) => (
@@ -171,18 +254,19 @@ export default function ReviewForm({ doctorId }: Props) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => !otpSent && setRating(val)}
+                        onClick={() => handleRatingChange(val)}
                         className={clsx(
                           'transition-transform duration-150 ease-in-out',
                           'hover:scale-110 focus:scale-110',
-                          'disabled:cursor-not-allowed'
+                          'disabled:cursor-not-allowed',
+                          otpSent && 'cursor-not-allowed opacity-50'
                         )}
                         aria-label={`Rate ${val} star${val > 1 ? 's' : ''}`}
                       >
                         <Star
                           className={clsx(
                             'h-6 w-6 stroke-2 transition-colors',
-                            val <= rating
+                            val <= formData.rating
                               ? 'fill-yellow-400 stroke-yellow-500'
                               : 'fill-transparent stroke-gray-300 hover:stroke-yellow-400'
                           )}
@@ -194,27 +278,28 @@ export default function ReviewForm({ doctorId }: Props) {
                 ))}
               </div>
             </TooltipProvider>
-          
           </div>
 
-          {/* Comment */}
+          {/* Comment Field */}
           <div>
-            <Label>Comment</Label>
+            <Label htmlFor="comment">Comment</Label>
             <ValidatedField isValid={isCommentValid}>
               <Textarea
+                id="comment"
+                name="comment"
                 placeholder="Write your feedback..."
                 rows={4}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                value={formData.comment}
+                onChange={handleChange}
                 disabled={otpSent}
                 className="pr-10"
               />
             </ValidatedField>
           </div>
 
-          {/* Phone */}
+          {/* Phone Field */}
           <div>
-            <Label>Mobile Number</Label>
+            <Label htmlFor="phone">Mobile Number</Label>
             <ValidatedField isValid={isPhoneValid}>
               <div className="flex items-center border border-input rounded-md overflow-hidden bg-background">
                 <div className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm gap-1 shrink-0 text-gray-700">
@@ -222,11 +307,15 @@ export default function ReviewForm({ doctorId }: Props) {
                 </div>
                 <input
                   id="phone"
+                  name="phone"
                   type="tel"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({
+                    ...prev,
+                    phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                  }))}
                   disabled={otpSent}
                   placeholder="Enter 10-digit mobile number"
                   className="w-full px-3 py-2 bg-transparent outline-none text-sm"
@@ -235,29 +324,30 @@ export default function ReviewForm({ doctorId }: Props) {
             </ValidatedField>
           </div>
 
-          {/* OTP Input + Submit */}
+          {/* OTP and Submit Buttons */}
           {!otpSent ? (
-            <Button onClick={handleSendOTP} disabled={!isReadyToSendOtp} className="w-full">
+            <Button onClick={handleSendOTP} disabled={!isFormValid} className="w-full">
               Send OTP
             </Button>
           ) : (
             <>
               <Input
+                id="otp"
+                name="otp"
                 placeholder="Enter OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                value={formData.otp}
+                onChange={handleChange}
                 maxLength={6}
                 inputMode="numeric"
               />
-              <Button onClick={handleVerifyOTP} disabled={submitting} className="w-full">
+              <Button onClick={handleVerifyAndSubmit} disabled={submitting} className="w-full">
                 {submitting ? 'Submitting...' : 'Verify & Submit Review'}
               </Button>
             </>
           )}
         </CardContent>
       </Card>
-
-      <div id="recaptcha-review-container" className="mt-4" />
+      <div id="recaptcha-review-container" className="hidden" style={{ touchAction: 'none' }} />
     </div>
-  )
+  );
 }
