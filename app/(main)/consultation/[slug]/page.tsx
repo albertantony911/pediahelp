@@ -141,15 +141,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         expertise={doctor.expertise?.join(', ') || ''}
       />
 
-      {/* About */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">About the Doctor</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-700">{doctor.about || 'No information available.'}</p>
-        </CardContent>
-      </Card>
+
 
       {/* Qualifications */}
       <Card>
@@ -171,7 +163,17 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
           )}
         </CardContent>
       </Card>
-
+      
+      {/* About */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">About the Doctor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-700">{doctor.about || 'No information available.'}</p>
+        </CardContent>
+      </Card>
+          
       {/* Reviews */}
       <Card>
         <CardHeader>

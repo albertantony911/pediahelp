@@ -126,8 +126,8 @@ export default defineType({
       name: 'reviews',
       title: 'Collected Reviews',
       type: 'array',
-      of: [{ type: 'reference', to: [{ type: 'review' }] }],
-      readOnly: true,
+        of: [{ type: 'reference', to: [{ type: 'review' }] }],
+      
     }),
 
     defineField({
