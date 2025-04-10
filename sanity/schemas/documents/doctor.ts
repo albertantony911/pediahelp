@@ -7,6 +7,13 @@ export default defineType({
   icon: Stethoscope,
   type: 'document',
   fields: [
+    defineField({
+      name: 'orderRank',
+      title: 'Order Rank',
+      type: 'string', // or 'number' if your plugin expects a numeric rank
+      description: 'Used to manually sort doctors in the list (required by schema)',
+      validation: Rule => Rule.required(), // Required as per the error
+    }),
     defineField({ name: 'name', title: 'Full Name', type: 'string', validation: Rule => Rule.required() }),
     defineField({ name: 'slug', title: 'Slug (URL)', type: 'slug', options: { source: 'name', maxLength: 96 }, validation: Rule => Rule.required() }),
     defineField({ name: 'photo', title: 'Profile Photo', type: 'image', options: { hotspot: true } }),

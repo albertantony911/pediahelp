@@ -135,6 +135,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         slug={doctor.slug.current}
         expertise={doctor.expertise?.join(', ') || ''}
       />
+      
 
       {/* About Section */}
       <Card>

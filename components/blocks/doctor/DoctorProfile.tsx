@@ -63,7 +63,7 @@ export default function DoctorProfileCard({
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
         {/* Image */}
-        <div className="hidden sm:block w-[200px]">
+        <div className="hidden sm:block w-[150px]">
           <div className="h-full rounded-xl overflow-hidden bg-gray-100">
             {photoUrl ? (
               <Image
