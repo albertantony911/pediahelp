@@ -29,39 +29,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Doctor not found or missing slug' }, { status: 404 })
   }
 
-  try {
-    const review = {
-      _type: 'review',
-      name,
-      rating,
-      comment,
-      doctor: {
-        _type: 'reference',
-        _ref: doctorId,
-      },
-      approved: true,
-      submittedAt: new Date().toISOString(),
-    }
-
-    const result = await client.create(review)
-
-    // 🔁 Revalidate doctor profile by slug
-    const slug = doctor.slug.current
-    const revalidateRes = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/doctors/${slug}&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
-    )
-
-    if (!revalidateRes.ok) {
-      console.warn('❗ Revalidation failed:', await revalidateRes.text())
-    }
-
-    return NextResponse.json({ success: true, id: result._id })
-  } catch (error: any) {
-    console.error('🔴 Failed to submit review:', error)
-
-    return NextResponse.json(
-      { error: error.message || 'Review submission failed' },
-      { status: 500 }
-    )
+try {
+  // 1. Create the review document
+  const review = {
+    _type: 'review',
+    name,
+    rating,
+    comment,
+    doctor: {
+      _type: 'reference',
+      _ref: doctorId,
+    },
+    approved: true,
+    submittedAt: new Date().toISOString(),
   }
+
+  const result = await client.create(review)
+
+  // 2. Append review reference to doctor (so Sanity Studio shows it correctly)
+  await client
+    .patch(doctorId)
+    .setIfMissing({ reviews: [] }) // ensures array exists
+    .append('reviews', [{ _type: 'reference', _ref: result._id }])
+    .commit()
+
+  // 3. Revalidate the doctor profile page
+  const slug = doctor.slug.current
+  const revalidateRes = await fetch(
+    `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/consultation/${slug}&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
+  )
+
+  if (!revalidateRes.ok) {
+    console.warn('❗ Revalidation failed:', await revalidateRes.text())
+  }
+
+  return NextResponse.json({ success: true, id: result._id })
+} catch (error: any) {
+  console.error('🔴 Failed to submit review:', error)
+
+  return NextResponse.json(
+    { error: error.message || 'Review submission failed' },
+    { status: 500 }
+  )
+}
+    
 }
