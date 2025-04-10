@@ -4,13 +4,18 @@ import { client } from '@/sanity/lib/client'
 import DoctorReview from '@/components/blocks/forms/doctor-review'
 import DoctorReviews from '@/components/blocks/doctor/DoctorReviews'
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile'
-
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  GraduationCap,
+  Award,
+  BookOpenCheck,
+  MoreHorizontal,
+} from 'lucide-react'
 
 export const revalidate = 86400
 
@@ -26,11 +31,15 @@ interface Doctor {
   nextAvailableSlot: string
   about: string
   expertise?: string[]
-  ratings?: number
-  reviews?: string[]
   authoredArticles?: { title: string; slug: { current: string } }[]
   bookingId?: string
   externalApiId?: string
+  qualifications?: {
+    education?: string[]
+    achievements?: string[]
+    publications?: string[]
+    others?: string[]
+  }
 }
 
 interface Review {
@@ -56,11 +65,10 @@ const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
         nextAvailableSlot,
         about,
         expertise,
-        ratings,
-        reviews,
         authoredArticles[]->{ title, slug },
         bookingId,
-        externalApiId
+        externalApiId,
+        qualifications
       }`,
       { slug }
     )
@@ -103,11 +111,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
   try {
     reviews = await client.fetch(
       groq`*[_type == "review" && doctor._ref == $id && approved == true] | order(submittedAt desc){
-        _id,
-        name,
-        rating,
-        comment,
-        submittedAt
+        _id, name, rating, comment, submittedAt
       }`,
       { id: doctorId }
     )
@@ -120,9 +124,10 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
       : 'N/A'
 
+  const { education = [], achievements = [], publications = [], others = [] } = doctor.qualifications || {}
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
-      {/* Doctor Profile Card */}
       <DoctorProfileCard
         name={doctor.name}
         specialty={doctor.specialty}
@@ -135,9 +140,8 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         slug={doctor.slug.current}
         expertise={doctor.expertise?.join(', ') || ''}
       />
-      
 
-      {/* About Section */}
+      {/* About */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">About the Doctor</CardTitle>
@@ -147,7 +151,28 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         </CardContent>
       </Card>
 
-      {/* Reviews Section */}
+      {/* Qualifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Qualifications & Experience</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-gray-800">
+          {education.length > 0 && (
+            <QualificationBlock icon={<GraduationCap className="w-4 h-4" />} title="Education" items={education} />
+          )}
+          {achievements.length > 0 && (
+            <QualificationBlock icon={<Award className="w-4 h-4" />} title="Achievements" items={achievements} />
+          )}
+          {publications.length > 0 && (
+            <QualificationBlock icon={<BookOpenCheck className="w-4 h-4" />} title="Publications" items={publications} />
+          )}
+          {others.length > 0 && (
+            <QualificationBlock icon={<MoreHorizontal className="w-4 h-4" />} title="Other Highlights" items={others} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reviews */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Ratings & Reviews</CardTitle>
@@ -157,8 +182,31 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         </CardContent>
       </Card>
 
-      {/* Review Form */}
       <DoctorReview doctorId={doctorId} />
+    </div>
+  )
+}
+
+function QualificationBlock({
+  icon,
+  title,
+  items,
+}: {
+  icon: React.ReactNode
+  title: string
+  items: string[]
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 font-semibold text-gray-900 mb-1">
+        {icon}
+        {title}
+      </div>
+      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+        {items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
     </div>
   )
 }
