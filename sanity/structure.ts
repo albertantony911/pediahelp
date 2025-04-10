@@ -57,4 +57,13 @@ export const structure = (S: any, context: any) =>
         S,
         context,
       }),
+
+      // ✅ Add the Reviews section correctly
+      orderableDocumentListDeskItem({
+        type: "review",
+        title: "Reviews",
+        icon: Stethoscope, // optional, pick any icon you prefer
+        S,
+        context,
+      }),
     ]);
