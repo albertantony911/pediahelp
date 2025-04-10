@@ -1,15 +1,15 @@
-import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { groq } from 'next-sanity'
 import { client } from '@/sanity/lib/client'
 import DoctorReview from '@/components/blocks/forms/doctor-review'
-import DoctorReviews from '@/components/blocks/DoctorReviews'
+import DoctorReviews from '@/components/blocks/doctor/DoctorReviews'
+import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile'
+
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from '@/components/ui/card'
 
 export const revalidate = 86400
@@ -20,12 +20,12 @@ interface Doctor {
   slug: { current: string }
   photo?: { asset?: { _id: string; url: string } }
   specialty: string
-  designation: string
   location: string
   languages?: string[]
   appointmentFee: number
   nextAvailableSlot: string
   about: string
+  expertise?: string[]
   ratings?: number
   reviews?: string[]
   authoredArticles?: { title: string; slug: { current: string } }[]
@@ -45,9 +45,22 @@ const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
   try {
     return await client.fetch(
       groq`*[_type == "doctor" && slug.current == $slug][0]{
-        _id, name, slug, photo { asset->{ _id, url } }, specialty, designation, location,
-        languages, appointmentFee, nextAvailableSlot, about, ratings, reviews,
-        authoredArticles[]->{ title, slug }, bookingId, externalApiId
+        _id,
+        name,
+        slug,
+        photo { asset->{ _id, url } },
+        specialty,
+        location,
+        languages,
+        appointmentFee,
+        nextAvailableSlot,
+        about,
+        expertise,
+        ratings,
+        reviews,
+        authoredArticles[]->{ title, slug },
+        bookingId,
+        externalApiId
       }`,
       { slug }
     )
@@ -67,14 +80,15 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const doctor = await getDoctorBySlug(slug)
+
   return doctor
     ? {
         title: `${doctor.name} | Book Pediatric Consultation`,
-        description: doctor.about || ''
+        description: doctor.about || '',
       }
     : {
         title: 'Doctor not found | Pediahelp',
-        description: 'We could not find the doctor you were looking for.'
+        description: 'We could not find the doctor you were looking for.',
       }
 }
 
@@ -89,7 +103,11 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
   try {
     reviews = await client.fetch(
       groq`*[_type == "review" && doctor._ref == $id && approved == true] | order(submittedAt desc){
-        _id, name, rating, comment, submittedAt
+        _id,
+        name,
+        rating,
+        comment,
+        submittedAt
       }`,
       { id: doctorId }
     )
@@ -105,48 +123,18 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
       {/* Doctor Profile Card */}
-      <Card>
-        <CardHeader className="flex flex-col md:flex-row items-center gap-6">
-          <div className="w-40 h-40 relative rounded-full overflow-hidden">
-  {doctor.photo?.asset?.url && (
-    <Image
-      src={doctor.photo.asset.url}
-      alt={doctor.name}
-      width={160}
-      height={160}
-      className="rounded-full object-cover"
-    />
-  )}
-</div>
-          <div>
-            <CardTitle className="text-2xl">{doctor.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">{doctor.designation}</p>
-            <p className="text-sm text-blue-600">{doctor.specialty}</p>
-            <p className="text-sm mt-1 text-yellow-600">
-              Avg. Rating: {averageRating} {averageRating !== 'N/A' && '⭐'} ({reviews.length})
-            </p>
-            <p className="text-sm mt-1">Languages: {doctor.languages?.join(', ') ?? 'Not specified'}</p>
-            <p className="text-sm mt-1">Location: {doctor.location}</p>
-            <p className="text-sm mt-1">Fee: ₹{doctor.appointmentFee}</p>
-            <p className="text-sm mt-1 text-green-600">
-              Next Available: {doctor.nextAvailableSlot ?? 'Not available'}
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mt-4 flex gap-4">
-            <Link
-              href={`/consultation/${doctor.slug.current}/booking`}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition text-sm"
-            >
-              Book Consultation
-            </Link>
-            <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50 transition text-sm">
-              Ask Your Doctor
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <DoctorProfileCard
+        name={doctor.name}
+        specialty={doctor.specialty}
+        photoUrl={doctor.photo?.asset?.url}
+        languages={doctor.languages}
+        appointmentFee={doctor.appointmentFee}
+        nextAvailableSlot={doctor.nextAvailableSlot}
+        rating={averageRating}
+        reviewCount={reviews.length}
+        slug={doctor.slug.current}
+        expertise={doctor.expertise?.join(', ') || ''}
+      />
 
       {/* About Section */}
       <Card>

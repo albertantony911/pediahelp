@@ -1,5 +1,5 @@
 import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
-import { Files, BookA, User, ListCollapse, Quote } from "lucide-react";
+import { Files, BookA, User, ListCollapse, Quote, Stethoscope } from "lucide-react"; // 👈 add icon
 
 export const structure = (S: any, context: any) =>
   S.list()
@@ -18,7 +18,7 @@ export const structure = (S: any, context: any) =>
         .child(
           S.documentTypeList("post")
             .title("Post")
-            .defaultOrdering([{ field: "_createdAt", direction: "desc" }]) // Default ordering
+            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
         ),
       orderableDocumentListDeskItem({
         type: "category",
@@ -45,6 +45,15 @@ export const structure = (S: any, context: any) =>
         type: "testimonial",
         title: "Testimonials",
         icon: Quote,
+        S,
+        context,
+      }),
+
+      // ✅ Add this for Doctors
+      orderableDocumentListDeskItem({
+        type: "doctor",
+        title: "Doctors",
+        icon: Stethoscope, // optional, pick any
         S,
         context,
       }),

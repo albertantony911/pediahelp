@@ -1,3 +1,4 @@
+// schemas/review.ts
 import { defineType, defineField } from 'sanity'
 
 export default defineType({
@@ -7,38 +8,41 @@ export default defineType({
   fields: [
     defineField({
       name: 'name',
+      title: 'Patient Name',
       type: 'string',
-      title: 'Reviewer Name',
+      validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'rating',
+      title: 'Rating (1–5)',
       type: 'number',
-      title: 'Rating (0–5)',
-      validation: Rule => Rule.min(0).max(5),
+      validation: Rule => Rule.min(1).max(5),
     }),
     defineField({
       name: 'comment',
+      title: 'Review',
       type: 'text',
-      title: 'Review Comment',
+      rows: 3,
+      validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'doctor',
+      title: 'Linked Doctor',
       type: 'reference',
       to: [{ type: 'doctor' }],
-      title: 'Doctor',
+      validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'approved',
-      type: 'boolean',
       title: 'Approved',
-      initialValue: true, // you wanted auto-publish
+      type: 'boolean',
+      initialValue: true,
     }),
     defineField({
       name: 'submittedAt',
-      type: 'datetime',
       title: 'Submitted At',
+      type: 'datetime',
       initialValue: () => new Date().toISOString(),
-      readOnly: true,
     }),
   ],
 })
