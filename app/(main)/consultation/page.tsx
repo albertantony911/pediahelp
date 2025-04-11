@@ -1,210 +1,154 @@
-'use client';
+"use client"; // Add this directive to make the page a client component
 
-import React, { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation'; // Replace useSearchParams with useParams
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { saveUserInfo } from '@/lib/cookies';
+import React, { useState, useEffect } from 'react'
+import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Stethoscope, HeartPulse, Brain, BadgePlus, Baby, Bone, Headphones, Eye } from 'lucide-react'
+import { createClient } from '@sanity/client'
+import type { SanityDocument } from '@sanity/client'
 
+interface Doctor extends SanityDocument {
+  name: string
+  specialty: string
+  photo?: { asset?: { url: string } } // Updated to match resolved URL
+  slug: { current: string }
+  languages?: string[]
+  appointmentFee?: number
+  nextAvailableSlot?: string
+  rating?: string
+  reviewCount?: number
+  expertise?: string[]
+  experience?: string
+}
 
-export default function BookingFormPage() {
-  const router = useRouter();
-  const params = useParams(); // Get dynamic route parameters
-  const slug = params.slug as string; // Extract the slug from the path
-  console.log('Slug:', slug);
+const specialtyIcons: Record<string, React.ReactNode> = {
+  Cardiology: <HeartPulse className="w-6 h-6 text-green-500" />,
+  Neurology: <Brain className="w-6 h-6 text-green-500" />,
+  Ophthalmology: <Eye className="w-6 h-6 text-green-500" />,
+  Dentistry: <BadgePlus className="w-6 h-6 text-green-500" />,
+  Pediatrics: <Baby className="w-6 h-6 text-green-500" />,
+  Orthopedics: <Bone className="w-6 h-6 text-green-500" />,
+  Psychiatry: <Headphones className="w-6 h-6 text-green-500" />,
+}
 
-  const [parentName, setParentName] = useState('');
-  const [patientName, setPatientName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+const specialties = Object.keys(specialtyIcons)
 
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isPhoneValid = /^[0-9]{10}$/.test(phone);
+const client = createClient({
+  projectId: 'lez7cr3f', // Replace with your Sanity project ID
+  dataset: 'production', // Replace with your dataset name
+  apiVersion: '2023-10-01',
+  useCdn: false, // Set to true for production if okay with cached data
+})
 
-  const validateInputs = () => {
-    const errors: { [key: string]: string } = {};
+export default function ConsultationPage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
+  const [loading, setLoading] = useState(true)
 
-    if (!parentName.trim()) errors.parentName = 'Parent name is required';
-    if (!patientName.trim()) errors.patientName = 'Patient name is required';
-    if (!email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!isEmailValid) {
-      errors.email = 'Enter a valid email address';
-    }
-    if (!isPhoneValid) errors.phone = 'Enter a valid 10-digit number';
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const data = await client.fetch<Doctor[]>(
+          `*[_type == "doctor"] | order(orderRank asc) {
+            name,
+            specialty,
+            photo { asset->{url} }, // Updated to resolve the URL
+            slug,
+            languages,
+            appointmentFee,
+            nextAvailableSlot,
+            expertise,
+            experience
+          }`
+        );
+        console.log('Fetched doctors with photos:', data); // Debug log
+        setFilteredDoctors(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+        setLoading(false);
+      }
+    };
+    fetchDoctors();
+  }, [])
 
-    return errors;
-  };
-
-  const handleSendOTP = async () => {
-    const errors = validateInputs();
-    if (Object.keys(errors).length > 0) {
-      toast.error(Object.values(errors)[0]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-      });
-
-      const confirmation = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
-      setConfirmationResult(confirmation);
-      setOtpSent(true);
-      toast.success(`OTP sent to +91${phone}`);
-    } catch (error) {
-      console.error('OTP send error:', error);
-      toast.error('Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!confirmationResult) return;
-
-    setLoading(true);
-    try {
-      await confirmationResult.confirm(otp);
-      toast.success('Phone verified ✅');
-
-      // Save info to cookie
-      saveUserInfo({ parentName, patientName, email, phone: `+91${phone}` });
-
-      // Redirect to calendar page
-      router.push(`/consultation/${slug}/calendar`);
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      toast.error('Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetPhone = () => {
-    setOtpSent(false);
-    setPhone('');
-    setOtp('');
-    setConfirmationResult(null);
-  };
-
-  const renderStatusIcon = (valid: boolean) => (
-    <span className="absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none">
-      {valid ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-      ) : (
-        <AlertCircle className="h-4 w-4 text-red-500" />
-      )}
-    </span>
-  );
-
-  // Add a check for missing slug
-  if (!slug) {
-    return <div className="text-red-500">Error: No doctor slug provided</div>;
+  const handleSearch = () => {
+    const filtered = filteredDoctors.filter((doctor) =>
+      doctor.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    setFilteredDoctors(filtered)
   }
 
+  const handleSpecialtyFilter = (specialty: string) => {
+    const filtered = filteredDoctors.filter((doctor) =>
+      doctor.specialty.toLowerCase() === specialty.toLowerCase()
+    )
+    setFilteredDoctors(filtered)
+  }
+
+  if (loading) return <div className="text-center py-8 text-white">Loading doctors...</div>
+
   return (
-    <div className="max-w-xl mx-auto py-10 px-4 space-y-6">
-      <h1 className="text-2xl font-semibold">Book a Consultation with {slug}</h1>
+    <div className="min-h-screen bg-teal-900 text-white px-4 py-8">
+      {/* Header */}
+      <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
 
-      <div className="space-y-4">
-        {/* Parent Name */}
-        <div className="relative">
-          <Input
-            placeholder="Parent's Name"
-            value={parentName}
-            onChange={(e) => setParentName(e.target.value)}
-            disabled={otpSent}
-          />
-          {parentName && !otpSent && renderStatusIcon(!!parentName.trim())}
-        </div>
-
-        {/* Patient Name */}
-        <div className="relative">
-          <Input
-            placeholder="Patient's Name"
-            value={patientName}
-            onChange={(e) => setPatientName(e.target.value)}
-            disabled={otpSent}
-          />
-          {patientName && !otpSent && renderStatusIcon(!!patientName.trim())}
-        </div>
-
-        {/* Email Field */}
-        <div className="relative">
-          <Input
-            type="email"
-            placeholder="Email ID"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={otpSent}
-          />
-          {email && !otpSent && renderStatusIcon(isEmailValid)}
-        </div>
-
-        {/* Phone & OTP */}
-        <div className="space-y-3 pt-4">
-          <div className="relative">
-            <div className="flex items-center border border-input rounded-md overflow-hidden">
-              <div className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm gap-1 shrink-0">
-                🇮🇳 +91
-              </div>
-              <input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="Enter 10-digit mobile number"
-                disabled={otpSent}
-                className="w-full px-3 py-2 outline-none bg-transparent"
-              />
-              {otpSent && (
-                <Button size="sm" variant="ghost" onClick={resetPhone}>
-                  Edit
-                </Button>
-              )}
-            </div>
-            {!isPhoneValid && phone && (
-              <p className="text-red-500 text-sm mt-1">Enter a valid 10-digit mobile number</p>
-            )}
-          </div>
-
-          {!otpSent ? (
-            <Button onClick={handleSendOTP} disabled={loading}>
-              {loading ? 'Sending OTP...' : 'Send OTP'}
-            </Button>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground">
-                OTP sent to <span className="font-medium">+91{phone}</span>
-              </p>
-              <Input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="Enter OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              />
-              <Button onClick={handleVerifyOTP} disabled={loading}>
-                {loading ? 'Verifying...' : 'Verify & Continue'}
-              </Button>
-            </>
-          )}
-        </div>
+      {/* Specialty Filters */}
+      <div className="flex space-x-4 overflow-x-auto pb-4 justify-center">
+        {specialties.map((specialty) => (
+          <Button
+            key={specialty}
+            onClick={() => handleSpecialtyFilter(specialty)}
+            className="min-w-max px-4 py-2 bg-green-100 text-teal-900 rounded-full flex items-center gap-2 hover:bg-green-200 transition"
+          >
+            {specialtyIcons[specialty] || <Stethoscope className="w-6 h-6 text-green-500" />}
+            <span className="capitalize">{specialty.toLowerCase()}</span>
+          </Button>
+        ))}
       </div>
 
-      <div id="recaptcha-container" />
+      {/* Search Bar */}
+      <div className="flex items-center space-x-4 mb-6 max-w-md mx-auto">
+        <Input
+          type="text"
+          placeholder="Search by doctor's name"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 bg-white text-teal-900 placeholder-teal-400 rounded-full px-4 py-2"
+        />
+        <Button
+          onClick={handleSearch}
+          className="bg-green-500 text-white rounded-full px-4 py-2 hover:bg-green-600 transition"
+        >
+          Search
+        </Button>
+      </div>
+
+      {/* Doctors List */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold text-center mb-4">OUR DOCTORS</h2>
+        {filteredDoctors.length > 0 ? (
+          filteredDoctors.map((doctor) => (
+            <DoctorProfileCard
+              key={doctor.slug.current}
+              name={doctor.name}
+              specialty={doctor.specialty}
+              photoUrl={doctor.photo?.asset?.url || '/default-photo.jpg'} // Use resolved URL
+              languages={doctor.languages}
+              appointmentFee={doctor.appointmentFee || 0}
+              nextAvailableSlot={doctor.nextAvailableSlot || 'N/A'}
+              rating="4.8"
+              reviewCount={9}
+              slug={doctor.slug.current}
+              expertise={doctor.expertise?.join(', ') || 'General Practice'}
+              experience={doctor.experience || '8+ years'}
+            />
+          ))
+        ) : (
+          <p className="text-center">No doctors found based on your search or filter.</p>
+        )}
+      </div>
     </div>
-  );
+  )
 }

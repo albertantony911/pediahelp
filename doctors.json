@@ -1,0 +1,26 @@
+[
+  {
+    "objectID": "dr-john-doe",
+    "name": "Dr. John Doe",
+    "specialty": "Cardiology",
+    "photo": { "asset": { "url": "https://example.com/photo1.jpg" } },
+    "slug": { "current": "dr-john-doe" },
+    "languages": ["English"],
+    "appointmentFee": 100,
+    "nextAvailableSlot": "2025-04-11",
+    "expertise": ["Heart Surgery"],
+    "experience": "10 years"
+  },
+  {
+    "objectID": "dr-jane-smith",
+    "name": "Dr. Jane Smith",
+    "specialty": "Pediatrics",
+    "photo": { "asset": { "url": "https://example.com/photo2.jpg" } },
+    "slug": { "current": "dr-jane-smith" },
+    "languages": ["Spanish", "English"],
+    "appointmentFee": 80,
+    "nextAvailableSlot": "2025-04-12",
+    "expertise": ["Pediatric Care"],
+    "experience": "8 years"
+  }
+]

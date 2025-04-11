@@ -1,8 +1,9 @@
+// components/blocks/doctor/DoctorProfile.tsx
 'use client'
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState } from 'react' // Removed useEffect since reviews are no longer needed
 import {
   CalendarDays,
   Languages,
@@ -16,7 +17,7 @@ import {
   Syringe,
   Eye,
   Share2,
-  BadgePlus, 
+  BadgePlus,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 
@@ -32,6 +33,7 @@ interface DoctorProfileCardProps {
   slug: string
   expertise?: string
   experience?: string
+  // Removed reviews prop
 }
 
 const specialtyIcons: Record<string, React.ReactNode> = {
@@ -40,7 +42,7 @@ const specialtyIcons: Record<string, React.ReactNode> = {
   neurology: <Brain className="w-4 h-4 text-purple-500" />,
   immunology: <Syringe className="w-4 h-4 text-blue-500" />,
   ophthalmology: <Eye className="w-4 h-4 text-cyan-500" />,
-  dentistry: <BadgePlus className="w-4 h-4 text-yellow-600" />, 
+  dentistry: <BadgePlus className="w-4 h-4 text-yellow-600" />,
 }
 
 export default function DoctorProfileCard({
@@ -57,7 +59,7 @@ export default function DoctorProfileCard({
   experience = '8+ years',
 }: DoctorProfileCardProps) {
   const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '')
-  const specialtyIcon = specialtyIcons[specialtyKey] || specialtyIcons.default
+  const specialtyIcon = specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
@@ -69,7 +71,7 @@ export default function DoctorProfileCard({
               <Image
                 src={photoUrl}
                 alt={`Dr. ${name}`}
-                width={100}
+                width={150}
                 height={320}
                 className="w-full h-full object-cover"
               />
@@ -116,16 +118,14 @@ export default function DoctorProfileCard({
           </div>
 
           {/* Desktop Header */}
-                  <div className="hidden sm:flex flex-col gap-1">
-                      <div className='flex flex-row gap-3'>
-                          <h2 className="text-2xl font-semibold text-gray-900">{name}</h2>
-                          <div className="flex items-center gap-1.5 text-base text-gray-700">
-                
-                                {specialtyIcon}
-                                <span>{specialty}, {experience}</span>
-                            </div>
-                      </div>
-            
+          <div className="hidden sm:flex flex-col gap-1">
+            <div className="flex flex-row gap-3">
+              <h2 className="text-2xl font-semibold text-gray-900">{name}</h2>
+              <div className="flex items-center gap-1.5 text-base text-gray-700">
+                {specialtyIcon}
+                <span>{specialty}, {experience}</span>
+              </div>
+            </div>
 
             <div className="flex flex-col gap-3 mt-2">
               <div className="flex flex-wrap items-center gap-3">
@@ -164,9 +164,7 @@ export default function DoctorProfileCard({
 
           {/* CTAs */}
           <div className="mt-3 flex flex-row gap-2 w-full">
-            <button
-              className="w-1/3 sm:w-auto border border-gray-300 text-gray-800 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-gray-50 transition"
-            >
+            <button className="w-1/3 sm:w-auto border border-gray-300 text-gray-800 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-gray-50 transition">
               Message
             </button>
             <Link
