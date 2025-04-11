@@ -40,7 +40,7 @@ export default function DoctorProfileCard({
   rating,
   reviewCount = 0,
   slug,
-  expertise,
+  expertise = [],
   experienceYears,
 }: DoctorProfileCardProps) {
   const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
@@ -84,7 +84,7 @@ export default function DoctorProfileCard({
             nextAvailableSlot={nextAvailableSlot}
           />
 
-          {expertise?.length > 0 && (
+          {expertise.length > 0 && (
             <div className="mt-2 ml-2 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
                 <HeartPulse className="w-4 h-4 text-rose-500" />
@@ -120,25 +120,23 @@ export default function DoctorProfileCard({
 
 function DoctorPhoto({ photoUrl, name }: { photoUrl?: string; name: string }) {
   return (
-    <>
-      <div className="hidden sm:block w-[150px]">
-        <div className="h-full rounded-xl overflow-hidden bg-gray-100">
-          {photoUrl ? (
-            <Image
-              src={photoUrl}
-              alt={`Dr. ${name}`}
-              width={150}
-              height={320}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <User className="w-6 h-6" />
-            </div>
-          )}
-        </div>
+    <div className="hidden sm:block w-[150px]">
+      <div className="h-full rounded-xl overflow-hidden bg-gray-100">
+        {photoUrl ? (
+          <Image
+            src={photoUrl}
+            alt={`Dr. ${name}`}
+            width={150}
+            height={320}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <User className="w-6 h-6" />
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -253,17 +251,43 @@ function ProfileLink({ slug }: { slug: string }) {
 function ShareProfilePill({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    const url = `${window.location.origin}/consultation/${slug}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleShare = async () => {
+    try {
+      const url = `${window.location.origin}/consultation/${slug}`;
+      const title = `Check out this doctor on PediaHelp`;
+
+      // Try native share (mobile)
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+
+      // Clipboard fallback
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Legacy fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err) {
+      console.error('Share or copy failed:', err);
+    }
   };
 
   return (
     <button
-      onClick={handleCopy}
-      className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-100 transition"
+      type="button"
+      onClick={handleShare}
+      className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-100 transition cursor-pointer"
     >
       <Share2 className="w-4 h-4" />
       {copied ? 'Copied!' : 'Share'}

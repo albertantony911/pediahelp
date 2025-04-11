@@ -46,7 +46,7 @@ export default function DoctorList({
 
   return (
     <>
-      <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-gray-300 dark:bg-zinc-900">
+      <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-white dark:bg-zinc-900">
         <DoctorSearch
           allDoctors={allDoctors}
           onFilterChange={handleFilterChange}
