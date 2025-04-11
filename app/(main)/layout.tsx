@@ -15,7 +15,6 @@ export default async function MainLayout({
 }) {
   return (
     <>
-      <Header />
       <main>{children}</main>
       <SanityLive />
       {(await draftMode()).isEnabled && (
@@ -24,7 +23,6 @@ export default async function MainLayout({
           <VisualEditing />
         </>
       )}
-      <Footer />
       <CookieConsent />
     </>
   );
