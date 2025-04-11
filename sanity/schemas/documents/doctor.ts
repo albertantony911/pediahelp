@@ -1,4 +1,4 @@
-// schema/doctor.js
+// schema/doctor.js (experienceYears moved outside qualifications)
 import { defineType, defineField } from 'sanity';
 import { Stethoscope } from 'lucide-react';
 
@@ -16,14 +16,12 @@ export default defineType({
       description: 'Used to manually sort doctors in the list (required by schema)',
       validation: Rule => Rule.required(),
     }),
-
     defineField({
       name: 'name',
       title: 'Full Name',
       type: 'string',
       validation: Rule => Rule.required(),
     }),
-
     defineField({
       name: 'slug',
       title: 'Slug (URL)',
@@ -34,54 +32,46 @@ export default defineType({
       },
       validation: Rule => Rule.required(),
     }),
-
     defineField({
       name: 'photo',
       title: 'Profile Photo',
       type: 'image',
       options: { hotspot: true },
     }),
-
     defineField({
       name: 'specialty',
       title: 'Specialty',
       type: 'string',
       validation: Rule => Rule.required(),
     }),
-
     defineField({
       name: 'location',
       title: 'Location (optional)',
       type: 'string',
     }),
-
     defineField({
       name: 'languages',
       title: 'Languages Known',
       type: 'array',
       of: [{ type: 'string' }],
     }),
-
     defineField({
       name: 'appointmentFee',
       title: 'Consultation Fee (INR)',
       type: 'number',
       validation: Rule => Rule.required().min(0),
     }),
-
     defineField({
       name: 'nextAvailableSlot',
       title: 'Next Available Slot',
       type: 'string',
     }),
-
     defineField({
       name: 'about',
       title: 'About the Doctor',
       type: 'text',
       validation: Rule => Rule.required(),
     }),
-
     defineField({
       name: 'expertise',
       title: 'Symptoms Treated / Expertise',
@@ -89,7 +79,13 @@ export default defineType({
       of: [{ type: 'string' }],
       description: 'List of symptoms or health concerns treated by this doctor',
     }),
-
+    defineField({
+      name: 'experienceYears',
+      title: 'Years of Experience',
+      type: 'number',
+      validation: Rule => Rule.min(0).max(100),
+      description: 'Number of years of experience (e.g. 8 will show as 8+ years)',
+    }),
     defineField({
       name: 'qualifications',
       title: 'Qualifications & Experience',
@@ -114,13 +110,6 @@ export default defineType({
           of: [{ type: 'string' }],
         }),
         defineField({
-          name: 'experienceYears',
-          title: 'Years of Experience',
-          type: 'number',
-          validation: Rule => Rule.min(0).max(100),
-          description: 'Number of years of experience (e.g. 8 will show as 8+ years)',
-        }),
-        defineField({
           name: 'others',
           title: 'Other Credentials',
           type: 'array',
@@ -129,7 +118,6 @@ export default defineType({
       ],
       description: 'Optional structured section for education, achievements, publications, and other credentials.',
     }),
-
     defineField({
       name: 'averageRating',
       title: 'Average Rating',
@@ -137,27 +125,23 @@ export default defineType({
       description: 'The average rating based on approved reviews.',
       readOnly: true,
     }),
-
     defineField({
       name: 'reviews',
       title: 'Collected Reviews',
       type: 'array',
       of: [{ type: 'reference', to: [{ type: 'review' }] }],
     }),
-
     defineField({
       name: 'authoredArticles',
       title: 'Authored Articles',
       type: 'array',
       of: [{ type: 'reference', to: [{ type: 'post' }] }],
     }),
-
     defineField({
       name: 'bookingId',
       title: 'Zcal Link / Booking URL',
       type: 'url',
     }),
-
     defineField({
       name: 'externalApiId',
       title: 'External Doctor API ID (for later SaaS integration)',
