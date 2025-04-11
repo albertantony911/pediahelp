@@ -18,4 +18,3 @@ export default async function IndexPage() {
 
   return <Blocks blocks={page?.blocks ?? []} />;
 }
-

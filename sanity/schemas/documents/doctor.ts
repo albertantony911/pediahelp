@@ -1,5 +1,6 @@
-import { defineType, defineField } from 'sanity'
-import { Stethoscope } from 'lucide-react'
+// schema/doctor.js
+import { defineType, defineField } from 'sanity';
+import { Stethoscope } from 'lucide-react';
 
 export default defineType({
   name: 'doctor',
@@ -113,6 +114,13 @@ export default defineType({
           of: [{ type: 'string' }],
         }),
         defineField({
+          name: 'experienceYears',
+          title: 'Years of Experience',
+          type: 'number',
+          validation: Rule => Rule.min(0).max(100),
+          description: 'Number of years of experience (e.g. 8 will show as 8+ years)',
+        }),
+        defineField({
           name: 'others',
           title: 'Other Credentials',
           type: 'array',
@@ -123,11 +131,18 @@ export default defineType({
     }),
 
     defineField({
+      name: 'averageRating',
+      title: 'Average Rating',
+      type: 'number',
+      description: 'The average rating based on approved reviews.',
+      readOnly: true,
+    }),
+
+    defineField({
       name: 'reviews',
       title: 'Collected Reviews',
       type: 'array',
-        of: [{ type: 'reference', to: [{ type: 'review' }] }],
-      
+      of: [{ type: 'reference', to: [{ type: 'review' }] }],
     }),
 
     defineField({
@@ -157,4 +172,4 @@ export default defineType({
       media: 'photo',
     },
   },
-})
+});
