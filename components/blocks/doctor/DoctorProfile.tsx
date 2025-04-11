@@ -1,4 +1,3 @@
-// components/blocks/doctor/DoctorProfile.tsx
 'use client';
 
 import Image from 'next/image';
@@ -20,7 +19,7 @@ import {
   BadgePlus,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { DoctorProfileCardProps } from '@/types'; // Removed unused Doctor import
+import { DoctorProfileCardProps } from '@/types';
 
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
@@ -46,127 +45,58 @@ export default function DoctorProfileCard({
 }: DoctorProfileCardProps) {
   const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
   const specialtyIcon = specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />;
-
-  const formattedExperience = experienceYears ? `, ${experienceYears}+ years` : '';
   const displayRating = rating != null ? rating.toFixed(1) : 'N/A';
+  const formattedExperience =
+    typeof experienceYears === 'number' && experienceYears >= 0
+      ? `, ${experienceYears}+ years`
+      : '';
   const photoUrl = photo?.asset?.url;
-  console.log('Photo data for', name, ':', photo);
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
-        <div className="hidden sm:block w-[150px]">
-          <div className="h-full rounded-xl overflow-hidden bg-gray-100">
-            {photoUrl ? (
-              <Image
-                src={photoUrl}
-                alt={`Dr. ${name}`}
-                width={150}
-                height={320}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <User className="w-6 h-6" />
-              </div>
-            )}
-          </div>
-        </div>
+        <DoctorPhoto photoUrl={photoUrl} name={name} />
 
         <div className="flex-1 flex flex-col gap-2">
-          <div className="flex sm:hidden items-start gap-3">
-            <div className="aspect-[3/4] w-[110px] rounded-lg overflow-hidden bg-gray-100">
-              {photoUrl ? (
-                <Image
-                  src={photoUrl}
-                  alt={`Dr. ${name}`}
-                  width={110}
-                  height={160}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <User className="w-5 h-5" />
-                </div>
-              )}
-            </div>
+          <MobileHeader
+            name={name}
+            specialty={specialty}
+            experience={formattedExperience}
+            photoUrl={photoUrl}
+            slug={slug}
+            displayRating={displayRating}
+            reviewCount={reviewCount}
+            languages={languages}
+            appointmentFee={appointmentFee}
+            nextAvailableSlot={nextAvailableSlot}
+          />
 
-            <div className="flex-1 flex flex-col gap-1">
-              <h2 className="text-xl font-bold text-gray-900">{name}</h2>
-              <div className="text-sm text-gray-700">
-                {specialty}
-                {formattedExperience}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <ProfileLink slug={slug} />
-                <ShareProfilePill slug={slug} />
-                <Pill
-                  icon={<Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />}
-                  text={`${displayRating} (${reviewCount})`}
-                />
-                <Pill
-                  icon={<Languages className="w-3.5 h-3.5 text-gray-500" />}
-                  text={languages?.join(', ') || 'N/A'}
-                />
-                <Pill icon={<Wallet className="w-3.5 h-3.5 text-gray-500" />} text={`₹${appointmentFee}`} />
-                <Pill
-                  icon={<CalendarDays className="w-3.5 h-3.5 text-gray-500" />}
-                  text={nextAvailableSlot || 'Not available'}
-                />
-              </div>
-            </div>
-          </div>
+          <DesktopHeader
+            name={name}
+            specialty={specialty}
+            experience={formattedExperience}
+            specialtyIcon={specialtyIcon}
+            slug={slug}
+            displayRating={displayRating}
+            reviewCount={reviewCount}
+            languages={languages}
+            appointmentFee={appointmentFee}
+            nextAvailableSlot={nextAvailableSlot}
+          />
 
-          <div className="hidden sm:flex flex-col gap-1">
-            <div className="flex flex-row gap-3">
-              <h2 className="text-2xl font-semibold text-gray-900">{name}</h2>
-              <div className="flex items-center gap-1.5 text-base text-gray-700">
-                {specialtyIcon}
-                <span>
-                  {specialty}
-                  {formattedExperience}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 mt-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <Pill
-                  icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
-                  text={`${displayRating} (${reviewCount})`}
-                />
-                <ProfileLink slug={slug} />
-                <ShareProfilePill slug={slug} />
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Pill
-                  icon={<Languages className="w-4 h-4 text-gray-500" />}
-                  text={languages?.join(', ') || 'N/A'}
-                />
-                <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} />
-                <Pill
-                  icon={<CalendarDays className="w-4 h-4 text-gray-500" />}
-                  text={nextAvailableSlot || 'Not available'}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 my-1" />
-
-          {expertise && (
-            <div className="mt-0 ml-2 flex flex-wrap items-center gap-2">
+          {expertise?.length > 0 && (
+            <div className="mt-2 ml-2 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
                 <HeartPulse className="w-4 h-4 text-rose-500" />
                 <span>Expertise in:</span>
               </div>
-              {expertise.map((item: string, i: number) => (
-                <div
+              {expertise.map((item, i) => (
+                <span
                   key={i}
                   className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap"
                 >
                   {item.trim()}
-                </div>
+                </span>
               ))}
             </div>
           )}
@@ -185,6 +115,117 @@ export default function DoctorProfileCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+function DoctorPhoto({ photoUrl, name }: { photoUrl?: string; name: string }) {
+  return (
+    <>
+      <div className="hidden sm:block w-[150px]">
+        <div className="h-full rounded-xl overflow-hidden bg-gray-100">
+          {photoUrl ? (
+            <Image
+              src={photoUrl}
+              alt={`Dr. ${name}`}
+              width={150}
+              height={320}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <User className="w-6 h-6" />
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MobileHeader({
+  name,
+  specialty,
+  experience,
+  photoUrl,
+  slug,
+  displayRating,
+  reviewCount,
+  languages,
+  appointmentFee,
+  nextAvailableSlot,
+}: any) {
+  return (
+    <div className="flex sm:hidden items-start gap-3">
+      <div className="aspect-[3/4] w-[110px] rounded-lg overflow-hidden bg-gray-100">
+        {photoUrl ? (
+          <Image
+            src={photoUrl}
+            alt={`Dr. ${name}`}
+            width={110}
+            height={160}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <User className="w-5 h-5" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 flex flex-col gap-1">
+        <h2 className="text-xl font-bold text-gray-900">{name}</h2>
+        <div className="text-sm text-gray-700">
+          {specialty}
+          {experience}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+          <ProfileLink slug={slug} />
+          <ShareProfilePill slug={slug} />
+          <Pill icon={<Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />} text={`${displayRating} (${reviewCount})`} />
+          <Pill icon={<Languages className="w-3.5 h-3.5 text-gray-500" />} text={languages?.join(', ') || 'N/A'} />
+          <Pill icon={<Wallet className="w-3.5 h-3.5 text-gray-500" />} text={`₹${appointmentFee}`} />
+          <Pill icon={<CalendarDays className="w-3.5 h-3.5 text-gray-500" />} text={nextAvailableSlot || 'Not available'} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DesktopHeader({
+  name,
+  specialty,
+  experience,
+  specialtyIcon,
+  slug,
+  displayRating,
+  reviewCount,
+  languages,
+  appointmentFee,
+  nextAvailableSlot,
+}: any) {
+  return (
+    <div className="hidden sm:flex flex-col gap-1">
+      <div className="flex flex-row gap-3">
+        <h2 className="text-2xl font-semibold text-gray-900">{name}</h2>
+        <div className="flex items-center gap-1.5 text-base text-gray-700">
+          {specialtyIcon}
+          <span>{specialty}{experience}</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 mt-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <Pill icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />} text={`${displayRating} (${reviewCount})`} />
+          <ProfileLink slug={slug} />
+          <ShareProfilePill slug={slug} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Pill icon={<Languages className="w-4 h-4 text-gray-500" />} text={languages?.join(', ') || 'N/A'} />
+          <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} />
+          <Pill icon={<CalendarDays className="w-4 h-4 text-gray-500" />} text={nextAvailableSlot || 'Not available'} />
+        </div>
+      </div>
+    </div>
   );
 }
 

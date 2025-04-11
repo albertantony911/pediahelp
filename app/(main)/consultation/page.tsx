@@ -72,7 +72,7 @@ export default function ConsultationPageWrapper() {
 
   if (!allDoctors.length) {
     return (
-      <div className="min-h-screen bg-gray-300 text-white px-4 py-8">
+      <div className="min-h-screen bg-gray-300 text-white max-w-lg px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
         <div className="text-center py-8 text-red-400">
           Failed to load doctors. Please try again later.
@@ -82,7 +82,7 @@ export default function ConsultationPageWrapper() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-300 text-white px-4 py-8">
+    <div className="min-h-screen bg-gray-300 text-white  px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
       <SpecialtyFilter onFilter={handleSpecialtyFilter} onReset={resetSpecialtyFilter} />
       <DoctorList allDoctors={allDoctors} filteredBySpecialty={filteredBySpecialty} />

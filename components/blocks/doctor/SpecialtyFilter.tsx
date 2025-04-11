@@ -49,10 +49,10 @@ export default function SpecialtyFilter({
   }, [selectedSpecialty]);
 
   return (
-    <div className="w-full overflow-x-auto pb-1">
+    <div className="w-full overflow-x-auto pb-1 flex mx-auto">
       <div
         ref={scrollRef}
-        className="flex gap-3 px-4 py-2 scroll-snap-x snap-x snap-mandatory overflow-x-auto"
+        className="flex gap-3 px-4 py-2 scroll-snap-x snap-x snap-mandatory overflow-x-auto "
       >
         {specialties.map(({ name, label, icon: Icon }) => {
           const isActive = selectedSpecialty === name;

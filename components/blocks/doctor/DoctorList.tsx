@@ -60,7 +60,7 @@ export default function DoctorList({
         {filterLoading ? (
           <div className="text-center py-8">Filtering doctors...</div>
         ) : paginatedDoctors.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-6 ">
             {paginatedDoctors.map((doctor) => (
               <DoctorProfileCard
                 key={doctor._id}
