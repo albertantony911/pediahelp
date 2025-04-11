@@ -204,7 +204,7 @@ function DesktopHeader({
   return (
     <div className="hidden sm:flex flex-col gap-1">
       <div className="flex flex-row gap-3">
-        <h2 className="text-2xl font-semibold text-gray-900">{name}</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
         <div className="flex items-center gap-1.5 text-base text-gray-700">
           {specialtyIcon}
           <span>{specialty}{experience}</span>

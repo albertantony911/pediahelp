@@ -133,7 +133,17 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
           )}
         </CardContent>
       </Card>
-
+      
+        {doctor.about && (
+        <Card>
+            <CardHeader>
+            <CardTitle className="text-lg">About the Doctor</CardTitle>
+            </CardHeader>
+            <CardContent>
+            <p className="text-sm text-gray-800 whitespace-pre-line">{doctor.about}</p>
+            </CardContent>
+        </Card>
+        )}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Ratings & Reviews</CardTitle>
