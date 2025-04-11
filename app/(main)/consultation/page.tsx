@@ -1,10 +1,12 @@
-// app/(main)/consultation/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 import DoctorList from '@/components/blocks/doctor/DoctorList';
+import SpecialtyFilter from '@/components/blocks/doctor/SpecialtyFilter';
 import { Doctor } from '@/types';
 
-export const revalidate = 86400;
 
 async function getDoctors(): Promise<Doctor[]> {
   try {
@@ -34,8 +36,39 @@ async function getDoctors(): Promise<Doctor[]> {
   }
 }
 
-export default async function ConsultationPage() {
-  const allDoctors = await getDoctors();
+export default function ConsultationPageWrapper() {
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [filteredBySpecialty, setFilteredBySpecialty] = useState<Doctor[] | undefined>();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDoctors() {
+      const data = await getDoctors();
+      setAllDoctors(data);
+      setLoading(false);
+    }
+    loadDoctors();
+  }, []);
+
+  const handleSpecialtyFilter = (specialty: string) => {
+    const filtered = allDoctors.filter(
+      (doc) => doc.specialty.toLowerCase() === specialty.toLowerCase()
+    );
+    setFilteredBySpecialty(filtered);
+  };
+
+  const resetSpecialtyFilter = () => {
+    setFilteredBySpecialty(undefined);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-300 text-white px-4 py-8">
+        <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
+        <div className="text-center py-8 text-white">Loading doctors...</div>
+      </div>
+    );
+  }
 
   if (!allDoctors.length) {
     return (
@@ -51,7 +84,8 @@ export default async function ConsultationPage() {
   return (
     <div className="min-h-screen bg-gray-300 text-white px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
-      <DoctorList allDoctors={allDoctors} />
+      <SpecialtyFilter onFilter={handleSpecialtyFilter} onReset={resetSpecialtyFilter} />
+      <DoctorList allDoctors={allDoctors} filteredBySpecialty={filteredBySpecialty} />
     </div>
   );
 }
