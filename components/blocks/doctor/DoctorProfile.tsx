@@ -142,6 +142,7 @@ export default function DoctorProfileCard({
                 type="button"
                 disabled
                 className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
+                title={whatsappNumber ? 'Invalid WhatsApp number format' : 'No WhatsApp number available'}
               >
                 Message
               </button>

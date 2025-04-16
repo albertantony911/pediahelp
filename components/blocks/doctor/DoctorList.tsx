@@ -21,34 +21,23 @@ export default function DoctorList({
   const [filterLoading, setFilterLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Update displayed doctors when filters or data changes
   useEffect(() => {
-    console.log('DoctorList received doctors:', {
-      allDoctors: allDoctors.map(d => ({
-        name: d.name,
-        experienceYears: d.experienceYears,
-      })),
-      filteredBySpecialty: filteredBySpecialty?.map(d => ({
-        name: d.name,
-        experienceYears: d.experienceYears,
-      })),
-    });
     setFilteredDoctors(filteredBySpecialty || allDoctors);
     setCurrentPage(1);
   }, [filteredBySpecialty, allDoctors]);
 
+  // Handle filter search
   const handleFilterChange = (results: Doctor[]) => {
     setFilterLoading(true);
     setTimeout(() => {
-      console.log('Filtered doctors:', results.map(d => ({
-        name: d.name,
-        experienceYears: d.experienceYears,
-      })));
       setFilteredDoctors(results);
       setCurrentPage(1);
       setFilterLoading(false);
     }, 300);
   };
 
+  // Reset filters
   const resetFilters = () => {
     setFilteredDoctors(allDoctors);
     setCurrentPage(1);
@@ -62,6 +51,7 @@ export default function DoctorList({
 
   return (
     <>
+      {/* Search Header */}
       <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-white dark:bg-zinc-900">
         <DoctorSearch
           allDoctors={allDoctors}
@@ -71,36 +61,46 @@ export default function DoctorList({
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-center mb-4 text-gray-900">OUR DOCTORS</h2>
+        <h2 className="text-2xl font-semibold text-center mb-4 text-gray-900">
+          OUR DOCTORS
+        </h2>
 
+        {/* Doctor Cards */}
         {filterLoading ? (
           <div className="text-center py-8 text-gray-600">Filtering doctors...</div>
         ) : paginatedDoctors.length > 0 ? (
           <div className="flex flex-col gap-6">
             {paginatedDoctors.map((doctor) => {
-              console.log(`Rendering DoctorProfileCard for ${doctor.name}:`, {
-                experienceYears: doctor.experienceYears,
-                type: typeof doctor.experienceYears,
-              });
+              const { _id, name, specialty, photo, appointmentFee, averageRating, reviewCount, slug, expertise, experienceYears, nextAvailableSlot, languages, whatsappNumber } = doctor;
+
+              if (process.env.NODE_ENV !== 'production') {
+                console.debug(`DoctorListCard: ${name}`, {
+                  whatsappNumber,
+                  isValid: typeof whatsappNumber === 'string' && /^\+91\d{10}$/.test(whatsappNumber),
+                });
+              }
+
               return (
                 <DoctorProfileCard
-                  key={doctor._id}
-                  name={doctor.name}
-                  specialty={doctor.specialty}
-                  photo={doctor.photo}
-                  languages={doctor.languages}
-                  appointmentFee={doctor.appointmentFee}
-                  nextAvailableSlot={doctor.nextAvailableSlot}
-                  rating={doctor.averageRating}
-                  reviewCount={doctor.reviewCount || 0}
-                  slug={doctor.slug.current}
-                  expertise={doctor.expertise}
-                  experienceYears={doctor.experienceYears} // Use top-level experienceYears
+                  key={_id}
+                  name={name}
+                  specialty={specialty}
+                  photo={photo}
+                  appointmentFee={appointmentFee}
+                  rating={averageRating}
+                  reviewCount={reviewCount || 0}
+                  slug={slug.current}
+                  expertise={expertise}
+                  experienceYears={experienceYears}
+                  nextAvailableSlot={nextAvailableSlot}
+                  languages={languages}
+                  whatsappNumber={whatsappNumber}
                 />
               );
             })}
           </div>
         ) : (
+          // No Results State
           <div className="text-center py-8">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg text-gray-900 mb-2">No doctors found</p>
@@ -116,6 +116,7 @@ export default function DoctorList({
           </div>
         )}
 
+        {/* Pagination Controls */}
         {totalPages > 1 && !filterLoading && (
           <div className="flex justify-center gap-2 mt-8">
             <button
@@ -125,6 +126,7 @@ export default function DoctorList({
             >
               Previous
             </button>
+
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
@@ -138,6 +140,7 @@ export default function DoctorList({
                 {page}
               </button>
             ))}
+
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}

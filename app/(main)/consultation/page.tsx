@@ -23,6 +23,7 @@ const doctors = await client.fetch<Doctor[]>(
     nextAvailableSlot,
     averageRating,
     expertise,
+    whatsappNumber,
     qualifications {
       education,
       achievements,
