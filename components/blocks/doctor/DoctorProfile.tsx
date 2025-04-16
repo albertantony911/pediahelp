@@ -127,7 +127,7 @@ export default function DoctorProfileCard({
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <a
                 href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
-                  `Hi, I’d like to book a consultation with Dr. ${name} via PediaHelp.`
+                  `Hi, I’d like to book a consultation with ${name} via PediaHelp.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
