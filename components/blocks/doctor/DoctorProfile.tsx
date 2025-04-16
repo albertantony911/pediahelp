@@ -333,44 +333,36 @@ function ProfileLink({ slug }: { slug: string }) {
 function ShareProfilePill({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
 
+  const shareUrl = `${window.location.origin}/consultation/${slug}`;
+  const shareTitle = 'Check out this doctor on PediaHelp';
+  const shareText = 'Found this doctor on PediaHelp – thought you might be interested!';
+
   const handleShare = async () => {
     try {
-      const url = `${window.location.origin}/consultation/${slug}`;
-      const title = `Check out this doctor on PediaHelp`;
-
       if (navigator.share) {
-        await navigator.share({ title, url });
-        return;
-      }
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } else {
         const textarea = document.createElement('textarea');
-        textarea.value = url;
+        textarea.value = shareUrl;
         document.body.appendChild(textarea);
         textarea.select();
-        try {
-          document.execCommand('copy');
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-          console.error('Fallback copy failed:', err);
-        } finally {
-          document.body.removeChild(textarea);
-        }
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
     } catch (err) {
-      console.error(`Share failed for slug: ${slug}`, err);
+      console.error(`Share failed for ${slug}:`, err);
     }
   };
-
-  if (!slug) {
-    console.error('ShareProfilePill received empty slug');
-    return null;
-  }
 
   return (
     <button

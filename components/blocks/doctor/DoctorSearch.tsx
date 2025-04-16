@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState, useEffect, useCallback, useRef, useMemo,
+} from 'react';
 import { debounce } from 'lodash';
 import Fuse from 'fuse.js';
 import { Input } from '@/components/ui/input';
@@ -31,7 +33,13 @@ export default function DoctorSearch({
   const fuse = useMemo(
     () =>
       new Fuse<Doctor>(allDoctors, {
-        keys: ['name', 'specialty'],
+        keys: [
+          'name',
+          'specialty',
+          'expertise',
+          'searchKeywords',
+          'languages',
+        ],
         threshold: 0.3,
       }),
     [allDoctors]
@@ -59,19 +67,22 @@ export default function DoctorSearch({
 
   const handleSearch = useCallback(
     debounce((query: string) => {
-      if (!query.trim()) {
+      const trimmed = query.trim();
+      if (!trimmed) {
         onFilterChange(allDoctors);
         return;
       }
-      const results = fuse.search(query);
-      onFilterChange(results.map((r) => r.item));
+
+      const results = fuse.search(trimmed).map((r) => r.item);
+      onFilterChange(results);
     }, 300),
     [allDoctors, onFilterChange, fuse]
   );
 
   const filteredSuggestions = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    return fuse.search(searchQuery).map((r) => r.item).slice(0, 5);
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return [];
+    return fuse.search(trimmed).map((r) => r.item).slice(0, 5);
   }, [searchQuery, fuse]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,13 +94,13 @@ export default function DoctorSearch({
   };
 
   const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      const results = fuse.search(searchQuery);
-      const doctors = results.map((r) => r.item);
-      onFilterChange(doctors);
-      saveToRecentSearches(searchQuery);
-      setShowSuggestions(false);
-    }
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    const results = fuse.search(trimmed).map((r) => r.item);
+    onFilterChange(results);
+    saveToRecentSearches(trimmed);
+    setShowSuggestions(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -126,8 +137,7 @@ export default function DoctorSearch({
       setIsFocused(false);
       setShowSuggestions(false);
 
-      const noMatches = searchQuery.trim() && filteredSuggestions.length === 0;
-      if (noMatches) {
+      if (searchQuery.trim() && filteredSuggestions.length === 0) {
         setSearchQuery('');
         onFilterChange(allDoctors);
         setShowResetNotice(true);
@@ -137,7 +147,7 @@ export default function DoctorSearch({
   };
 
   return (
-    <div className="relative max-w-lg mx-auto px-4  sm:px-0">
+    <div className="relative max-w-lg mx-auto px-4 sm:px-0">
       <div className="relative">
         <div className={`transition-all duration-200 ${isFocused ? 'my-2' : ''}`}>
           <div className="flex items-center relative bg-white dark:bg-zinc-900 rounded-full">
@@ -157,32 +167,24 @@ export default function DoctorSearch({
             <Input
               ref={searchRef}
               type="text"
-              placeholder="search by doctor name/specialty"
+              placeholder="Search by name, specialty, or condition"
               value={searchQuery}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-                onFocus={() => {
-                if (searchRef.current) {
-                    searchRef.current.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                    });
-
-                    // optional: scroll a bit more for padding
-                    window.scrollBy({ top: -100, behavior: 'smooth' });
-                }
-
+              onFocus={() => {
+                searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.scrollBy({ top: -100, behavior: 'smooth' });
                 setIsFocused(true);
                 setShowSuggestions(true);
-                }}
+              }}
               onClick={() => {
                 setIsFocused(true);
                 setShowSuggestions(true);
               }}
               onBlur={handleBlur}
-              className={`w-full bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5  transition-all ${
+              className={`w-full bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5 transition-all ${
                 isFocused
-                  ? 'pl-12 pr-12  shadow-md border-green-500'
+                  ? 'pl-12 pr-12 shadow-md border-green-500'
                   : 'pl-12 pr-4 shadow-sm border-transparent'
               }`}
               aria-autocomplete="list"
@@ -211,65 +213,64 @@ export default function DoctorSearch({
           </div>
         </div>
 
-
-{showSuggestions && (searchQuery.trim() || filteredSuggestions.length > 0) && (
-  <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
+        {showSuggestions && (searchQuery.trim() || filteredSuggestions.length > 0) && (
+          <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
             <ul
-            ref={suggestionsRef}
-            id="suggestions-list"
-            role="listbox"
-            className="p-2"
+              ref={suggestionsRef}
+              id="suggestions-list"
+              role="listbox"
+              className="p-2"
             >
-            {searchQuery.trim() && filteredSuggestions.length === 0 ? (
+              {searchQuery.trim() && filteredSuggestions.length === 0 ? (
                 <li className="py-4 text-center text-gray-500 dark:text-gray-400">
-                No matching doctors found.
+                  No matching doctors found.
                 </li>
-            ) : (
+              ) : (
                 filteredSuggestions.map((doctor, index) => {
-                const isActive = activeSuggestion === index;
-                return (
+                  const isActive = activeSuggestion === index;
+                  return (
                     <li
-                    key={doctor._id}
-                    onClick={() => handleSuggestionClick(doctor)}
-                    onMouseEnter={() => setActiveSuggestion(index)}
-                    className={`flex items-center p-2 rounded-md cursor-pointer ${
+                      key={doctor._id}
+                      onClick={() => handleSuggestionClick(doctor)}
+                      onMouseEnter={() => setActiveSuggestion(index)}
+                      className={`flex items-center p-2 rounded-md cursor-pointer ${
                         isActive
-                        ? 'bg-gray-100 dark:bg-zinc-800'
-                        : 'hover:bg-gray-100 dark:hover:bg-zinc-800'
-                    }`}
-                    role="option"
-                    aria-selected={isActive}
+                          ? 'bg-gray-100 dark:bg-zinc-800'
+                          : 'hover:bg-gray-100 dark:hover:bg-zinc-800'
+                      }`}
+                      role="option"
+                      aria-selected={isActive}
                     >
-                    <div className="bg-gray-200 dark:bg-zinc-700 w-[40px] aspect-[2/3] rounded-md overflow-hidden mr-3 shrink-0">
+                      <div className="bg-gray-200 dark:bg-zinc-700 w-[40px] aspect-[2/3] rounded-md overflow-hidden mr-3 shrink-0">
                         {doctor.photo?.asset?.url ? (
-                        <img
+                          <img
                             src={doctor.photo.asset.url}
                             alt={doctor.name}
                             className="w-full h-full object-cover"
-                        />
+                          />
                         ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-full h-full flex items-center justify-center">
                             <span className="text-xl font-semibold text-gray-500">
-                            {doctor.name.charAt(0)}
+                              {doctor.name.charAt(0)}
                             </span>
-                        </div>
+                          </div>
                         )}
-                    </div>
+                      </div>
 
-                    <div className="truncate">
+                      <div className="truncate">
                         <div className="font-medium truncate max-w-[200px]">
-                        {doctor.name}
+                          {doctor.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
-                        {doctor.specialty}
+                          {doctor.specialty}
                         </div>
-                    </div>
+                      </div>
                     </li>
-                );
+                  );
                 })
-            )}
+              )}
             </ul>
-        </div>
+          </div>
         )}
       </div>
     </div>
