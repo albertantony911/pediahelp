@@ -1,22 +1,26 @@
-// app/(main)/consultation/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
+
 import DoctorReview from '@/components/blocks/forms/doctor-review';
 import DoctorReviews from '@/components/blocks/doctor/DoctorReviews';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
+
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+
 import {
   GraduationCap,
   Award,
   BookOpenCheck,
   MoreHorizontal,
+  User,
 } from 'lucide-react';
+
 import { Doctor, Review } from '@/types';
 
 export const revalidate = 86400;
@@ -40,7 +44,9 @@ const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
         bookingId,
         externalApiId,
         qualifications,
-        averageRating
+        averageRating,
+        experienceYears,
+        whatsappNumber
       }`,
       { slug }
     );
@@ -91,8 +97,14 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
     console.error('Failed to fetch reviews:', error);
   }
 
-  const { education = [], achievements = [], publications = [], others = [] } =
-    doctor.qualifications || {};
+  const {
+    education = [],
+    achievements = [],
+    publications = [],
+    others = [],
+  } = doctor.qualifications || {};
+
+  const languages = Array.isArray(doctor.languages) ? doctor.languages : [];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
@@ -100,26 +112,33 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         name={doctor.name}
         specialty={doctor.specialty}
         photo={doctor.photo}
-        languages={doctor.languages}
         appointmentFee={doctor.appointmentFee}
-        nextAvailableSlot={doctor.nextAvailableSlot}
         rating={doctor.averageRating}
         reviewCount={reviews.length}
         slug={doctor.slug.current}
         expertise={doctor.expertise}
-        experienceYears={doctor.qualifications?.experienceYears || 0} // Use experienceYears if available
+        experienceYears={doctor.experienceYears}
+        whatsappNumber={doctor.whatsappNumber}
       />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Qualifications & Experience</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-gray-800">
+        <CardContent className="space-y-6 text-sm text-gray-800">
           {education.length > 0 && (
-            <QualificationBlock icon={<GraduationCap className="w-4 h-4" />} title="Education" items={education} />
+            <QualificationBlock
+              icon={<GraduationCap className="w-4 h-4" />}
+              title="Education"
+              items={education}
+            />
           )}
           {achievements.length > 0 && (
-            <QualificationBlock icon={<Award className="w-4 h-4" />} title="Achievements" items={achievements} />
+            <QualificationBlock
+              icon={<Award className="w-4 h-4" />}
+              title="Achievements"
+              items={achievements}
+            />
           )}
           {publications.length > 0 && (
             <QualificationBlock
@@ -129,21 +148,33 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
             />
           )}
           {others.length > 0 && (
-            <QualificationBlock icon={<MoreHorizontal className="w-4 h-4" />} title="Other Highlights" items={others} />
+            <QualificationBlock
+              icon={<MoreHorizontal className="w-4 h-4" />}
+              title="Other Highlights"
+              items={others}
+            />
+          )}
+          {languages.length > 0 && (
+            <QualificationBlock
+              icon={<User className="w-4 h-4" />}
+              title="Languages Known"
+              items={languages}
+            />
           )}
         </CardContent>
       </Card>
-      
-        {doctor.about && (
+
+      {doctor.about && (
         <Card>
-            <CardHeader>
+          <CardHeader>
             <CardTitle className="text-lg">About the Doctor</CardTitle>
-            </CardHeader>
-            <CardContent>
+          </CardHeader>
+          <CardContent>
             <p className="text-sm text-gray-800 whitespace-pre-line">{doctor.about}</p>
-            </CardContent>
+          </CardContent>
         </Card>
-        )}
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Ratings & Reviews</CardTitle>
@@ -171,9 +202,9 @@ function QualificationBlock({
     <div>
       <div className="flex items-center gap-2 font-semibold text-gray-900 mb-1">
         {icon}
-        {title}
+        <span className="text-base">{title}</span>
       </div>
-      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+      <ul className="ml-6 list-disc space-y-1 text-gray-700 text-[15px] leading-relaxed">
         {items.map((item, i) => (
           <li key={i}>{item}</li>
         ))}

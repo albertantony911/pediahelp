@@ -14,22 +14,27 @@ export type BreadcrumbLink = {
 export interface Doctor {
   _id: string;
   name: string;
-  specialty: string;
-  photo?: { asset?: { _id: string; url: string } };
   slug: { current: string };
-  languages?: string[];
+  photo?: { asset?: { _id: string; url: string } };
+  specialty: string;
+  location?: string;
+  languages?: string[]; // ✅ add this if not already
   appointmentFee: number;
   nextAvailableSlot?: string;
-  about?: string; // Added missing field
+  about?: string;
   expertise?: string[];
+  authoredArticles?: { title: string; slug: { current: string } }[];
+  bookingId?: string;
+  externalApiId?: string;
   qualifications?: {
-    experienceYears?: number;
     education?: string[];
     achievements?: string[];
     publications?: string[];
     others?: string[];
   };
-  averageRating?: number | null;
+  averageRating?: number;
+  experienceYears?: number;
+  whatsappNumber?: string; // ✅ add this too
   reviewCount?: number;
 }
 
@@ -53,4 +58,6 @@ export interface DoctorProfileCardProps {
   slug: string;
   expertise?: string[];
   experienceYears?: number;
+  whatsappNumber?: string;
+  
 }

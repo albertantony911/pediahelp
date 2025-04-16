@@ -8,18 +8,30 @@ import { Doctor } from '@/types';
 
 const ITEMS_PER_PAGE = 6;
 
+interface DoctorListProps {
+  allDoctors: Doctor[];
+  filteredBySpecialty?: Doctor[];
+}
+
 export default function DoctorList({
   allDoctors,
   filteredBySpecialty,
-}: {
-  allDoctors: Doctor[];
-  filteredBySpecialty?: Doctor[];
-}) {
+}: DoctorListProps) {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(filteredBySpecialty || allDoctors);
   const [filterLoading, setFilterLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
+    console.log('DoctorList received doctors:', {
+      allDoctors: allDoctors.map(d => ({
+        name: d.name,
+        experienceYears: d.experienceYears,
+      })),
+      filteredBySpecialty: filteredBySpecialty?.map(d => ({
+        name: d.name,
+        experienceYears: d.experienceYears,
+      })),
+    });
     setFilteredDoctors(filteredBySpecialty || allDoctors);
     setCurrentPage(1);
   }, [filteredBySpecialty, allDoctors]);
@@ -27,6 +39,10 @@ export default function DoctorList({
   const handleFilterChange = (results: Doctor[]) => {
     setFilterLoading(true);
     setTimeout(() => {
+      console.log('Filtered doctors:', results.map(d => ({
+        name: d.name,
+        experienceYears: d.experienceYears,
+      })));
       setFilteredDoctors(results);
       setCurrentPage(1);
       setFilterLoading(false);
@@ -55,34 +71,40 @@ export default function DoctorList({
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-center mb-4">OUR DOCTORS</h2>
+        <h2 className="text-2xl font-semibold text-center mb-4 text-gray-900">OUR DOCTORS</h2>
 
         {filterLoading ? (
-          <div className="text-center py-8">Filtering doctors...</div>
+          <div className="text-center py-8 text-gray-600">Filtering doctors...</div>
         ) : paginatedDoctors.length > 0 ? (
-          <div className="flex flex-col gap-6 ">
-            {paginatedDoctors.map((doctor) => (
-              <DoctorProfileCard
-                key={doctor._id}
-                name={doctor.name}
-                specialty={doctor.specialty}
-                photo={doctor.photo}
-                languages={doctor.languages}
-                appointmentFee={doctor.appointmentFee}
-                nextAvailableSlot={doctor.nextAvailableSlot}
-                rating={doctor.averageRating}
-                reviewCount={doctor.reviewCount || 0}
-                slug={doctor.slug.current}
-                expertise={doctor.expertise}
-                experienceYears={doctor.qualifications?.experienceYears || 0}
-              />
-            ))}
+          <div className="flex flex-col gap-6">
+            {paginatedDoctors.map((doctor) => {
+              console.log(`Rendering DoctorProfileCard for ${doctor.name}:`, {
+                experienceYears: doctor.experienceYears,
+                type: typeof doctor.experienceYears,
+              });
+              return (
+                <DoctorProfileCard
+                  key={doctor._id}
+                  name={doctor.name}
+                  specialty={doctor.specialty}
+                  photo={doctor.photo}
+                  languages={doctor.languages}
+                  appointmentFee={doctor.appointmentFee}
+                  nextAvailableSlot={doctor.nextAvailableSlot}
+                  rating={doctor.averageRating}
+                  reviewCount={doctor.reviewCount || 0}
+                  slug={doctor.slug.current}
+                  expertise={doctor.expertise}
+                  experienceYears={doctor.experienceYears} // Use top-level experienceYears
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg mb-2">No doctors found</p>
-            <p className="text-sm text-gray-300 mb-4">
+            <p className="text-lg text-gray-900 mb-2">No doctors found</p>
+            <p className="text-sm text-gray-500 mb-4">
               Try a different name or select a specialty.
             </p>
             <button

@@ -28,7 +28,7 @@
     "@sanity/preview-url-secret": "^2.1.6",
     "@sanity/ui": "^2.15.7",
     "@sanity/vision": "^3.79.0",
-    "algoliasearch": "^5.23.3",
+    "algoliasearch": "4.24.0",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",

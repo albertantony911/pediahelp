@@ -1,4 +1,3 @@
-// schema/doctor.js (experienceYears moved outside qualifications)
 import { defineType, defineField } from 'sanity';
 import { Stethoscope } from 'lucide-react';
 
@@ -39,6 +38,15 @@ export default defineType({
       options: { hotspot: true },
     }),
     defineField({
+      name: 'whatsappNumber',
+      title: 'WhatsApp Number',
+      type: 'string',
+      description: 'Include country code, e.g., +91xxxxxxxxxx',
+      validation: Rule =>
+        Rule.regex(/^\\+?[0-9]{10,15}$/).error('Enter a valid WhatsApp number with country code.'),
+      // Optional: use inputComponent for better UX if you want to mask
+    }),
+    defineField({
       name: 'specialty',
       title: 'Specialty',
       type: 'string',
@@ -62,11 +70,6 @@ export default defineType({
       validation: Rule => Rule.required().min(0),
     }),
     defineField({
-      name: 'nextAvailableSlot',
-      title: 'Next Available Slot',
-      type: 'string',
-    }),
-    defineField({
       name: 'about',
       title: 'About the Doctor',
       type: 'text',
@@ -85,6 +88,14 @@ export default defineType({
       type: 'number',
       validation: Rule => Rule.min(0).max(100),
       description: 'Number of years of experience (e.g. 8 will show as 8+ years)',
+    }),
+    defineField({
+      name: 'searchKeywords',
+      title: 'Hidden Search Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description:
+        'These keywords will not be shown on the website but will improve search results. Include related conditions, symptoms, or alternate names (e.g. "constipation", "eczema", "cold", etc).',
     }),
     defineField({
       name: 'qualifications',
