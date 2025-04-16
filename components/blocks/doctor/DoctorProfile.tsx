@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { FaWhatsapp } from 'react-icons/fa';
 import {
   Star,
   Stethoscope,
@@ -123,7 +124,7 @@ export default function DoctorProfileCard({
               ))}
             </div>
           )}
-          <div className="mt-3 flex flex-row gap-2 w-full">
+          <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full sm:items-center">
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <a
                 href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
@@ -131,22 +132,24 @@ export default function DoctorProfileCard({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-1/3 sm:w-auto border border-green-600 text-green-700 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-50 transition text-center"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white transition-all duration-200 ease-out transform hover:scale-[1.03] active:scale-[0.97]"
               >
+                <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
                 WhatsApp
               </a>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-1/3 sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
+                className="w-full sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
               >
                 Message
               </button>
             )}
+
             <Link
               href={`/consultation/${slug}/booking`}
-              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition"
+              className="w-full sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition-all duration-200 ease-out transform hover:scale-[1.03] active:scale-[0.97]"
             >
               Book Appointment
             </Link>
