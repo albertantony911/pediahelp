@@ -5,15 +5,6 @@ export default defineType({
   title: 'Doctor Review',
   type: 'document',
   fields: [
-    // Add the orderRank field here
-    defineField({
-      name: 'orderRank',
-      title: 'Order Rank',
-      type: 'string', // or 'number' based on your requirements
-      description: 'Used to manually sort reviews (required by schema)',
-      validation: Rule => Rule.required(),
-    }),
-
     defineField({
       name: 'name',
       title: 'Patient Name',

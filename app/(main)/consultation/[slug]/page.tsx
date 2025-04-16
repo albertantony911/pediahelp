@@ -204,7 +204,7 @@ function QualificationBlock({
         {icon}
         <span className="text-base">{title}</span>
       </div>
-      <ul className="ml-6 list-disc space-y-1 text-gray-700 text-[15px] leading-relaxed">
+      <ul className="ml-3 list-disc space-y-1 text-gray-700 text-[15px] leading-relaxed">
         {items.map((item, i) => (
           <li key={i}>{item}</li>
         ))}
