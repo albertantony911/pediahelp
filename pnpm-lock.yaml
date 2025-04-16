@@ -92,6 +92,9 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
+      libphonenumber-js:
+        specifier: ^1.12.6
+        version: 1.12.6
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -5393,6 +5396,9 @@ packages:
 
   lexorank@1.0.5:
     resolution: {integrity: sha512-K1B/Yr/gIU0wm68hk/yB0p/mv6xM3ShD5aci42vOwcjof8slG8Kpo3Q7+1WTv7DaRHKWRgLPqrFDt+4GtuFAtA==}
+
+  libphonenumber-js@1.12.6:
+    resolution: {integrity: sha512-PJiS4ETaUfCOFLpmtKzAbqZQjCCKVu2OhTV4SVNNE7c2nu/dACvtCqj4L0i/KWNnIgRv7yrILvBj5Lonv5Ncxw==}
 
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
@@ -13530,6 +13536,8 @@ snapshots:
       type-check: 0.4.0
 
   lexorank@1.0.5: {}
+
+  libphonenumber-js@1.12.6: {}
 
   lie@3.3.0:
     dependencies:

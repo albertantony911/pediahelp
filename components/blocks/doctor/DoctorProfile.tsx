@@ -124,9 +124,9 @@ export default function DoctorProfileCard({
             </div>
           )}
           <div className="mt-3 flex flex-row gap-2 w-full">
-            {whatsappNumber ? (
+            {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <a
-                href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(
+                href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
                   `Hi, I’d like to book a consultation with Dr. ${name} via PediaHelp.`
                 )}`}
                 target="_blank"

@@ -39,12 +39,12 @@ export default defineType({
     }),
     defineField({
       name: 'whatsappNumber',
-      title: 'WhatsApp Number',
+      title: 'WhatsApp Number (🇮🇳)',
       type: 'string',
-      description: 'Include country code, e.g., +91xxxxxxxxxx',
+      description: 'Enter the full number including country code. Example: +919876543210',
+      initialValue: '+91',
       validation: Rule =>
-        Rule.regex(/^\\+?[0-9]{10,15}$/).error('Enter a valid WhatsApp number with country code.'),
-      // Optional: use inputComponent for better UX if you want to mask
+        Rule.regex(/^\+91[0-9]{10}$/).error('Must start with +91 and include exactly 10 digits.'),
     }),
     defineField({
       name: 'specialty',
