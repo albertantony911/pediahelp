@@ -21,6 +21,7 @@ async function getDoctors(): Promise<{ doctor: Doctor; reviews: Review[] }[]> {
         appointmentFee,
         nextAvailableSlot,
         expertise,
+        searchKeywords,
         whatsappNumber,
         qualifications {
           education,
