@@ -85,36 +85,55 @@ export default function DoctorProfileCard({
               ))}
             </div>
           )}
-          <div className="mt-3 flex flex-row gap-2 w-full">
-            {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
-              <a
-                href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
-                  `Hi, I’d like to book a consultation with ${name} via PediaHelp.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-[40%] sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white transition-all duration-200"
-              >
-                <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
-                WhatsApp
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
-                title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
-              >
-                Message
-              </button>
-            )}
-            <Link
-              href={`/consultation/${slug}/booking`}
-              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition-all duration-200"
-            >
-              Book Appointment
-            </Link>
-          </div>
+<div className="mt-3 flex flex-row gap-2 w-full">
+  {/* WhatsApp Button */}
+  {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
+    <a
+      href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
+        `Hi, I’d like to book a consultation with ${name} via PediaHelp.`
+      )}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`
+        w-[40%] sm:w-auto flex items-center justify-center gap-2
+        border border-green-600 text-green-700 bg-white
+        px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold
+        hover:bg-green-600 hover:text-white
+        focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-green-700 focus:text-white
+        active:scale-95 active:bg-green-700 active:text-white active:shadow-inner
+        transition-all duration-150 ease-out
+      `}
+    >
+      <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
+      WhatsApp
+    </a>
+  ) : (
+    <button
+      type="button"
+      disabled
+      className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
+      title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
+    >
+      Message
+    </button>
+  )}
+
+  {/* Book Appointment Button */}
+  <Link
+    href={`/consultation/${slug}/booking`}
+    className={`
+      w-2/3 sm:w-auto bg-gray-900 text-white
+      px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center
+      hover:bg-white hover:text-gray-900 hover:border-gray-900
+      focus:outline-none focus:ring-2 focus:ring-gray-400 focus:bg-white focus:text-gray-900
+      active:scale-95 active:bg-white active:text-gray-900 active:border-gray-900 active:shadow-inner
+      border border-transparent
+      transition-all duration-150 ease-out
+    `}
+  >
+    Book Appointment
+  </Link>
+</div>
         </div>
       </div>
     </Card>
