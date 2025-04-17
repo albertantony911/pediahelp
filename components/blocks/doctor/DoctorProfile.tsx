@@ -1,12 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   Star,
-  Stethoscope,
   Wallet,
   User,
   HeartPulse,
@@ -14,13 +13,16 @@ import {
   Brain,
   Syringe,
   Eye,
-  Share2,
   BadgePlus,
+  Stethoscope,
+  Share2,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { calculateAverageRating } from '@/lib/ratingUtils';
-import { DoctorProfileCardProps, Review } from '@/types';
 
+import { Card } from '@/components/ui/card';
+import { DoctorProfileCardProps, Review } from '@/types';
+import { calculateAverageRating } from '@/lib/ratingUtils';
+
+// Specialty icon mapping
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
   neonatology: <Baby className="w-4 h-4 text-pink-500" />,
@@ -35,7 +37,7 @@ export default function DoctorProfileCard({
   specialty,
   photo,
   appointmentFee,
-  reviews = [], // Rely on reviews prop for rating and count
+  reviews = [],
   slug,
   expertise = [],
   experienceYears,
@@ -43,40 +45,42 @@ export default function DoctorProfileCard({
 }: DoctorProfileCardProps & { reviews?: Review[] }) {
   if (!name || !specialty || !slug || !appointmentFee) return null;
 
-  // Calculate average rating and review count from reviews
+  const photoUrl = photo?.asset?.url;
+  const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
+  const specialtyIcon = specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />;
+
   const { averageRating, reviewCount } = calculateAverageRating(reviews);
   const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) ? averageRating.toFixed(1) : 'N/A';
-
-  const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
-  const specialtyIcon = specialtyIcons[specialtyKey] ?? <Stethoscope className="w-4 h-4 text-gray-500" />;
-  const photoUrl = photo?.asset?.url;
-  const experienceText = typeof experienceYears === 'number' && experienceYears > 0 ? `, ${experienceYears}+ years` : '';
+  const displayExperience = typeof experienceYears === 'number' && experienceYears > 0 ? `, ${experienceYears}+ years` : '';
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
         <DoctorPhoto name={name} photoUrl={photoUrl} />
         <div className="flex-1 flex flex-col gap-2">
-          <Header
+          <DoctorHeader
             name={name}
             specialty={specialty}
-            experienceText={experienceText}
+            experience={displayExperience}
             slug={slug}
-            photoUrl={photoUrl}
             rating={displayRating}
             reviewCount={reviewCount}
             appointmentFee={appointmentFee}
+            photoUrl={photoUrl}
             specialtyIcon={specialtyIcon}
           />
-          {expertise.length > 0 && (
+          {Array.isArray(expertise) && expertise.length > 0 && (
             <div className="mt-2 ml-2 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
                 <HeartPulse className="w-4 h-4 text-rose-500" />
                 <span>Expertise in:</span>
               </div>
               {expertise.map((item, i) => (
-                <span key={i} className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap">
-                  {item?.trim()}
+                <span
+                  key={i}
+                  className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap"
+                >
+                  {item?.trim() || 'N/A'}
                 </span>
               ))}
             </div>
@@ -89,7 +93,7 @@ export default function DoctorProfileCard({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-[40%] sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white transition-all duration-200 ease-out transform hover:scale-[1.03] active:scale-[0.97]"
+                className="w-[40%] sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white transition-all duration-200"
               >
                 <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
                 WhatsApp
@@ -106,7 +110,7 @@ export default function DoctorProfileCard({
             )}
             <Link
               href={`/consultation/${slug}/booking`}
-              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition-all duration-200 ease-out transform hover:scale-[1.03] active:scale-[0.97]"
+              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition-all duration-200"
             >
               Book Appointment
             </Link>
@@ -117,7 +121,6 @@ export default function DoctorProfileCard({
   );
 }
 
-// [Rest of the functions (DoctorPhoto, Header, Pill, ProfileLink, ShareProfilePill) remain unchanged]
 function DoctorPhoto({ name, photoUrl }: { name: string; photoUrl?: string }) {
   return (
     <div className="hidden sm:block w-[150px]">
@@ -134,10 +137,10 @@ function DoctorPhoto({ name, photoUrl }: { name: string; photoUrl?: string }) {
   );
 }
 
-function Header({
+function DoctorHeader({
   name,
   specialty,
-  experienceText,
+  experience,
   photoUrl,
   slug,
   rating,
@@ -147,7 +150,7 @@ function Header({
 }: {
   name: string;
   specialty: string;
-  experienceText: string;
+  experience: string;
   photoUrl?: string;
   slug: string;
   rating: string;
@@ -170,7 +173,10 @@ function Header({
         </div>
         <div className="flex-1 flex flex-col gap-1">
           <h2 className="text-xl font-bold text-gray-900">{name}</h2>
-          <div className="text-sm text-gray-700">{specialty}{experienceText}</div>
+          <div className="text-sm text-gray-700">
+            {specialty}
+            {experience}
+          </div>
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
             <ProfileLink slug={slug} />
             <ShareProfilePill slug={slug} />
@@ -186,7 +192,10 @@ function Header({
           <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
           <div className="flex items-center gap-1.5 text-base text-gray-700">
             {specialtyIcon}
-            <span>{specialty}{experienceText}</span>
+            <span>
+              {specialty}
+              {experience}
+            </span>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 mt-2">
