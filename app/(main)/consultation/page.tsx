@@ -5,37 +5,48 @@ import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 import DoctorList from '@/components/blocks/doctor/DoctorList';
 import SpecialtyFilter from '@/components/blocks/doctor/SpecialtyFilter';
-import { Doctor } from '@/types';
+import { Doctor, Review } from '@/types';
 
-
-async function getDoctors(): Promise<Doctor[]> {
+async function getDoctors(): Promise<{ doctor: Doctor; reviews: Review[] }[]> {
   try {
-const doctors = await client.fetch<Doctor[]>(
-  groq`*[_type == "doctor"] | order(orderRank asc) {
-    _id,
-    name,
-    specialty,
-    experienceYears, // ✅ added here
-    photo { asset->{ _id, url } },
-    slug,
-    languages,
-    appointmentFee,
-    nextAvailableSlot,
-    averageRating,
-    expertise,
-    whatsappNumber,
-    qualifications {
-      education,
-      achievements,
-      publications,
-      others
-    },
-    "reviewCount": count(*[_type == "review" && doctor._ref == ^._id && approved == true])
-  }`
-);
-      console.log('Fetched doctors:', doctors);
-      console.log('Fetched doctors:', JSON.stringify(doctors, null, 2));
-    return doctors;
+    const doctors = await client.fetch<Doctor[]>(
+      groq`*[_type == "doctor"] | order(orderRank asc) {
+        _id,
+        name,
+        specialty,
+        experienceYears,
+        photo { asset->{ _id, url } },
+        slug,
+        languages,
+        appointmentFee,
+        nextAvailableSlot,
+        expertise,
+        whatsappNumber,
+        qualifications {
+          education,
+          achievements,
+          publications,
+          others
+        }
+      }`
+    );
+    console.log('Fetched doctors:', doctors);
+    console.log('Fetched doctors:', JSON.stringify(doctors, null, 2));
+
+    // Fetch reviews for each doctor
+    const doctorsWithReviews = await Promise.all(
+      doctors.map(async (doctor) => {
+        const reviews = await client.fetch<Review[]>(
+          groq`*[_type == "review" && doctor._ref == $id && approved == true] | order(submittedAt desc) {
+            _id, name, rating, comment, submittedAt
+          }`,
+          { id: doctor._id }
+        );
+        return { doctor, reviews };
+      })
+    );
+
+    return doctorsWithReviews;
   } catch (error) {
     console.error('Error fetching doctors:', error);
     return [];
@@ -43,22 +54,22 @@ const doctors = await client.fetch<Doctor[]>(
 }
 
 export default function ConsultationPageWrapper() {
-  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
-  const [filteredBySpecialty, setFilteredBySpecialty] = useState<Doctor[] | undefined>();
+  const [allDoctorsWithReviews, setAllDoctorsWithReviews] = useState<{ doctor: Doctor; reviews: Review[] }[]>([]);
+  const [filteredBySpecialty, setFilteredBySpecialty] = useState<{ doctor: Doctor; reviews: Review[] }[] | undefined>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDoctors() {
       const data = await getDoctors();
-      setAllDoctors(data);
+      setAllDoctorsWithReviews(data);
       setLoading(false);
     }
     loadDoctors();
   }, []);
 
   const handleSpecialtyFilter = (specialty: string) => {
-    const filtered = allDoctors.filter(
-      (doc) => doc.specialty.toLowerCase() === specialty.toLowerCase()
+    const filtered = allDoctorsWithReviews.filter(
+      (item) => item.doctor.specialty.toLowerCase() === specialty.toLowerCase()
     );
     setFilteredBySpecialty(filtered);
   };
@@ -76,7 +87,7 @@ export default function ConsultationPageWrapper() {
     );
   }
 
-  if (!allDoctors.length) {
+  if (!allDoctorsWithReviews.length) {
     return (
       <div className="min-h-screen bg-white text-gray-300 max-w-lg px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
@@ -88,10 +99,10 @@ export default function ConsultationPageWrapper() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-300  px-4 py-8">
+    <div className="min-h-screen bg-white text-gray-300 px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
       <SpecialtyFilter onFilter={handleSpecialtyFilter} onReset={resetSpecialtyFilter} />
-      <DoctorList allDoctors={allDoctors} filteredBySpecialty={filteredBySpecialty} />
+      <DoctorList allDoctorsWithReviews={allDoctorsWithReviews} filteredBySpecialty={filteredBySpecialty} />
     </div>
   );
 }

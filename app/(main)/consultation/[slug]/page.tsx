@@ -113,8 +113,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         specialty={doctor.specialty}
         photo={doctor.photo}
         appointmentFee={doctor.appointmentFee}
-        rating={doctor.averageRating}
-        reviewCount={reviews.length}
+        reviews={reviews} // Pass reviews array instead of rating and reviewCount
         slug={doctor.slug.current}
         expertise={doctor.expertise}
         experienceYears={doctor.experienceYears}

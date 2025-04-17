@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   Star,
@@ -18,9 +18,9 @@ import {
   BadgePlus,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { DoctorProfileCardProps } from '@/types';
+import { calculateAverageRating } from '@/lib/ratingUtils';
+import { DoctorProfileCardProps, Review } from '@/types';
 
-// Specialty icons mapping
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
   neonatology: <Baby className="w-4 h-4 text-pink-500" />,
@@ -35,78 +35,38 @@ export default function DoctorProfileCard({
   specialty,
   photo,
   appointmentFee,
-  rating,
-  reviewCount = 0,
+  reviews = [], // Rely on reviews prop for rating and count
   slug,
   expertise = [],
   experienceYears,
   whatsappNumber,
+}: DoctorProfileCardProps & { reviews?: Review[] }) {
+  if (!name || !specialty || !slug || !appointmentFee) return null;
 
-}: DoctorProfileCardProps) {
-  // Debug logging for props
-  console.debug(`DoctorProfileCard for ${name}`, {
-    experienceYears,
-    type: typeof experienceYears,
-    isNumber: typeof experienceYears === 'number',
-    isValid: typeof experienceYears === 'number' && !isNaN(experienceYears),
-  });
-
-  // Validate required props
-  if (!name || !specialty || !slug || !appointmentFee) {
-    console.error('Missing required props for DoctorProfileCard', {
-      name,
-      specialty,
-      slug,
-      appointmentFee,
-    });
-    return null; // Prevent rendering if critical props are missing
-  }
+  // Calculate average rating and review count from reviews
+  const { averageRating, reviewCount } = calculateAverageRating(reviews);
+  const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) ? averageRating.toFixed(1) : 'N/A';
 
   const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
-  const specialtyIcon =
-    specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />;
-  const displayRating = rating != null && !isNaN(rating) ? rating.toFixed(1) : 'N/A';
+  const specialtyIcon = specialtyIcons[specialtyKey] ?? <Stethoscope className="w-4 h-4 text-gray-500" />;
   const photoUrl = photo?.asset?.url;
-
-  // Handle experienceYears with explicit checks
-  let formattedExperience = '';
-  if (typeof experienceYears === 'number' && !isNaN(experienceYears)) {
-    if (experienceYears > 0) {
-      formattedExperience = `, ${experienceYears}+ years`;
-    } else if (experienceYears === 0) {
-      console.warn(`experienceYears is 0 for ${name}. Expected a positive number.`);
-    }
-  } else {
-    console.warn(`Invalid experienceYears for ${name}`, {
-      value: experienceYears,
-      type: typeof experienceYears,
-    });
-  }
+  const experienceText = typeof experienceYears === 'number' && experienceYears > 0 ? `, ${experienceYears}+ years` : '';
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
-        <DoctorPhoto photoUrl={photoUrl} name={name} />
+        <DoctorPhoto name={name} photoUrl={photoUrl} />
         <div className="flex-1 flex flex-col gap-2">
-          <MobileHeader
+          <Header
             name={name}
             specialty={specialty}
-            experience={formattedExperience}
+            experienceText={experienceText}
+            slug={slug}
             photoUrl={photoUrl}
-            slug={slug}
-            displayRating={displayRating}
+            rating={displayRating}
             reviewCount={reviewCount}
             appointmentFee={appointmentFee}
-          />
-          <DesktopHeader
-            name={name}
-            specialty={specialty}
-            experience={formattedExperience}
             specialtyIcon={specialtyIcon}
-            slug={slug}
-            displayRating={displayRating}
-            reviewCount={reviewCount}
-            appointmentFee={appointmentFee}
           />
           {expertise.length > 0 && (
             <div className="mt-2 ml-2 flex flex-wrap items-center gap-2">
@@ -115,11 +75,8 @@ export default function DoctorProfileCard({
                 <span>Expertise in:</span>
               </div>
               {expertise.map((item, i) => (
-                <span
-                  key={i}
-                  className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap"
-                >
-                  {item?.trim() ?? 'Unknown'}
+                <span key={i} className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap">
+                  {item?.trim()}
                 </span>
               ))}
             </div>
@@ -142,12 +99,11 @@ export default function DoctorProfileCard({
                 type="button"
                 disabled
                 className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
-                title={whatsappNumber ? 'Invalid WhatsApp number format' : 'No WhatsApp number available'}
+                title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
               >
                 Message
               </button>
             )}
-
             <Link
               href={`/consultation/${slug}/booking`}
               className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-gray-800 transition-all duration-200 ease-out transform hover:scale-[1.03] active:scale-[0.97]"
@@ -161,24 +117,13 @@ export default function DoctorProfileCard({
   );
 }
 
-interface DoctorPhotoProps {
-  photoUrl?: string;
-  name: string;
-}
-
-function DoctorPhoto({ photoUrl, name }: DoctorPhotoProps) {
+// [Rest of the functions (DoctorPhoto, Header, Pill, ProfileLink, ShareProfilePill) remain unchanged]
+function DoctorPhoto({ name, photoUrl }: { name: string; photoUrl?: string }) {
   return (
     <div className="hidden sm:block w-[150px]">
       <div className="h-full rounded-xl overflow-hidden bg-gray-100">
         {photoUrl ? (
-          <Image
-            src={photoUrl}
-            alt={`Dr. ${name}`}
-            width={150}
-            height={320}
-            className="w-full h-full object-cover"
-            onError={(e) => console.error(`Failed to load image for ${name}`, e)}
-          />
+          <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <User className="w-6 h-6" />
@@ -189,123 +134,73 @@ function DoctorPhoto({ photoUrl, name }: DoctorPhotoProps) {
   );
 }
 
-interface HeaderProps {
-  name: string;
-  specialty: string;
-  experience: string;
-  photoUrl?: string;
-  slug: string;
-  displayRating: string;
-  reviewCount: number;
-  appointmentFee: number;
-  specialtyIcon?: React.ReactNode; // Only for DesktopHeader
-}
-
-// MobileHeader with strict typing
-function MobileHeader({
+function Header({
   name,
   specialty,
-  experience,
+  experienceText,
   photoUrl,
   slug,
-  displayRating,
+  rating,
   reviewCount,
   appointmentFee,
-}: HeaderProps) {
-  return (
-    <div className="flex sm:hidden items-start gap-3">
-      <div className="aspect-[3/4] w-[110px] rounded-lg overflow-hidden bg-gray-100">
-        {photoUrl ? (
-          <Image
-            src={photoUrl}
-            alt={`Dr. ${name}`}
-            width={110}
-            height={160}
-            className="w-full h-full object-cover"
-            onError={(e) => console.error(`Failed to load mobile image for ${name}`, e)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <User className="w-5 h-5" />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 flex flex-col gap-1">
-        <h2 className="text-xl font-bold text-gray-900">{name}</h2>
-        <div className="text-sm text-gray-700">
-          {specialty}
-          {experience}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 mt-1.5">
-          <ProfileLink slug={slug} />
-          <ShareProfilePill slug={slug} />
-          <Pill
-            icon={<Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />}
-            text={`${displayRating} (${reviewCount})`}
-          />
-          <Pill
-            icon={<Wallet className="w-3.5 h-3.5 text-gray-500" />}
-            text={`₹${appointmentFee}`}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// DesktopHeader with strict typing
-function DesktopHeader({
-  name,
-  specialty,
-  experience,
   specialtyIcon,
-  slug,
-  displayRating,
-  reviewCount,
-  appointmentFee,
-}: HeaderProps) {
+}: {
+  name: string;
+  specialty: string;
+  experienceText: string;
+  photoUrl?: string;
+  slug: string;
+  rating: string;
+  reviewCount: number;
+  appointmentFee: number;
+  specialtyIcon: React.ReactNode;
+}) {
   return (
-    <div className="hidden sm:flex flex-col gap-1">
-      <div className="flex flex-row gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
-        <div className="flex items-center gap-1.5 text-base text-gray-700">
-          {specialtyIcon}
-          <span>
-            {specialty}
-            {experience}
-          </span>
+    <>
+      {/* Mobile */}
+      <div className="flex sm:hidden items-start gap-3">
+        <div className="aspect-[3/4] w-[110px] rounded-lg overflow-hidden bg-gray-100">
+          {photoUrl ? (
+            <Image src={photoUrl} alt={`Dr. ${name}`} width={110} height={160} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <User className="w-5 h-5" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 flex flex-col gap-1">
+          <h2 className="text-xl font-bold text-gray-900">{name}</h2>
+          <div className="text-sm text-gray-700">{specialty}{experienceText}</div>
+          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+            <ProfileLink slug={slug} />
+            <ShareProfilePill slug={slug} />
+            <Pill icon={<Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />} text={`${rating} (${reviewCount})`} />
+            <Pill icon={<Wallet className="w-3.5 h-3.5 text-gray-500" />} text={`₹${appointmentFee}`} />
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-3 mt-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <Pill
-            icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
-            text={`${displayRating} (${reviewCount})`}
-          />
+
+      {/* Desktop */}
+      <div className="hidden sm:flex flex-col gap-1">
+        <div className="flex flex-row gap-3">
+          <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
+          <div className="flex items-center gap-1.5 text-base text-gray-700">
+            {specialtyIcon}
+            <span>{specialty}{experienceText}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3 mt-2">
+          <Pill icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />} text={`${rating} (${reviewCount})`} />
           <ProfileLink slug={slug} />
           <ShareProfilePill slug={slug} />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Pill
-            icon={<Wallet className="w-4 h-4 text-gray-500" />}
-            text={`₹${appointmentFee}`}
-          />
+          <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} />
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-interface PillProps {
-  icon: React.ReactNode;
-  text: string;
-}
-
-function Pill({ icon, text }: PillProps) {
-  if (!text) {
-    console.warn('Pill component received empty text');
-    return null;
-  }
+function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap">
       {icon}
@@ -315,10 +210,6 @@ function Pill({ icon, text }: PillProps) {
 }
 
 function ProfileLink({ slug }: { slug: string }) {
-  if (!slug) {
-    console.error('ProfileLink received empty slug');
-    return null;
-  }
   return (
     <Link
       href={`/consultation/${slug}`}
@@ -332,30 +223,22 @@ function ProfileLink({ slug }: { slug: string }) {
 
 function ShareProfilePill({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
 
-  const shareUrl = `${window.location.origin}/consultation/${slug}`;
-  const shareTitle = 'Check out this doctor on PediaHelp';
-  const shareText = 'Found this doctor on PediaHelp – thought you might be interested!';
+  useEffect(() => {
+    setShareUrl(`${window.location.origin}/consultation/${slug}`);
+  }, [slug]);
 
   const handleShare = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: shareTitle,
-          text: shareText,
+          title: 'Check out this doctor on PediaHelp',
+          text: 'Found this doctor on PediaHelp – thought you might be interested!',
           url: shareUrl,
         });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
       } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = shareUrl;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
+        await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }
@@ -366,7 +249,6 @@ function ShareProfilePill({ slug }: { slug: string }) {
 
   return (
     <button
-      type="button"
       onClick={handleShare}
       className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-100 transition cursor-pointer"
     >

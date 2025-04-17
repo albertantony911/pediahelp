@@ -4,42 +4,42 @@ import { useState, useEffect } from 'react';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
 import DoctorSearch from '@/components/blocks/doctor/DoctorSearch';
 import { Search } from 'lucide-react';
-import { Doctor } from '@/types';
+import { Doctor, Review } from '@/types';
 
 const ITEMS_PER_PAGE = 6;
 
 interface DoctorListProps {
-  allDoctors: Doctor[];
-  filteredBySpecialty?: Doctor[];
+  allDoctorsWithReviews: { doctor: Doctor; reviews: Review[] }[];
+  filteredBySpecialty?: { doctor: Doctor; reviews: Review[] }[];
 }
 
 export default function DoctorList({
-  allDoctors,
+  allDoctorsWithReviews,
   filteredBySpecialty,
 }: DoctorListProps) {
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(filteredBySpecialty || allDoctors);
+  const [filteredDoctors, setFilteredDoctors] = useState<{ doctor: Doctor; reviews: Review[] }[]>(filteredBySpecialty || allDoctorsWithReviews);
   const [filterLoading, setFilterLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Update displayed doctors when filters or data changes
   useEffect(() => {
-    setFilteredDoctors(filteredBySpecialty || allDoctors);
+    setFilteredDoctors(filteredBySpecialty || allDoctorsWithReviews);
     setCurrentPage(1);
-  }, [filteredBySpecialty, allDoctors]);
+  }, [filteredBySpecialty, allDoctorsWithReviews]);
 
-  // Handle filter search
   const handleFilterChange = (results: Doctor[]) => {
     setFilterLoading(true);
     setTimeout(() => {
-      setFilteredDoctors(results);
+      const matchedDoctors = allDoctorsWithReviews.filter((item) =>
+        results.some((r) => r._id === item.doctor._id)
+      );
+      setFilteredDoctors(matchedDoctors);
       setCurrentPage(1);
       setFilterLoading(false);
     }, 300);
   };
 
-  // Reset filters
   const resetFilters = () => {
-    setFilteredDoctors(allDoctors);
+    setFilteredDoctors(allDoctorsWithReviews);
     setCurrentPage(1);
   };
 
@@ -51,10 +51,9 @@ export default function DoctorList({
 
   return (
     <>
-      {/* Search Header */}
       <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-white dark:bg-zinc-900">
         <DoctorSearch
-          allDoctors={allDoctors}
+          allDoctors={allDoctorsWithReviews.map((item) => item.doctor)}
           onFilterChange={handleFilterChange}
           initialSearchQuery=""
         />
@@ -65,13 +64,13 @@ export default function DoctorList({
           OUR DOCTORS
         </h2>
 
-        {/* Doctor Cards */}
         {filterLoading ? (
           <div className="text-center py-8 text-gray-600">Filtering doctors...</div>
         ) : paginatedDoctors.length > 0 ? (
           <div className="flex flex-col gap-6">
-            {paginatedDoctors.map((doctor) => {
-              const { _id, name, specialty, photo, appointmentFee, averageRating, reviewCount, slug, expertise, experienceYears, nextAvailableSlot, languages, whatsappNumber } = doctor;
+            {paginatedDoctors.map((item) => {
+              const { doctor, reviews } = item;
+              const { _id, name, specialty, photo, appointmentFee, slug, expertise, experienceYears, nextAvailableSlot, languages, whatsappNumber } = doctor;
 
               if (process.env.NODE_ENV !== 'production') {
                 console.debug(`DoctorListCard: ${name}`, {
@@ -87,8 +86,7 @@ export default function DoctorList({
                   specialty={specialty}
                   photo={photo}
                   appointmentFee={appointmentFee}
-                  rating={averageRating}
-                  reviewCount={reviewCount || 0}
+                  reviews={reviews} // Pass reviews for dynamic calculation
                   slug={slug.current}
                   expertise={expertise}
                   experienceYears={experienceYears}
@@ -100,7 +98,6 @@ export default function DoctorList({
             })}
           </div>
         ) : (
-          // No Results State
           <div className="text-center py-8">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg text-gray-900 mb-2">No doctors found</p>
@@ -116,7 +113,6 @@ export default function DoctorList({
           </div>
         )}
 
-        {/* Pagination Controls */}
         {totalPages > 1 && !filterLoading && (
           <div className="flex justify-center gap-2 mt-8">
             <button
