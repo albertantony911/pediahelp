@@ -36,6 +36,7 @@ export interface Doctor {
   experienceYears?: number;
   whatsappNumber?: string; // ✅ add this too
   reviewCount?: number;
+  reviews?: Review[]; 
 }
 
 export interface Review {
@@ -51,7 +52,7 @@ export interface DoctorProfileCardProps {
   specialty: string;
   photo?: { asset?: { url: string } };
   languages?: string[];
-  appointmentFee: number;
+  appointmentFee?: number;
   nextAvailableSlot?: string;
   rating?: number | null;
   reviewCount?: number;
@@ -59,5 +60,32 @@ export interface DoctorProfileCardProps {
   expertise?: string[];
   experienceYears?: number;
   whatsappNumber?: string;
+  reviews?: Review[];
   
+}
+
+
+export interface PostWithDoctor {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  excerpt: string;
+  publishedAt: string;
+  image?: { asset?: { url: string } };
+  mainImage?: { asset?: { url: string } }; // New field
+  categories?: Category[];
+  doctor?: {
+    _id: string;
+    name: string;
+    slug: { current: string };
+    photo?: { asset?: { url: string } };
+  };
+  searchKeywords?: string[];
+  body?: any;
+}
+
+
+export interface Category {
+  _id: string;
+  title: string;
 }

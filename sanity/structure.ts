@@ -1,10 +1,21 @@
 import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
-import { Files, BookA, User, ListCollapse, Quote, Stethoscope } from "lucide-react"; // 👈 add icon
+import {
+  Files,
+  BookA,
+  User,
+  ListCollapse,
+  Quote,
+  Stethoscope,
+  FileText,
+  FolderKanban,
+  MessageCircle,
+} from "lucide-react"; // icons
 
 export const structure = (S: any, context: any) =>
   S.list()
     .title("Content")
     .items([
+      // 📝 Pages
       orderableDocumentListDeskItem({
         type: "page",
         title: "Pages",
@@ -12,35 +23,55 @@ export const structure = (S: any, context: any) =>
         S,
         context,
       }),
+
+      // 📰 Blog
+      S.divider(),
       S.listItem()
-        .title("Posts")
-        .schemaType("post")
+        .title("Blog")
+        .icon(FolderKanban)
         .child(
-          S.documentTypeList("post")
-            .title("Post")
-            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+          S.list()
+            .title("Blog Management")
+            .items([
+              S.listItem()
+                .title("Posts")
+                .schemaType("post")
+                .icon(FileText)
+                .child(
+                  S.documentTypeList("post")
+                    .title("Posts")
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                ),
+              orderableDocumentListDeskItem({
+                type: "category",
+                title: "Categories",
+                icon: BookA,
+                S,
+                context,
+              }),
+            ])
         ),
+
+      // 👩‍⚕️ Doctors
+      S.divider(),
       orderableDocumentListDeskItem({
-        type: "category",
-        title: "Categories",
-        icon: BookA,
+        type: "doctor",
+        title: "Doctors",
+        icon: Stethoscope,
         S,
         context,
       }),
+
+      // 💬 Reviews (for doctors)
       orderableDocumentListDeskItem({
-        type: "author",
-        title: "Authors",
-        icon: User,
+        type: "review",
+        title: "Doctor Reviews",
+        icon: MessageCircle,
         S,
         context,
       }),
-      orderableDocumentListDeskItem({
-        type: "faq",
-        title: "FAQs",
-        icon: ListCollapse,
-        S,
-        context,
-      }),
+
+      // 🤝 Testimonials
       orderableDocumentListDeskItem({
         type: "testimonial",
         title: "Testimonials",
@@ -49,20 +80,11 @@ export const structure = (S: any, context: any) =>
         context,
       }),
 
-      // ✅ Add this for Doctors
+      // ❓ FAQs
       orderableDocumentListDeskItem({
-        type: "doctor",
-        title: "Doctors",
-        icon: Stethoscope, // optional, pick any
-        S,
-        context,
-      }),
-
-      // ✅ Add the Reviews section correctly
-      orderableDocumentListDeskItem({
-        type: "review",
-        title: "Reviews",
-        icon: Stethoscope, // optional, pick any icon you prefer
+        type: "faq",
+        title: "FAQs",
+        icon: ListCollapse,
         S,
         context,
       }),
