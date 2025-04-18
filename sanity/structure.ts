@@ -9,7 +9,7 @@ import {
   FileText,
   FolderKanban,
   MessageCircle,
-} from "lucide-react"; // icons
+} from "lucide-react";
 
 export const structure = (S: any, context: any) =>
   S.list()
@@ -62,30 +62,36 @@ export const structure = (S: any, context: any) =>
         context,
       }),
 
-      // 💬 Reviews (for doctors)
-      orderableDocumentListDeskItem({
-        type: "review",
-        title: "Doctor Reviews",
-        icon: MessageCircle,
-        S,
-        context,
-      }),
+      // 💬 Doctor Reviews (normal list, sorted by submittedAt)
+      S.listItem()
+        .title("Doctor Reviews")
+        .schemaType("review")
+        .icon(MessageCircle)
+        .child(
+          S.documentTypeList("review")
+            .title("Doctor Reviews")
+            .defaultOrdering([{ field: "submittedAt", direction: "desc" }])
+        ),
 
-      // 🤝 Testimonials
-      orderableDocumentListDeskItem({
-        type: "testimonial",
-        title: "Testimonials",
-        icon: Quote,
-        S,
-        context,
-      }),
+      // 🌟 Testimonials
+      S.listItem()
+        .title("Testimonials")
+        .schemaType("testimonial")
+        .icon(Quote)
+        .child(
+          S.documentTypeList("testimonial")
+            .title("Testimonials")
+            .defaultOrdering([{ field: "submittedAt", direction: "desc" }])
+        ),
 
       // ❓ FAQs
-      orderableDocumentListDeskItem({
-        type: "faq",
-        title: "FAQs",
-        icon: ListCollapse,
-        S,
-        context,
-      }),
+      S.listItem()
+        .title("FAQs")
+        .schemaType("faq")
+        .icon(ListCollapse)
+        .child(
+          S.documentTypeList("faq")
+            .title("FAQs")
+            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+        ),
     ]);
