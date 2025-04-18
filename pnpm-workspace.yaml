@@ -1,5 +1,9 @@
 onlyBuiltDependencies:
   - '@firebase/util'
+  - core-js
+  - es5-ext
   - esbuild
+  - fsevents
   - protobufjs
   - sharp
+  - uglifyjs-webpack-plugin
