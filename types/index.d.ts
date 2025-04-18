@@ -72,18 +72,29 @@ export interface PostWithDoctor {
   excerpt: string;
   publishedAt: string;
   image?: { asset?: { url: string } };
-  mainImage?: { asset?: { url: string } }; // New field
+  mainImage?: { asset?: { url: string } };
   categories?: Category[];
-  doctor?: {
-    _id: string;
-    name: string;
-    slug: { current: string };
-    photo?: { asset?: { url: string } };
-  };
   searchKeywords?: string[];
   body?: any;
-}
 
+  meta_title?: string;
+  meta_description?: string;
+  ogImage?: { asset?: { url: string } };
+
+  doctor?: Pick<
+    Doctor,
+    | '_id'
+    | 'name'
+    | 'slug'
+    | 'photo'
+    | 'specialty'
+    | 'experienceYears'
+    | 'expertise'
+    | 'whatsappNumber'
+    | 'reviews'
+    | 'appointmentFee'
+  >;
+}
 
 export interface Category {
   _id: string;

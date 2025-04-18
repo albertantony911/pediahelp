@@ -1,140 +1,83 @@
 'use client';
 
+import algoliasearch from 'algoliasearch/lite';
 import { useState, useEffect } from 'react';
-import { groq } from 'next-sanity';
-import { client } from '@/sanity/lib/client';
+import {
+  InstantSearch,
+  SearchBox,
+  Hits,
+  Configure,
+} from 'react-instantsearch';
+
 import BlogCategoryFilter from '@/components/blocks/blog/BlogCategoryFilter';
-import PostCard from '@/components/blocks/blog/PostCard';
 import BlogSearch from '@/components/blocks/blog/BlogSearch';
+import PostCard from '@/components/blocks/blog/PostCard';
 import { PostWithDoctor, Category } from '@/types';
+import { getAllCategoriesQuery } from '@/lib/queries/blog/getAllCategories';
+import { getAllPostsQuery } from '@/lib/queries/blog/getAllPosts';
+import { client } from '@/sanity/lib/client';
 
-async function getPosts(): Promise<PostWithDoctor[]> {
-  try {
-    const posts = await client.fetch<PostWithDoctor[]>(
-      groq`*[_type == "post"] | order(publishedAt desc) {
-        _id,
-        title,
-        slug,
-        mainImage { asset->{ _id, url } },
-        categories[]->{
-          _id,
-          title
-        },
-        doctor->{
-          _id,
-          name,
-          specialty,
-          photo { asset->{ _id, url } }
-        },
-        publishedAt,
-        body,
-        searchKeywords,
-        excerpt
-      }`
-    );
-    console.log('Fetched posts:', posts);
-    return posts;
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    return [];
-  }
-}
-
-async function getCategories(): Promise<Category[]> {
-  try {
-    const categories = await client.fetch<Category[]>(
-      groq`*[_type == "category"] | order(title asc) {
-        _id,
-        title
-      }`
-    );
-    return categories;
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return [];
-  }
-}
+const searchClient = algoliasearch(
+  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
+  process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
+);
 
 export default function BlogPageWrapper() {
-  const [allPosts, setAllPosts] = useState<PostWithDoctor[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<PostWithDoctor[] | undefined>();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<PostWithDoctor[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<PostWithDoctor[]>([]);
 
+  // Fetch categories and posts on mount
   useEffect(() => {
-    async function loadData() {
-      const [posts, fetchedCategories] = await Promise.all([getPosts(), getCategories()]);
-      setAllPosts(posts);
+    async function fetchData() {
+      const fetchedCategories = await client.fetch(getAllCategoriesQuery);
+      const fetchedPosts = await client.fetch(getAllPostsQuery);
       setCategories(fetchedCategories);
-      setLoading(false);
+      setPosts(fetchedPosts);
+      setFilteredPosts(fetchedPosts);
     }
-    loadData();
+    fetchData();
   }, []);
-
-const handleCategoryFilter = (categoryId: string | null) => {
-  setSelectedCategory(categoryId);
-  if (!categoryId) {
-    setFilteredPosts(undefined);
-    return;
-  }
-
-  const filtered = allPosts.filter((post) =>
-    post.categories?.some((cat) => cat._id === categoryId)
-  );
-  setFilteredPosts(filtered);
-};
-
-  const resetCategoryFilter = () => {
-    setSelectedCategory(null);
-    setFilteredPosts(undefined);
-  };
-
-  const handleSearchFilter = (filteredPosts: PostWithDoctor[]) => {
-    setFilteredPosts(
-  selectedCategory
-    ? filteredPosts.filter((post) =>
-        post.categories?.some((cat) => cat._id === selectedCategory)
-      )
-    : filteredPosts
-);
-  };
-
-  if (loading) {
-    return (
-      <section className="max-w-6xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-8 text-center">Our Blog</h1>
-        <div className="text-center py-8 text-gray-500">Loading posts...</div>
-      </section>
-    );
-  }
-
-  if (!allPosts.length) {
-    return (
-      <section className="max-w-6xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-8 text-center">Our Blog</h1>
-        <div className="text-center py-8 text-red-400">
-          Failed to load posts. Please try again later.
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="max-w-6xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-8 text-center">Our Blog</h1>
-      <BlogSearch allPosts={allPosts} onFilterChange={handleSearchFilter} />
+
+      {/* 🔍 Blog Search */}
+      <BlogSearch allPosts={posts} onFilterChange={setFilteredPosts} />
+
+      {/* 🏷️ Category Filter */}
       <BlogCategoryFilter
         categories={categories}
         selectedCategory={selectedCategory}
-        onSelect={handleCategoryFilter}
-        onReset={resetCategoryFilter}
+        onSelect={setSelectedCategory}
+        onReset={() => setSelectedCategory(null)}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-        {(filteredPosts || allPosts).map((post) => (
-          <PostCard key={post._id} post={post} />
-        ))}
-      </div>
+
+      {/* 🧠 Send filter to Algolia */}
+      <InstantSearch searchClient={searchClient} indexName="blog_posts_index">
+        <Configure
+          filters={selectedCategory ? `categoryIds:${selectedCategory}` : ''}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <Hits hitComponent={AlgoliaPostCardWrapper} />
+        </div>
+      </InstantSearch>
+
+      {/* 🧩 Fallback to filtered posts if Algolia fails */}
+      {filteredPosts.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          {filteredPosts.map((post) => (
+            <PostCard key={post._id} post={post} />
+          ))}
+        </div>
+      )}
     </section>
   );
+}
+
+// Custom wrapper to map Algolia hit to PostCard props
+function AlgoliaPostCardWrapper({ hit }: { hit: PostWithDoctor }) {
+  return <PostCard post={hit} />;
 }

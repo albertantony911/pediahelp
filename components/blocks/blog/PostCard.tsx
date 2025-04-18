@@ -7,7 +7,7 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  const imageUrl = post.image?.asset?.url || post.mainImage?.asset?.url;
+  const imageUrl = post.mainImage?.asset?.url || post.image?.asset?.url;
 
   return (
     <Link href={`/blog/${post.slug.current}`} className="block">

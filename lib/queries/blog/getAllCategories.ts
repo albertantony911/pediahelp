@@ -1,4 +1,3 @@
-// /lib/queries/blog/getAllCategories.ts
 import { groq } from 'next-sanity';
 
 export const getAllCategoriesQuery = groq`

@@ -30,14 +30,19 @@ const doctorPostsQuery = groq`
       slug,
       excerpt,
       publishedAt,
-      image { asset->{ url } },
       mainImage { asset->{ url } }
     }
   }
 `;
 
-export default async function DoctorBlogPage({ params }: { params: { slug: string } }) {
-  const data: DoctorPageData = await client.fetch(doctorPostsQuery, { slug: params.slug });
+// Update the props type to handle params as a Promise
+type DoctorPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function DoctorBlogPage({ params }: DoctorPageProps) {
+  const { slug } = await params; // Resolve the Promise
+  const data: DoctorPageData = await client.fetch(doctorPostsQuery, { slug });
   const { doctor, posts } = data;
 
   if (!doctor) return notFound();
@@ -57,11 +62,9 @@ export default async function DoctorBlogPage({ params }: { params: { slug: strin
         experienceYears={doctor.experienceYears || 0}
         whatsappNumber={doctor.whatsappNumber || ''}
       />
-
       <h2 className="text-2xl font-semibold text-gray-900 mt-6 mb-4">
         Articles by {doctor.name || 'Unknown Doctor'}
       </h2>
-
       {posts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((post) => (
