@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+  experimental: {
+    appDir: true, // 👈 Forces Next.js to prioritize /app routing
+  },
   async redirects() {
     return [
       {
