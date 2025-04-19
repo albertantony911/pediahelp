@@ -10,8 +10,8 @@ const sanityClient = createClient({
 });
 
 const algoliaClient = algoliasearch(
-  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || '',
-  process.env.ALGOLIA_ADMIN_API_KEY || ''
+  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
+  process.env.ALGOLIA_ADMIN_API_KEY!
 );
 
 const index = algoliaClient.initIndex('doctors_index');
@@ -35,19 +35,36 @@ export async function syncDoctorsToAlgolia() {
   const records = doctors.map((doc: any) => ({
     objectID: doc.slug.current,
     name: doc.name,
-    specialty: doc.specialty,
     slug: doc.slug.current,
+    specialty: doc.specialty,
     photoUrl: doc.photo?.asset?.url ?? '',
     appointmentFee: doc.appointmentFee,
     experienceYears: doc.experienceYears,
     languages: doc.languages ?? [],
-    keywords: [
-      ...(doc.expertise ?? []),
-      ...(doc.searchKeywords ?? []),
-      ...(doc.specialty ? [doc.specialty] : []),
-      ...(doc.languages ?? []),
-    ].map((k) => k.toLowerCase().trim()),
+    expertise: doc.expertise ?? [],
+    searchKeywords: doc.searchKeywords ?? [],
   }));
 
   await index.saveObjects(records);
+
+  await index.setSettings({
+    searchableAttributes: [
+      'unordered(name)',
+      'unordered(specialty)',
+      'unordered(expertise)',
+      'unordered(searchKeywords)',
+      'unordered(languages)'
+    ],
+    attributesForFaceting: ['searchable(specialty)', 'searchable(languages)'],
+    customRanking: ['desc(experienceYears)', 'asc(appointmentFee)'],
+    ranking: [
+      'words',
+      'filters',
+      'typo',
+      'attribute',
+      'proximity',
+      'exact',
+      'custom'
+    ]
+  });
 }

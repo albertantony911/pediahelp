@@ -43,4 +43,24 @@ export async function syncPostsToAlgolia() {
   }));
 
   await index.saveObjects(records);
+
+  await index.setSettings({
+    searchableAttributes: [
+      'unordered(title)',
+      'unordered(excerpt)',
+      'unordered(categoryTitles)',
+      'unordered(doctorName)'
+    ],
+    attributesForFaceting: ['searchable(categoryIds)'],
+    customRanking: ['desc(publishedAt)'],
+    ranking: [
+      'words',
+      'filters',
+      'typo',
+      'attribute',
+      'proximity',
+      'exact',
+      'custom'
+    ]
+  });
 }
