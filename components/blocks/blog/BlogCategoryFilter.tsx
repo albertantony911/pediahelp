@@ -3,11 +3,11 @@
 import clsx from 'clsx';
 import { Category } from '@/types';
 
-interface BlogCategoryFilterProps {
+interface Props {
   categories: Category[];
   selectedCategory: string | null;
-  onSelect: (categoryId: string | null) => void;
-  onReset: () => void; // 👈 Add this back
+  onSelect: (categoryId: string) => void;
+  onReset: () => void;
 }
 
 export default function BlogCategoryFilter({
@@ -15,12 +15,12 @@ export default function BlogCategoryFilter({
   selectedCategory,
   onSelect,
   onReset,
-}: BlogCategoryFilterProps) {
+}: Props) {
   return (
     <div className="flex gap-2 flex-wrap mb-6 justify-center">
       <button
         className={clsx(
-          'px-4 py-2 rounded-full border text-sm font-medium transition',
+          'px-4 py-2 rounded-full border text-sm font-medium',
           selectedCategory === null
             ? 'bg-gray-900 text-white'
             : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -33,7 +33,7 @@ export default function BlogCategoryFilter({
         <button
           key={cat._id}
           className={clsx(
-            'px-4 py-2 rounded-full border text-sm font-medium transition',
+            'px-4 py-2 rounded-full border text-sm font-medium',
             selectedCategory === cat._id
               ? 'bg-gray-900 text-white'
               : 'bg-white text-gray-700 hover:bg-gray-100'

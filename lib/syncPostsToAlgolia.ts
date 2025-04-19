@@ -29,18 +29,22 @@ export async function syncPostsToAlgolia() {
     }
   `);
 
-  const records = posts.map((post: any) => ({
-    objectID: post.slug.current,
-    title: post.title,
-    slug: post.slug.current,
-    excerpt: post.excerpt,
-    publishedAt: post.publishedAt,
-    imageUrl: post.image?.asset?.url ?? '',
-    doctorName: post.doctor?.name ?? '',
-    doctorPhotoUrl: post.doctor?.photo?.asset?.url ?? '',
-    categoryTitles: post.categories?.map((c: any) => c.title) ?? [],
-    categoryIds: post.categories?.map((c: any) => c._id) ?? [],
-  }));
+  const records = posts.map((post: any) => {
+    const objectID = post._id || post.slug?.current || crypto.randomUUID();
+    return {
+      objectID,
+      title: post.title ?? '',
+      slug: post.slug?.current ?? '',
+      excerpt: post.excerpt ?? '',
+      publishedAt: post.publishedAt ?? '',
+      imageUrl: post.image?.asset?.url ?? '',
+      doctorName: post.doctor?.name ?? '',
+      doctorSlug: post.doctor?.slug?.current ?? '',
+      doctorPhotoUrl: post.doctor?.photo?.asset?.url ?? '',
+      categoryTitles: post.categories?.map((c: any) => c.title) ?? [],
+      categoryIds: post.categories?.map((c: any) => c._id) ?? [],
+    };
+  });
 
   await index.saveObjects(records);
 
@@ -61,6 +65,8 @@ export async function syncPostsToAlgolia() {
       'proximity',
       'exact',
       'custom'
-    ]
+    ],
   });
+
+  console.log(`✅ Synced ${records.length} blog posts to Algolia`);
 }

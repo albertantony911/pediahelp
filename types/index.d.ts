@@ -75,6 +75,7 @@ export interface PostWithDoctor {
   mainImage?: { asset?: { url: string } };
   categories?: Category[];
   searchKeywords?: string[];
+  imageUrl?: string;
   body?: any;
 
   meta_title?: string;
