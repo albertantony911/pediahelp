@@ -5,13 +5,13 @@ export const getAllPostsQuery = groq`
   *[_type == "post"] | order(publishedAt desc) {
     _id,
     title,
-    slug,
+    "slug": slug.current,
     excerpt,
     publishedAt,
-    image { asset->{url} },
+    "image": image.asset->{url},
     doctor->{
       name,
-      slug,
+      "slug": slug.current,
       specialty,
       photo { asset->{url} }
     }

@@ -1,6 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  ChangeEvent,
+  KeyboardEvent,
+  useMemo,
+} from 'react';
 import { useSearchBox, useInstantSearch } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
@@ -24,8 +31,17 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
-  const searchRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ⛓ Debounced refine to reduce API calls
+  const debouncedRefine = useMemo(
+    () =>
+      debounce((value: string) => {
+        setIsSearching(true);
+        refine(value);
+      }, 120),
+    [refine]
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem('recentBlogSearches');
@@ -36,28 +52,52 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
 
   useEffect(() => {
     if (results) {
-      setIsSearching(false);
       const hits = results.hits as AlgoliaPost[];
       onFilterChange?.(hits);
+      setIsSearching(false);
     }
   }, [results, onFilterChange]);
 
-  const debouncedRefine = useRef(
-    debounce((value: string) => {
-      setIsSearching(true);
-      refine(value);
-    }, 100)
-  ).current;
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setShowSuggestions(!!value.trim());
     setActiveSuggestion(-1);
 
-    if (!value.trim()) {
-      refine('');
-    } else {
-      debouncedRefine(value);
+    value.trim() ? debouncedRefine(value) : refine('');
+  };
+
+  const saveToRecentSearches = (term: string) => {
+    if (!term.trim()) return;
+    const updated = [term, ...recentSearches.filter((s) => s !== term)].slice(0, 4);
+    setRecentSearches(updated);
+    localStorage.setItem('recentBlogSearches', JSON.stringify(updated));
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const hits = (results?.hits as AlgoliaPost[]) ?? [];
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveSuggestion((prev) => Math.min(prev + 1, hits.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveSuggestion((prev) => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeSuggestion >= 0 && hits[activeSuggestion]) {
+          handleSuggestionClick(hits[activeSuggestion]);
+        } else {
+          handleSearchSubmit();
+        }
+        break;
+      case 'Escape':
+        refine('');
+        setShowSuggestions(false);
+        searchInputRef.current?.blur();
+        break;
     }
   };
 
@@ -69,45 +109,15 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
     setShowSuggestions(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const hits = (results?.hits as AlgoliaPost[]) ?? [];
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveSuggestion((prev) => Math.min(prev + 1, hits.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveSuggestion((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeSuggestion >= 0 && hits[activeSuggestion]) {
-        handleSuggestionClick(hits[activeSuggestion]);
-      } else {
-        handleSearchSubmit();
-      }
-    } else if (e.key === 'Escape') {
-      refine('');
-      setShowSuggestions(false);
-      searchRef.current?.blur();
-    }
-  };
-
-  const saveToRecentSearches = (query: string) => {
-    if (!query.trim()) return;
-    setRecentSearches((prev) => {
-      const updated = [query, ...prev.filter((s) => s !== query)].slice(0, 4);
-      localStorage.setItem('recentBlogSearches', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
   const handleSuggestionClick = (post: AlgoliaPost) => {
     refine(post.title);
     saveToRecentSearches(post.title);
     setShowSuggestions(false);
   };
 
-  const handleRecentSearchClick = (search: string) => {
-    refine(search);
+  const handleRecentSearchClick = (term: string) => {
+    refine(term);
+    saveToRecentSearches(term);
     setShowSuggestions(true);
   };
 
@@ -122,21 +132,22 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
         setShowResetNotice(true);
         setTimeout(() => setShowResetNotice(false), 2500);
       }
-    }, 200);
+    }, 150);
   };
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 sm:px-0">
+    <div className="relative max-w-lg mx-auto px-4 sm:px-0" role="search">
       <div className="relative">
         <div className={`transition-all duration-200 ${isFocused ? 'my-2' : ''}`}>
           <div className="flex items-center relative bg-white dark:bg-zinc-900 rounded-full">
             {isFocused && (
               <button
+                type="button"
                 className="absolute left-3 text-gray-400 hover:text-white p-1"
                 onClick={() => {
                   setIsFocused(false);
                   setShowSuggestions(false);
-                  searchRef.current?.blur();
+                  searchInputRef.current?.blur();
                 }}
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -144,15 +155,13 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
             )}
 
             <Input
-              ref={searchRef}
-              type="text"
+              ref={searchInputRef}
+              type="search"
               placeholder="Search blog posts"
               value={query}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={() => {
-                searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                window.scrollBy({ top: -100, behavior: 'smooth' });
                 setIsFocused(true);
                 setShowSuggestions(!!query.trim() || recentSearches.length > 0);
               }}
@@ -161,12 +170,12 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
                 setShowSuggestions(!!query.trim() || recentSearches.length > 0);
               }}
               onBlur={handleBlur}
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions}
+              aria-controls="suggestions-list"
               className={`w-full bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5 transition-all ${
                 isFocused ? 'pl-12 pr-12 shadow-md border-green-500' : 'pl-12 pr-4 shadow-sm border-transparent'
               } ${isSearching ? 'opacity-70' : ''}`}
-              aria-autocomplete="list"
-              aria-controls="suggestions-list"
-              aria-expanded={showSuggestions}
             />
 
             {!isFocused && (
@@ -177,6 +186,7 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
 
             {query.trim() && (
               <button
+                type="button"
                 onClick={() => {
                   refine('');
                   setShowSuggestions(false);
@@ -190,10 +200,10 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
           </div>
         </div>
 
-        {/* Suggestions List */}
+        {/* 🔍 Suggestions */}
         {showSuggestions && query.trim() && results && (
-          <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
-            <ul ref={suggestionsRef} id="suggestions-list" role="listbox" className="p-2">
+          <div className="absolute w-full z-10 bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 border border-gray-200 dark:border-zinc-700">
+            <ul id="suggestions-list" role="listbox" className="p-2">
               {(results.hits as AlgoliaPost[]).slice(0, 5).map((post, index) => {
                 const isActive = activeSuggestion === index;
                 return (
@@ -220,10 +230,10 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
           </div>
         )}
 
-        {/* Recent Searches */}
+        {/* 🕘 Recent Searches */}
         {isFocused && !query.trim() && recentSearches.length > 0 && (
-          <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
-            <ul ref={suggestionsRef} id="recent-searches-list" role="listbox" className="p-2">
+          <div className="absolute w-full z-10 bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 border border-gray-200 dark:border-zinc-700">
+            <ul role="listbox" className="p-2">
               {recentSearches.map((search, index) => (
                 <li
                   key={`recent-${index}`}

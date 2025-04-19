@@ -81,6 +81,7 @@ export interface PostWithDoctor {
   meta_title?: string;
   meta_description?: string;
   ogImage?: { asset?: { url: string } };
+  noindex?: boolean;
 
   doctor?: Pick<
     Doctor,
