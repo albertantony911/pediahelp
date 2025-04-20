@@ -1,20 +1,36 @@
+// Next.js 15 – Blog post page with clean structure & Tailwind styling
+
 import { notFound } from 'next/navigation';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import { PortableText } from '@portabletext/react';
+
 import { getPostBySlug } from '@/lib/queries/blog/getPostBySlug';
 import { formatDate } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { PostWithDoctor } from '@/types';
+import type { PostWithDoctor, Category } from '@/types';
 
-// Correctly typed props for Next.js 15
+// ---------- Types -----------------------------------------------------------
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
-// SEO metadata generation
+interface PostHeaderProps {
+  post: PostWithDoctor;
+}
+
+interface CoverImageProps {
+  src: string;
+  alt: string;
+}
+
+interface AuthorCardProps {
+  doctor: NonNullable<PostWithDoctor['doctor']>;
+}
+
+// ---------- Metadata -------------------------------------------------------
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const { slug } = await params; // Await params to resolve the slug
+  const { slug } = await params;
   const post = await getPostBySlug(slug);
 
   if (!post) {
@@ -24,115 +40,125 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     };
   }
 
+  const { meta_title, meta_description, ogImage, mainImage, publishedAt, noindex } = post;
+  const title = meta_title ?? post.title;
+  const description = meta_description ?? post.excerpt;
+
   return {
-    title: post.meta_title || post.title,
-    description: post.meta_description || post.excerpt,
+    title,
+    description,
     openGraph: {
-      title: post.meta_title || post.title,
-      description: post.meta_description || post.excerpt,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/blog/${post.slug.current}`,
+      title,
+      description,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}/blog/${slug}`,
       images: [
         {
-          url: post.ogImage?.asset?.url || post.mainImage?.asset?.url || '',
+          url: ogImage?.asset?.url ?? mainImage?.asset?.url ?? (post.image?.asset?.url ?? ''),
           width: 1200,
           height: 630,
         },
       ],
       type: 'article',
-      publishedTime: post.publishedAt,
+      publishedTime: publishedAt,
     },
-    robots: post.noindex ? 'noindex' : 'index, follow',
+    robots: noindex ? 'noindex' : 'index, follow',
   };
 }
 
-// Main component
+// ---------- Components ------------------------------------------------------
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const { slug } = await params; // Await params to resolve the slug
+  const { slug } = await params;
   const post = await getPostBySlug(slug);
 
   if (!post) return notFound();
 
+  const hasDoctor = isValidDoctor(post.doctor);
+
   return (
-    <article className="max-w-3xl mx-auto px-4 py-12">
-      {/* Title + Meta */}
-      <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{post.title}</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Published on {formatDate(post.publishedAt)}
-          {post.categories?.length && (
-            <> • {post.categories.map((cat) => cat.title).join(', ')}</>
-          )}
-        </p>
-        {post.excerpt && <p className="mt-4 text-lg text-muted-foreground">{post.excerpt}</p>}
-      </header>
-
-      {/* Cover Image */}
-      {post.mainImage?.asset?.url && (
-        <div className="relative mb-10 h-64 w-full md:h-96 overflow-hidden rounded-lg">
-          <Image
-            src={post.mainImage.asset.url}
-            alt={post.title}
-            fill
-            priority
-            className="object-cover"
-          />
-        </div>
-      )}
-
-      {/* Body */}
-      <section className="prose dark:prose-invert prose-neutral max-w-none">
-        <PortableText value={post.body} />
-      </section>
-
-      {/* Author Info */}
-      {post.doctor && (
+    <article className="mx-auto max-w-3xl space-y-12 px-4 py-16">
+      <PostHeader post={post} />
+      {post.mainImage?.asset?.url && <CoverImage src={post.mainImage.asset.url} alt={post.title} />}
+      <ContentSection content={post.body} />
+      {hasDoctor && (
         <>
           <Separator className="my-12" />
-          <aside className="mt-8 p-6 rounded-lg border border-border bg-muted/30">
-            <h2 className="text-xl font-semibold mb-4">About the Author</h2>
-            <div className="flex flex-col md:flex-row items-start gap-4">
-              {post.doctor.photo?.asset?.url && (
-                <Image
-                  src={post.doctor.photo.asset.url}
-                  alt={post.doctor.name}
-                  width={96}
-                  height={96}
-                  className="rounded-full border shadow-sm"
-                />
-              )}
-              <div>
-                <p className="text-lg font-medium">
-                  {post.doctor.name}{' '}
-                  <span className="text-sm text-muted-foreground">({post.doctor.specialty})</span>
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {post.doctor.experienceYears
-                    ? `${post.doctor.experienceYears} years of experience`
-                    : 'Experienced practitioner'}
-                </p>
-                {!!post.doctor.expertise?.length && (
-                  <p className="text-sm text-muted-foreground">
-                    Expertise: {post.doctor.expertise.join(', ')}
-                  </p>
-                )}
-                {post.doctor.whatsappNumber && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    WhatsApp: {post.doctor.whatsappNumber}
-                  </p>
-                )}
-                {post.doctor.appointmentFee && (
-                  <p className="text-sm text-muted-foreground">
-                    Appointment Fee: ₹{post.doctor.appointmentFee}
-                  </p>
-                )}
-              </div>
-            </div>
-          </aside>
+          <AuthorCard doctor={post.doctor as NonNullable<PostWithDoctor['doctor']>} />
         </>
       )}
     </article>
   );
 }
 
-// Enable Incremental Static Regeneration
+// ---------- Sub-components --------------------------------------------------
+function PostHeader({ post }: PostHeaderProps) {
+  const { title, publishedAt, categories, excerpt } = post;
+  const categoryText = categories?.length ? ` • ${categories.map(c => c.title).join(', ')}` : '';
+
+  return (
+    <header className="space-y-4">
+      <h1 className="text-4xl font-bold leading-tight text-foreground">{title}</h1>
+      <p className="text-sm text-muted-foreground">
+        {formatDate(publishedAt)}
+        {categoryText}
+      </p>
+      {excerpt && <p className="text-lg text-muted-foreground">{excerpt}</p>}
+    </header>
+  );
+}
+
+function CoverImage({ src, alt }: CoverImageProps) {
+  return (
+    <figure className="relative h-64 w-full overflow-hidden rounded-lg md:h-96">
+      <Image src={src} alt={alt} fill priority className="object-cover" />
+    </figure>
+  );
+}
+
+function ContentSection({ content }: { content: any }) {
+  return (
+    <section className="prose mx-auto max-w-none">
+      <PortableText value={content} />
+    </section>
+  );
+}
+
+function AuthorCard({ doctor }: AuthorCardProps) {
+  const { name, photo, specialty, experienceYears, expertise, whatsappNumber, appointmentFee } = doctor;
+
+  return (
+    <aside className="rounded-lg border border-border bg-muted/40 p-6">
+      <h2 className="mb-4 text-xl font-semibold">About the Author</h2>
+      <div className="flex flex-col items-start gap-4 md:flex-row">
+        {photo?.asset?.url && (
+          <Image
+            src={photo.asset.url}
+            alt={name}
+            width={96}
+            height={96}
+            className="rounded-full border shadow-sm"
+          />
+        )}
+        <div className="space-y-1">
+          <p className="text-lg font-medium">
+            {name}{' '}
+            {specialty && <span className="text-sm text-muted-foreground">({specialty})</span>}
+          </p>
+          {experienceYears && (
+            <p className="text-sm text-muted-foreground">{experienceYears} years of experience</p>
+          )}
+          {expertise?.length && <p className="text-sm text-muted-foreground">Expertise: {expertise.join(', ')}</p>}
+          {whatsappNumber && <p className="text-sm text-muted-foreground">WhatsApp: {whatsappNumber}</p>}
+          {appointmentFee && <p className="text-sm text-muted-foreground">Appointment Fee: ₹{appointmentFee}</p>}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ---------- Utilities -------------------------------------------------------
+function isValidDoctor(doctor: PostWithDoctor['doctor'] | undefined): doctor is NonNullable<PostWithDoctor['doctor']> {
+  return !!doctor && typeof doctor === 'object' && Object.keys(doctor).length > 0 && 'name' in doctor;
+}
+
+// ---------- Revalidation ----------------------------------------------------
 export const revalidate = 60;

@@ -85,55 +85,55 @@ export default function DoctorProfileCard({
               ))}
             </div>
           )}
-<div className="mt-3 flex flex-row gap-2 w-full">
-  {/* WhatsApp Button */}
-  {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
-    <a
-      href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
-        `Hi, I’d like to book a consultation with ${name} via PediaHelp.`
-      )}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`
-        w-[40%] sm:w-auto flex items-center justify-center gap-2
-        border border-green-600 text-green-700 bg-white
-        px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold
-        hover:bg-green-600 hover:text-white
-        focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-green-700 focus:text-white
-        active:scale-95 active:bg-green-700 active:text-white active:shadow-inner
-        transition-all duration-150 ease-out
-      `}
-    >
-      <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
-      WhatsApp
-    </a>
-  ) : (
-    <button
-      type="button"
-      disabled
-      className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
-      title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
-    >
-      Message
-    </button>
-  )}
+          <div className="mt-3 flex flex-row gap-2 w-full">
+            {/* WhatsApp Button */}
+            {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
+              <a
+                href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
+                  `Hi, I'd like to book a consultation with ${name} via PediaHelp.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`
+                  w-[40%] sm:w-auto flex items-center justify-center gap-2
+                  border border-green-600 text-green-700 bg-white
+                  px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold
+                  hover:bg-green-600 hover:text-white
+                  focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-green-700 focus:text-white
+                  active:scale-95 active:bg-green-700 active:text-white active:shadow-inner
+                  transition-all duration-150 ease-out
+                `}
+              >
+                <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
+                WhatsApp
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
+                title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
+              >
+                Message
+              </button>
+            )}
 
-  {/* Book Appointment Button */}
-  <Link
-    href={`/consultation/${slug}/booking`}
-    className={`
-      w-2/3 sm:w-auto bg-gray-900 text-white
-      px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center
-      hover:bg-white hover:text-gray-900 hover:border-gray-900
-      focus:outline-none focus:ring-2 focus:ring-gray-400 focus:bg-white focus:text-gray-900
-      active:scale-95 active:bg-white active:text-gray-900 active:border-gray-900 active:shadow-inner
-      border border-transparent
-      transition-all duration-150 ease-out
-    `}
-  >
-    Book Appointment
-  </Link>
-</div>
+            {/* Book Appointment Button */}
+            <Link
+              href={`/consultation/${slug}/booking`}
+              className={`
+                w-2/3 sm:w-auto bg-gray-900 text-white
+                px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center
+                hover:bg-white hover:text-gray-900 hover:border-gray-900
+                focus:outline-none focus:ring-2 focus:ring-gray-400 focus:bg-white focus:text-gray-900
+                active:scale-95 active:bg-white active:text-gray-900 active:border-gray-900 active:shadow-inner
+                border border-transparent
+                transition-all duration-150 ease-out
+              `}
+            >
+              Book Appointment
+            </Link>
+          </div>
         </div>
       </div>
     </Card>
@@ -230,7 +230,7 @@ function DoctorHeader({
 
 function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap">
+    <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap hover:bg-gray-200 transition-colors duration-150">
       {icon}
       <span>{text}</span>
     </div>
@@ -241,7 +241,15 @@ function ProfileLink({ slug }: { slug: string }) {
   return (
     <Link
       href={`/consultation/${slug}`}
-      className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-100 transition"
+      className={`
+        flex items-center justify-center gap-1.5
+        border border-blue-600 text-blue-700 bg-white
+        px-3 py-1 rounded-full text-xs sm:text-sm font-medium
+        hover:bg-blue-600 hover:text-white
+        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-700 focus:text-white
+        active:scale-95 active:bg-blue-700 active:text-white active:shadow-inner
+        transition-all duration-150 ease-out
+      `}
     >
       <User className="w-4 h-4" />
       View Profile
@@ -252,12 +260,14 @@ function ProfileLink({ slug }: { slug: string }) {
 function ShareProfilePill({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [isPressed, setIsPressed] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/consultation/${slug}`);
   }, [slug]);
 
   const handleShare = async () => {
+    setIsPressed(true);
     try {
       if (navigator.share) {
         await navigator.share({
@@ -272,15 +282,27 @@ function ShareProfilePill({ slug }: { slug: string }) {
       }
     } catch (err) {
       console.error(`Share failed for ${slug}:`, err);
+    } finally {
+      // Release the pressed state after a short delay
+      setTimeout(() => setIsPressed(false), 150);
     }
   };
 
   return (
     <button
       onClick={handleShare}
-      className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-100 transition cursor-pointer"
+      className={`
+        flex items-center justify-center gap-1.5
+        border border-blue-600 text-blue-700 bg-white
+        px-3 py-1 rounded-full text-xs sm:text-sm font-medium
+        hover:bg-blue-600 hover:text-white
+        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-700 focus:text-white
+        ${isPressed ? 'scale-95 bg-blue-700 text-white shadow-inner' : ''}
+        transition-all duration-150 ease-out
+      `}
+      aria-label={copied ? "Link copied to clipboard" : "Share doctor profile"}
     >
-      <Share2 className="w-4 h-4" />
+      <Share2 className={`w-4 h-4 ${copied ? 'animate-pulse' : ''}`} />
       {copied ? 'Copied!' : 'Share'}
     </button>
   );
