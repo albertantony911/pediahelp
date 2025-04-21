@@ -3,6 +3,8 @@ import Breadcrumbs from '@/components/ui/breadcrumbs';
 import PostHero from '@/components/blocks/post-hero';
 import PortableTextRenderer from '@/components/portable-text-renderer';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
+import BlogQuestionForm from '@/components/blocks/forms/blog-question';
+
 import { Separator } from '@/components/ui/separator';
 import {
   fetchSanityPostBySlug,
@@ -61,6 +63,12 @@ export default async function PostPage({ params }: { params: PageParams }) {
               <h2 className="text-xl font-semibold text-gray-800 mb-6">About the Author</h2>
               <DoctorProfileCard {...doctor} reviews={doctor.reviews || []} />
             </>
+          )}
+
+          {post && (
+            <div className="mt-12">
+              <BlogQuestionForm slug={slug} blogTitle={post.title ?? 'Blog post'} />
+            </div>
           )}
         </article>
       </div>

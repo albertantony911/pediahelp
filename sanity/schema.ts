@@ -9,7 +9,7 @@ import testimonial from "./schemas/documents/testimonial";
 import doctor from './schemas/documents/doctor';
 import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
-
+import { blogQuestion } from './schemas/documents/blogQuestion';
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
 import link from "./schemas/blocks/shared/link";
@@ -53,6 +53,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     doctor,
     review,
     comment,
+    blogQuestion,
     // shared objects
     blockContent,
     link,
