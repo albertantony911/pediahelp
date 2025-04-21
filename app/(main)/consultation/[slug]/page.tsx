@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
@@ -21,10 +22,11 @@ import {
   User,
 } from 'lucide-react';
 
-import { Doctor, Review } from '@/types';
+import type { Doctor, Review } from '@/types';
 
 export const revalidate = 86400;
 
+// 1. Fetch the doctor by slug
 const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
   try {
     return await client.fetch(
@@ -56,6 +58,7 @@ const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
   }
 };
 
+// 2. Build static params from slugs
 export async function generateStaticParams() {
   const slugs: string[] = await client.fetch(
     groq`*[_type == "doctor" && defined(slug.current)][].slug.current`
@@ -63,6 +66,7 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
+// 3. Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const doctor = await getDoctorBySlug(slug);
@@ -78,6 +82,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       };
 }
 
+// 4. Main Page Component
 export default async function DoctorPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const doctor = await getDoctorBySlug(slug);
@@ -108,61 +113,34 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
-      <DoctorProfileCard
-        name={doctor.name}
-        specialty={doctor.specialty}
-        photo={doctor.photo}
-        appointmentFee={doctor.appointmentFee}
-        reviews={reviews} // Pass reviews array instead of rating and reviewCount
-        slug={doctor.slug.current}
-        expertise={doctor.expertise}
-        experienceYears={doctor.experienceYears}
-        whatsappNumber={doctor.whatsappNumber}
-      />
+      {/* 5. Profile Card */}
+      <DoctorProfileCard {...doctor} reviews={reviews} />
 
+      {/* 6. Qualifications Card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Qualifications & Experience</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 text-sm text-gray-800">
           {education.length > 0 && (
-            <QualificationBlock
-              icon={<GraduationCap className="w-4 h-4" />}
-              title="Education"
-              items={education}
-            />
+            <QualificationBlock icon={<GraduationCap className="w-4 h-4" />} title="Education" items={education} />
           )}
           {achievements.length > 0 && (
-            <QualificationBlock
-              icon={<Award className="w-4 h-4" />}
-              title="Achievements"
-              items={achievements}
-            />
+            <QualificationBlock icon={<Award className="w-4 h-4" />} title="Achievements" items={achievements} />
           )}
           {publications.length > 0 && (
-            <QualificationBlock
-              icon={<BookOpenCheck className="w-4 h-4" />}
-              title="Publications"
-              items={publications}
-            />
+            <QualificationBlock icon={<BookOpenCheck className="w-4 h-4" />} title="Publications" items={publications} />
           )}
           {others.length > 0 && (
-            <QualificationBlock
-              icon={<MoreHorizontal className="w-4 h-4" />}
-              title="Other Highlights"
-              items={others}
-            />
+            <QualificationBlock icon={<MoreHorizontal className="w-4 h-4" />} title="Other Highlights" items={others} />
           )}
           {languages.length > 0 && (
-            <QualificationBlock
-              icon={<User className="w-4 h-4" />}
-              title="Languages Known"
-              items={languages}
-            />
+            <QualificationBlock icon={<User className="w-4 h-4" />} title="Languages Known" items={languages} />
           )}
         </CardContent>
       </Card>
 
+      {/* 7. About */}
       {doctor.about && (
         <Card>
           <CardHeader>
@@ -174,6 +152,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         </Card>
       )}
 
+      {/* 8. Reviews */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Ratings & Reviews</CardTitle>
@@ -183,11 +162,13 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
         </CardContent>
       </Card>
 
+      {/* 9. Review Form */}
       <DoctorReview doctorId={doctorId} />
     </div>
   );
 }
 
+// 10. Reusable QualificationBlock
 function QualificationBlock({
   icon,
   title,

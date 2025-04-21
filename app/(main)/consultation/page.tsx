@@ -5,17 +5,20 @@ import algoliasearch from 'algoliasearch/lite';
 import { InstantSearch, Configure } from 'react-instantsearch';
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
+
 import SpecialtyFilter from '@/components/blocks/doctor/SpecialtyFilter';
 import DoctorList from '@/components/blocks/doctor/DoctorList';
 import DoctorSearchAlgolia from '@/components/blocks/doctor/DoctorSearchAlgolia';
-import { Doctor, Review } from '@/types';
+
+import type { Doctor, Review } from '@/types';
 
 const searchClient = algoliasearch(
   process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
   process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
 );
 
-async function getDoctors(): Promise<{ doctor: Doctor; reviews: Review[] }[]> {
+// ✅ Now returns Doctor[], where each Doctor includes reviews
+async function getDoctors(): Promise<Doctor[]> {
   try {
     const doctors = await client.fetch<Doctor[]>(
       groq`*[_type == "doctor"] | order(orderRank asc) {
@@ -48,7 +51,7 @@ async function getDoctors(): Promise<{ doctor: Doctor; reviews: Review[] }[]> {
           }`,
           { id: doctor._id }
         );
-        return { doctor, reviews };
+        return { ...doctor, reviews }; // ✅ Embed reviews into Doctor
       })
     );
 
@@ -60,20 +63,18 @@ async function getDoctors(): Promise<{ doctor: Doctor; reviews: Review[] }[]> {
 }
 
 export default function ConsultationPageWrapper() {
-  const [allDoctorsWithReviews, setAllDoctorsWithReviews] = useState<
-    { doctor: Doctor; reviews: Review[] }[]
-  >([]);
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchHits, setSearchHits] = useState<{ objectID: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all doctors on mount
+  // ✅ Fetch on mount
   useEffect(() => {
     async function loadDoctors() {
       try {
         const data = await getDoctors();
-        setAllDoctorsWithReviews(data);
+        setAllDoctors(data);
       } catch (err) {
         setError('Failed to load doctors. Please try again later.');
       } finally {
@@ -83,26 +84,25 @@ export default function ConsultationPageWrapper() {
     loadDoctors();
   }, []);
 
-  // Memoize filtered doctors based on specialty
+  // ✅ Filter by specialty
   const filteredBySpecialty = useMemo(() => {
     if (!selectedSpecialty) return undefined;
-    return allDoctorsWithReviews.filter(
-      (item) => item.doctor.specialty.toLowerCase() === selectedSpecialty.toLowerCase()
+    return allDoctors.filter(
+      (doc) => doc.specialty.toLowerCase() === selectedSpecialty.toLowerCase()
     );
-  }, [allDoctorsWithReviews, selectedSpecialty]);
+  }, [allDoctors, selectedSpecialty]);
 
-  // Stabilize onFilterChange with useCallback
+  // ✅ Algolia search results
   const handleFilterChange = useCallback((hits: { objectID: string }[]) => {
     setSearchHits(hits);
-  }, []); // Empty dependency array ensures it doesn't change
+  }, []);
 
-  // Derive final doctor list based on search and specialty
   const displayedDoctors = useMemo(() => {
-    if (searchHits.length === 0) return filteredBySpecialty || allDoctorsWithReviews;
-    return allDoctorsWithReviews.filter((item) =>
-      searchHits.some((hit) => hit.objectID === item.doctor.slug.current)
+    if (searchHits.length === 0) return filteredBySpecialty || allDoctors;
+    return allDoctors.filter((doc) =>
+      searchHits.some((hit) => hit.objectID === doc.slug.current)
     );
-  }, [searchHits, filteredBySpecialty, allDoctorsWithReviews]);
+  }, [searchHits, filteredBySpecialty, allDoctors]);
 
   if (loading) {
     return (
@@ -113,7 +113,7 @@ export default function ConsultationPageWrapper() {
     );
   }
 
-  if (error || !allDoctorsWithReviews.length) {
+  if (error || !allDoctors.length) {
     return (
       <div className="min-h-screen bg-white text-gray-300 max-w-lg px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
@@ -144,8 +144,8 @@ export default function ConsultationPageWrapper() {
         </div>
 
         <DoctorList
-          allDoctorsWithReviews={allDoctorsWithReviews}
-          filteredBySpecialty={displayedDoctors === allDoctorsWithReviews ? undefined : displayedDoctors}
+          allDoctors={allDoctors}
+          filteredDoctors={displayedDoctors === allDoctors ? undefined : displayedDoctors}
           loading={loading}
         />
       </InstantSearch>

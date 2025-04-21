@@ -7,18 +7,9 @@ export default defineType({
   type: "document",
   icon: FileText,
   groups: [
-    {
-      name: "content",
-      title: "Content",
-    },
-    {
-      name: "seo",
-      title: "SEO",
-    },
-    {
-      name: "settings",
-      title: "Settings",
-    },
+    { name: "content", title: "Content" },
+    { name: "seo", title: "SEO" },
+    { name: "settings", title: "Settings" },
   ],
   fields: [
     defineField({
@@ -45,21 +36,23 @@ export default defineType({
       type: "text",
       group: "content",
     }),
+
+    // ✅ Doctor Author Reference
     defineField({
-      name: "author",
-      title: "Author",
+      name: "doctorAuthor",
+      title: "Written by (Doctor)",
       type: "reference",
+      to: [{ type: "doctor" }],
       group: "settings",
-      to: { type: "author" },
+      description: "Select the doctor who authored this blog post. Their profile will appear at the end of the post.",
     }),
+
     defineField({
       name: "image",
       title: "Image",
       type: "image",
       group: "settings",
-      options: {
-        hotspot: true,
-      },
+      options: { hotspot: true },
       fields: [
         {
           name: "alt",
@@ -111,12 +104,15 @@ export default defineType({
   preview: {
     select: {
       title: "title",
-      author: "author.name",
+      doctor: "doctorAuthor.name",
       media: "image",
     },
     prepare(selection) {
-      const { author } = selection;
-      return { ...selection, subtitle: author && `by ${author}` };
+      const { doctor } = selection;
+      return {
+        ...selection,
+        subtitle: doctor ? `by Dr. ${doctor}` : "No author selected",
+      };
     },
   },
 });

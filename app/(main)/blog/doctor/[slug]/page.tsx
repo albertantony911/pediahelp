@@ -51,17 +51,7 @@ export default async function DoctorBlogPage({ params }: DoctorPageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
-      <DoctorProfileCard
-        name={doctor.name || 'Unknown Doctor'}
-        specialty={doctor.specialty || 'N/A'}
-        photo={doctor.photo || undefined}
-        appointmentFee={doctor.appointmentFee || 0}
-        reviews={doctor.reviews || []}
-        slug={doctor.slug.current}
-        expertise={doctor.expertise || []}
-        experienceYears={doctor.experienceYears || 0}
-        whatsappNumber={doctor.whatsappNumber || ''}
-      />
+      <DoctorProfileCard {...doctor} reviews={doctor.reviews || []} />
       <h2 className="text-2xl font-semibold text-gray-900 mt-6 mb-4">
         Articles by {doctor.name || 'Unknown Doctor'}
       </h2>

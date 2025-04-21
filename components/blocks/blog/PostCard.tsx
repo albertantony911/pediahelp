@@ -1,22 +1,38 @@
 'use client';
 
-import { PostWithDoctor } from '@/types';
+import { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
+// Can also import AlgoliaPost if you made a type for it
+type CompatiblePost = Post & {
+  slug?: { current?: string } | string;
+  image?: { asset?: { url?: string } } | { url?: string } | null;
+  imageUrl?: string;
+};
+
 interface PostCardProps {
-  post: PostWithDoctor;
+  post: CompatiblePost;
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  const imageUrl = post.image?.asset?.url || (post as any).imageUrl;
-  const slug = post.slug?.current ?? '';
+  const slug =
+    typeof post.slug === 'string'
+      ? post.slug
+      : post.slug?.current || '';
+
   const title = post.title ?? 'Untitled';
   const excerpt = post.excerpt ?? '';
 
+  // Image URL fallback logic
+  const imageUrl =
+    post.image && 'asset' in post.image
+      ? post.image.asset?.url
+      : (post.image as { url?: string })?.url ?? (post as any).imageUrl;
+
   return (
     <Link
-      href={`/blog/${post.slug}`}
+      href={`/blog/${slug}`}
       className="block border rounded-lg overflow-hidden transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       aria-label={`Read blog post: ${title}`}
     >
@@ -28,7 +44,6 @@ export default function PostCard({ post }: PostCardProps) {
             fill
             sizes="(min-width: 1024px) 33vw, 100vw"
             className="object-cover"
-            priority={false}
           />
         </div>
       )}

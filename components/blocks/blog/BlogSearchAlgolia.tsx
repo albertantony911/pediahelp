@@ -12,9 +12,9 @@ import { useSearchBox, useInstantSearch } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
-import { PostWithDoctor } from '@/types';
+import { Post } from '@/types';
 
-type AlgoliaPost = PostWithDoctor & { objectID?: string; categoryTitles?: string[] };
+type AlgoliaPost = Post & { objectID?: string; categoryTitles?: string[] };
 
 interface BlogSearchAlgoliaProps {
   onFilterChange?: (filteredPosts: AlgoliaPost[]) => void;

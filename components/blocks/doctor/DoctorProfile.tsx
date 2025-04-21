@@ -19,10 +19,9 @@ import {
 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
-import { DoctorProfileCardProps, Review } from '@/types';
+import type { Doctor, Review } from '@/types';
 import { calculateAverageRating } from '@/lib/ratingUtils';
 
-// Specialty icon mapping
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
   neonatology: <Baby className="w-4 h-4 text-pink-500" />,
@@ -42,9 +41,8 @@ export default function DoctorProfileCard({
   expertise = [],
   experienceYears,
   whatsappNumber,
-}: DoctorProfileCardProps & { reviews?: Review[] }) {
-  if (!name || !specialty || !slug || !appointmentFee) return null;
-
+}: Doctor & { reviews?: Review[] }) {
+  const slugString = typeof slug === 'object' ? slug.current : slug;
   const photoUrl = photo?.asset?.url;
   const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
   const specialtyIcon = specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />;
@@ -52,6 +50,8 @@ export default function DoctorProfileCard({
   const { averageRating, reviewCount } = calculateAverageRating(reviews);
   const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) ? averageRating.toFixed(1) : 'N/A';
   const displayExperience = typeof experienceYears === 'number' && experienceYears > 0 ? `, ${experienceYears}+ years` : '';
+
+  if (!name || !specialty || !slugString || !appointmentFee) return null;
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
@@ -62,7 +62,7 @@ export default function DoctorProfileCard({
             name={name}
             specialty={specialty}
             experience={displayExperience}
-            slug={slug}
+            slug={slugString}
             rating={displayRating}
             reviewCount={reviewCount}
             appointmentFee={appointmentFee}
@@ -86,7 +86,6 @@ export default function DoctorProfileCard({
             </div>
           )}
           <div className="mt-3 flex flex-row gap-2 w-full">
-            {/* WhatsApp Button */}
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <a
                 href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
@@ -94,15 +93,7 @@ export default function DoctorProfileCard({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`
-                  w-[40%] sm:w-auto flex items-center justify-center gap-2
-                  border border-green-600 text-green-700 bg-white
-                  px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold
-                  hover:bg-green-600 hover:text-white
-                  focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-green-700 focus:text-white
-                  active:scale-95 active:bg-green-700 active:text-white active:shadow-inner
-                  transition-all duration-150 ease-out
-                `}
+                className="w-[40%] sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 bg-white px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-150 ease-out"
               >
                 <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
                 WhatsApp
@@ -118,18 +109,9 @@ export default function DoctorProfileCard({
               </button>
             )}
 
-            {/* Book Appointment Button */}
             <Link
-              href={`/consultation/${slug}/booking`}
-              className={`
-                w-2/3 sm:w-auto bg-gray-900 text-white
-                px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center
-                hover:bg-white hover:text-gray-900 hover:border-gray-900
-                focus:outline-none focus:ring-2 focus:ring-gray-400 focus:bg-white focus:text-gray-900
-                active:scale-95 active:bg-white active:text-gray-900 active:border-gray-900 active:shadow-inner
-                border border-transparent
-                transition-all duration-150 ease-out
-              `}
+              href={`/consultation/${slugString}/booking`}
+              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-white hover:text-gray-900 hover:border-gray-900 border border-transparent transition-all duration-150 ease-out"
             >
               Book Appointment
             </Link>
@@ -211,10 +193,7 @@ function DoctorHeader({
           <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
           <div className="flex items-center gap-1.5 text-base text-gray-700">
             {specialtyIcon}
-            <span>
-              {specialty}
-              {experience}
-            </span>
+            <span>{specialty}{experience}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 mt-2">
@@ -241,15 +220,7 @@ function ProfileLink({ slug }: { slug: string }) {
   return (
     <Link
       href={`/consultation/${slug}`}
-      className={`
-        flex items-center justify-center gap-1.5
-        border border-blue-600 text-blue-700 bg-white
-        px-3 py-1 rounded-full text-xs sm:text-sm font-medium
-        hover:bg-blue-600 hover:text-white
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-700 focus:text-white
-        active:scale-95 active:bg-blue-700 active:text-white active:shadow-inner
-        transition-all duration-150 ease-out
-      `}
+      className="flex items-center justify-center gap-1.5 border border-blue-600 text-blue-700 bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <User className="w-4 h-4" />
       View Profile
@@ -283,7 +254,6 @@ function ShareProfilePill({ slug }: { slug: string }) {
     } catch (err) {
       console.error(`Share failed for ${slug}:`, err);
     } finally {
-      // Release the pressed state after a short delay
       setTimeout(() => setIsPressed(false), 150);
     }
   };
@@ -291,16 +261,8 @@ function ShareProfilePill({ slug }: { slug: string }) {
   return (
     <button
       onClick={handleShare}
-      className={`
-        flex items-center justify-center gap-1.5
-        border border-blue-600 text-blue-700 bg-white
-        px-3 py-1 rounded-full text-xs sm:text-sm font-medium
-        hover:bg-blue-600 hover:text-white
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-700 focus:text-white
-        ${isPressed ? 'scale-95 bg-blue-700 text-white shadow-inner' : ''}
-        transition-all duration-150 ease-out
-      `}
-      aria-label={copied ? "Link copied to clipboard" : "Share doctor profile"}
+      className={`flex items-center justify-center gap-1.5 border border-blue-600 text-blue-700 bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${isPressed ? 'scale-95 bg-blue-700 text-white shadow-inner' : ''} transition-all duration-150 ease-out`}
+      aria-label={copied ? 'Link copied to clipboard' : 'Share doctor profile'}
     >
       <Share2 className={`w-4 h-4 ${copied ? 'animate-pulse' : ''}`} />
       {copied ? 'Copied!' : 'Share'}

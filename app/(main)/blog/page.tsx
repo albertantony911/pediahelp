@@ -1,14 +1,10 @@
 import { Metadata } from 'next';
-import { client } from '@/sanity/lib/client';
-import { getAllPostsQuery } from '@/lib/queries/blog/getAllPosts';
-import { getAllCategoriesQuery } from '@/lib/queries/blog/getAllCategories';
+import { fetchSanityBlogPreviews, fetchSanityCategories } from '@/sanity/lib/fetch';
 import BlogPage from '@/components/blocks/blog/BlogPage';
-import { PostWithDoctor, Category } from '@/types';
+import type { BlogPreview, Category } from '@/types';
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// Static metadata for SEO
 export const metadata: Metadata = {
   title: 'Blog | Pediahelp',
   description: 'Explore helpful pediatric articles and resources.',
@@ -28,11 +24,10 @@ export const metadata: Metadata = {
   robots: 'index, follow',
 };
 
-// Server-side rendering with async component
 export default async function BlogSSRPage() {
-  const [fallbackPosts, categories]: [PostWithDoctor[], Category[]] = await Promise.all([
-    client.fetch(getAllPostsQuery, {}, { cache: 'no-store' }),
-    client.fetch(getAllCategoriesQuery, {}, { cache: 'no-store' }),
+  const [fallbackPosts, categories]: [BlogPreview[], Category[]] = await Promise.all([
+    fetchSanityBlogPreviews(),
+    fetchSanityCategories(),
   ]);
 
   return <BlogPage fallbackPosts={fallbackPosts} categories={categories} />;
