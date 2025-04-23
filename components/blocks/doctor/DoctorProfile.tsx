@@ -55,7 +55,11 @@ export default function DoctorProfileCard({
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
+
+      
+      
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
+        
         <DoctorPhoto name={name} photoUrl={photoUrl} />
         <div className="flex-1 flex flex-col gap-2">
           <DoctorHeader
@@ -70,19 +74,11 @@ export default function DoctorProfileCard({
             specialtyIcon={specialtyIcon}
           />
           {Array.isArray(expertise) && expertise.length > 0 && (
-            <div className="mt-2 ml-2 flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
-                <HeartPulse className="w-4 h-4 text-rose-500" />
-                <span>Expertise in:</span>
-              </div>
-              {expertise.map((item, i) => (
-                <span
-                  key={i}
-                  className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap"
-                >
-                  {item?.trim() || 'N/A'}
-                </span>
-              ))}
+            <div className="mt-2 ml-2 flex items-start gap-2 text-sm text-gray-800">
+              
+              <span>
+                <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
+              </span>
             </div>
           )}
           <div className="mt-3 flex flex-row gap-2 w-full">
@@ -163,7 +159,7 @@ function DoctorHeader({
     <>
       {/* Mobile */}
       <div className="flex sm:hidden items-start gap-3">
-        <div className="aspect-[3/4] w-[110px] rounded-lg overflow-hidden bg-gray-100">
+        <div className="aspect-[3/4] w-[90px] rounded-lg overflow-hidden bg-gray-100">
           {photoUrl ? (
             <Image src={photoUrl} alt={`Dr. ${name}`} width={110} height={160} className="w-full h-full object-cover" />
           ) : (

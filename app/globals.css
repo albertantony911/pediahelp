@@ -154,7 +154,7 @@
     }
   }
   h5 {
-    font-family: var(--font-sans), var(--font-secondary);
+    font-family: var(--font-secondary);
     font-size: 1.125rem;
     line-height: 1.4;
     @media (width >= theme(--breakpoint-md)) {
@@ -162,7 +162,7 @@
     }
   }
   h6 {
-    font-family: var(--font-sans), var(--font-secondary);
+    font-family: var(--font-secondary);
     font-size: 1rem;
     line-height: 1.4;
     @media (width >= theme(--breakpoint-md)) {
