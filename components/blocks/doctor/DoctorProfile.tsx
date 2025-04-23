@@ -21,6 +21,7 @@ import {
 import { Card } from '@/components/ui/card';
 import type { Doctor, Review } from '@/types';
 import { calculateAverageRating } from '@/lib/ratingUtils';
+import { Button } from '@/components/ui/button'; // or wherever your new Button lives
 
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
@@ -55,11 +56,7 @@ export default function DoctorProfileCard({
 
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
-
-      
-      
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
-        
         <DoctorPhoto name={name} photoUrl={photoUrl} />
         <div className="flex-1 flex flex-col gap-2">
           <DoctorHeader
@@ -75,7 +72,6 @@ export default function DoctorProfileCard({
           />
           {Array.isArray(expertise) && expertise.length > 0 && (
             <div className="mt-2 ml-2 flex items-start gap-2 text-sm text-gray-800">
-              
               <span>
                 <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
               </span>
@@ -83,34 +79,33 @@ export default function DoctorProfileCard({
           )}
           <div className="mt-3 flex flex-row gap-2 w-full">
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
-              <a
+              <Button
+                variant="whatsapp"
                 href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
                   `Hi, I'd like to book a consultation with ${name} via PediaHelp.`
                 )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-[40%] sm:w-auto flex items-center justify-center gap-2 border border-green-600 text-green-700 bg-white px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-150 ease-out"
+                className="w-[40%] sm:w-auto flex items-center justify-center px-5 py-2.5"
               >
-                <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5" />
+                <FaWhatsapp className="w-5 h-5 mr-1" />
                 WhatsApp
-              </a>
+              </Button>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 disabled
-                className="w-[40%] sm:w-auto border border-gray-300 text-gray-400 px-5 py-2.5 rounded-full text-sm sm:text-base font-semibold cursor-not-allowed"
-                title={whatsappNumber ? 'Invalid WhatsApp number' : 'No WhatsApp available'}
+                className="w-[40%] sm:w-auto px-5 py-2.5"
               >
                 Message
-              </button>
+              </Button>
             )}
 
-            <Link
+            <Button
+              variant="default"
               href={`/consultation/${slugString}/booking`}
-              className="w-2/3 sm:w-auto bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm sm:text-base font-semibold text-center hover:bg-white hover:text-gray-900 hover:border-gray-900 border border-transparent transition-all duration-150 ease-out"
+              className="w-2/3 sm:w-auto px-6 py-2.5"
             >
               Book Appointment
-            </Link>
+            </Button>
           </div>
         </div>
       </div>

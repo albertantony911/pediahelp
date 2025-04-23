@@ -30,6 +30,8 @@
 }
 
 :root {
+  --dark-shade: #264E53;
+  --light-shade: #24AD8F;
   --background: hsl(0 0% 100%);
   --foreground: hsl(224 71.4% 4.1%);
   --card: hsl(0 0% 100%);
@@ -58,6 +60,8 @@
 }
 
 @theme inline {
+  --color-dark-shade: var(--dark-shade);
+  --color-light-shade: var(--light-shade);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

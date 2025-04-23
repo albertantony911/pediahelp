@@ -12,14 +12,14 @@ import { logoCloud1Query } from "./logo-cloud/logo-cloud-1";
 import { faqsQuery } from "./faqs";
 import { formNewsletterQuery } from "./forms/newsletter";
 import { allPostsQuery } from "./all-posts";
-import { heroSearchQuery } from "./hero/heroSearch";
+import { heroSearch } from "./hero/heroSearch";
 
 export const PAGE_QUERY = groq`
   *[_type == "page" && slug.current == $slug][0]{
     blocks[]{
       ${hero1Query},
       ${hero2Query},
-      ${heroSearchQuery},
+      ${heroSearch},
       ${sectionHeaderQuery},
       ${splitRowQuery},
       ${gridRowQuery},

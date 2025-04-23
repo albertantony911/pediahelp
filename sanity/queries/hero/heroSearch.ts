@@ -1,6 +1,6 @@
 import { groq } from 'next-sanity';
 
-export const heroSearchQuery = groq`
+export const heroSearch = groq`
   _type == "heroSearch" => {
     _type,
     _key,
