@@ -12,8 +12,12 @@ const buttonVariants = cva(
       variant: {
         default:
           'bg-[var(--dark-shade)] text-white hover:bg-white hover:text-[var(--dark-shade)] hover:border-[var(--dark-shade)] border border-transparent',
-        secondary:
-          'bg-white text-[var(--dark-shade)] border border-[var(--dark-shade)] hover:bg-[var(--dark-shade)] hover:text-white',
+        secondary: `
+          bg-white text-[var(--dark-shade)] border border-[var(--dark-shade)] 
+          hover:bg-[var(--dark-shade)] hover:text-white 
+          active:bg-[var(--dark-shade)] active:text-white 
+          border-[0.8px]
+        `,
         ghost:
           'bg-transparent text-[var(--dark-shade)] hover:bg-[var(--dark-shade)]/10',
         destructive:

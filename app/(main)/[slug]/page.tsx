@@ -6,6 +6,7 @@ import {
 import { notFound } from "next/navigation";
 import { generatePageMetadata } from "@/sanity/lib/metadata";
 
+
 export async function generateStaticParams() {
   const pages = await fetchSanityPagesStaticParams();
 

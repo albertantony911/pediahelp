@@ -36,11 +36,11 @@ export default function HeroSearchSection({
   const imageUrl = image?.asset?._id ? urlFor(image).url() : null;
 
   return (
-    <div className="container dark:bg-background py-20 lg:pt-32">
+    <div className="container bg-dark-shade py-20 lg:pt-32">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         <div>
           {tagLine && (
-            <p className="font-secondary text-base font-semibold animate-fade-up [animation-delay:100ms] opacity-0 uppercase tracking-wide">
+            <p className="font-secondary text-light-shade text-base font-semibold animate-fade-up [animation-delay:100ms] opacity-0 uppercase tracking-wide">
               {tagLine}
             </p>
           )}

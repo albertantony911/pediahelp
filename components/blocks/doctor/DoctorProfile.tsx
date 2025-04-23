@@ -21,7 +21,7 @@ import {
 import { Card } from '@/components/ui/card';
 import type { Doctor, Review } from '@/types';
 import { calculateAverageRating } from '@/lib/ratingUtils';
-import { Button } from '@/components/ui/button'; // or wherever your new Button lives
+import { Button } from '@/components/ui/button';
 
 const specialtyIcons: Record<string, React.ReactNode> = {
   cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
@@ -57,27 +57,27 @@ export default function DoctorProfileCard({
   return (
     <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
-        <DoctorPhoto name={name} photoUrl={photoUrl} />
+        <DoctorPhoto name={name} photoUrl={photoUrl} rating={displayRating} reviewCount={reviewCount} />
         <div className="flex-1 flex flex-col gap-2">
           <DoctorHeader
             name={name}
             specialty={specialty}
             experience={displayExperience}
             slug={slugString}
-            rating={displayRating}
-            reviewCount={reviewCount}
             appointmentFee={appointmentFee}
             photoUrl={photoUrl}
             specialtyIcon={specialtyIcon}
+            rating={displayRating}
+            reviewCount={reviewCount}
           />
           {Array.isArray(expertise) && expertise.length > 0 && (
-            <div className="mt-2 ml-2 flex items-start gap-2 text-sm text-gray-800">
+            <div className="mt-1.5 mx-1 flex Witems-start gap-2 text-sm text-gray-800">
               <span>
                 <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
               </span>
             </div>
           )}
-          <div className="mt-3 flex flex-row gap-2 w-full">
+          <div className="mt-2 flex flex-row gap-2 w-full">
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <Button
                 variant="whatsapp"
@@ -98,7 +98,6 @@ export default function DoctorProfileCard({
                 Message
               </Button>
             )}
-
             <Button
               variant="default"
               href={`/consultation/${slugString}/booking`}
@@ -113,9 +112,9 @@ export default function DoctorProfileCard({
   );
 }
 
-function DoctorPhoto({ name, photoUrl }: { name: string; photoUrl?: string }) {
+function DoctorPhoto({ name, photoUrl, rating, reviewCount }: { name: string; photoUrl?: string; rating: string; reviewCount: number }) {
   return (
-    <div className="hidden sm:block w-[150px]">
+    <div className="hidden sm:block w-[150px] relative">
       <div className="h-full rounded-xl overflow-hidden bg-gray-100">
         {photoUrl ? (
           <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
@@ -124,6 +123,13 @@ function DoctorPhoto({ name, photoUrl }: { name: string; photoUrl?: string }) {
             <User className="w-6 h-6" />
           </div>
         )}
+        <div
+          className="absolute bottom-0 left-0 right-0 text-white text-sm font-medium py-1.5 px-2 rounded-b-xl flex items-center justify-center gap-1.5"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+        >
+          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+          <span>{`${rating} (${reviewCount})`}</span>
+        </div>
       </div>
     </div>
   );
@@ -135,26 +141,26 @@ function DoctorHeader({
   experience,
   photoUrl,
   slug,
-  rating,
-  reviewCount,
   appointmentFee,
   specialtyIcon,
+  rating,
+  reviewCount,
 }: {
   name: string;
   specialty: string;
   experience: string;
   photoUrl?: string;
   slug: string;
-  rating: string;
-  reviewCount: number;
   appointmentFee: number;
   specialtyIcon: React.ReactNode;
+  rating: string;
+  reviewCount: number;
 }) {
   return (
     <>
       {/* Mobile */}
-      <div className="flex sm:hidden items-start gap-3">
-        <div className="aspect-[3/4] w-[90px] rounded-lg overflow-hidden bg-gray-100">
+      <div className="flex sm:hidden items-start gap-3 mx-1 mt-1">
+        <div className="aspect-[0.8]  w-[74px] rounded-lg overflow-hidden bg-gray-100 relative">
           {photoUrl ? (
             <Image src={photoUrl} alt={`Dr. ${name}`} width={110} height={160} className="w-full h-full object-cover" />
           ) : (
@@ -162,17 +168,23 @@ function DoctorHeader({
               <User className="w-5 h-5" />
             </div>
           )}
+          <div
+            className="absolute bottom-0 left-0 right-0 text-white text-xs font-medium py-1 px-2 rounded-b-lg flex items-center justify-center gap-1"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+          >
+            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+            <span>{`${rating} (${reviewCount})`}</span>
+          </div>
         </div>
-        <div className="flex-1 flex flex-col gap-1">
+        <div className="flex-1 flex flex-col gap-1 ml-1">
           <h2 className="text-xl font-bold text-gray-900">{name}</h2>
           <div className="text-sm text-gray-700">
             {specialty}
             {experience}
           </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+          <div className="flex flex-nowrap items-center gap-1.5 mt-2 overflow-x-auto">
             <ProfileLink slug={slug} />
             <ShareProfilePill slug={slug} />
-            <Pill icon={<Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />} text={`${rating} (${reviewCount})`} />
             <Pill icon={<Wallet className="w-3.5 h-3.5 text-gray-500" />} text={`₹${appointmentFee}`} />
           </div>
         </div>
@@ -187,8 +199,7 @@ function DoctorHeader({
             <span>{specialty}{experience}</span>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 mt-2">
-          <Pill icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />} text={`${rating} (${reviewCount})`} />
+        <div className="flex flex-nowrap items-center gap-2 mt-2 overflow-x-auto">
           <ProfileLink slug={slug} />
           <ShareProfilePill slug={slug} />
           <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} />
@@ -200,22 +211,26 @@ function DoctorHeader({
 
 function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap hover:bg-gray-200 transition-colors duration-150">
+    <div className="flex items-center gap-1.5  px-1 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap  transition-colors duration-150">
       {icon}
       <span>{text}</span>
     </div>
   );
 }
 
+
 function ProfileLink({ slug }: { slug: string }) {
   return (
-    <Link
-      href={`/consultation/${slug}`}
-      className="flex items-center justify-center gap-1.5 border border-blue-600 text-blue-700 bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <Button
+      asChild
+      variant="secondary"
+      className="text-xs sm:text-sm px-3 py-1"
     >
-      <User className="w-4 h-4" />
-      View Profile
-    </Link>
+      <Link href={`/consultation/${slug}`} className="flex items-center gap-1.5">
+        <User className="w-4 h-4" />
+        Profile
+      </Link>
+    </Button>
   );
 }
 
@@ -250,13 +265,14 @@ function ShareProfilePill({ slug }: { slug: string }) {
   };
 
   return (
-    <button
+    <Button
       onClick={handleShare}
-      className={`flex items-center justify-center gap-1.5 border border-blue-600 text-blue-700 bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${isPressed ? 'scale-95 bg-blue-700 text-white shadow-inner' : ''} transition-all duration-150 ease-out`}
+      variant="secondary"
+      className={`text-xs sm:text-sm px-3 py-1 flex items-center gap-1.5 ${isPressed ? 'scale-95 bg-[#264E5B] text-white shadow-inner' : ''}`}
       aria-label={copied ? 'Link copied to clipboard' : 'Share doctor profile'}
     >
       <Share2 className={`w-4 h-4 ${copied ? 'animate-pulse' : ''}`} />
       {copied ? 'Copied!' : 'Share'}
-    </button>
+    </Button>
   );
 }
