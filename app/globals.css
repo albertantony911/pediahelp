@@ -31,7 +31,7 @@
 
 :root {
   --dark-shade: #264E53;
-  --light-shade: #24AD8F;
+  --light-shade: #CAD76E;
   --background: hsl(0 0% 100%);
   --foreground: hsl(224 71.4% 4.1%);
   --card: hsl(0 0% 100%);
@@ -173,4 +173,19 @@
       font-size: 1rem;
     }
   }
+}
+
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-down {
+  animation: fadeInDown 0.8s ease-out forwards;
 }

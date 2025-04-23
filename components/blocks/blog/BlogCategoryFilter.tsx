@@ -1,46 +1,48 @@
 'use client';
 
 import clsx from 'clsx';
-import { Category } from '@/types';
+import { useSearchBox } from 'react-instantsearch';
+import { useState } from 'react';
 
-interface Props {
-  categories: Category[];
-  selectedCategory: string | null;
-  onSelect: (categoryId: string) => void;
-  onReset: () => void;
-}
+const categories = [
+  'All',
+  'Nephrology',
+  'Gastroenterology',
+  'Parenting Tips',
+  'Neonatology',
+  'Neurology',
+  'Lactation',
+  'Sleep',
+  'Respiratory Medicine',
+];
 
-export default function BlogCategoryFilter({
-  categories,
-  selectedCategory,
-  onSelect,
-  onReset,
-}: Props) {
+export default function BlogCategoryFilter() {
+  const { refine } = useSearchBox();
+  const [selected, setSelected] = useState<string | null>('All');
+
+  const handleSelect = (category: string) => {
+    setSelected(category);
+    if (category === 'All') {
+      refine('');
+    } else {
+      refine(category);
+    }
+  };
+
   return (
-    <div className="flex gap-2 flex-wrap mb-6 justify-center">
-      <button
-        className={clsx(
-          'px-4 py-2 rounded-full border text-sm font-medium',
-          selectedCategory === null
-            ? 'bg-gray-900 text-white'
-            : 'bg-white text-gray-700 hover:bg-gray-100'
-        )}
-        onClick={onReset}
-      >
-        All
-      </button>
+    <div className="flex gap-2 flex-wrap my-6 justify-center px-4">
       {categories.map((cat) => (
         <button
-          key={cat._id}
+          key={cat}
           className={clsx(
-            'px-4 py-2 rounded-full border text-sm font-medium',
-            selectedCategory === cat._id
-              ? 'bg-gray-900 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
+            'px-4 py-2 rounded-full border text-sm font-medium transition',
+            selected === cat
+              ? 'bg-light-shade text-white border-light-shade'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
           )}
-          onClick={() => onSelect(cat._id)}
+          onClick={() => handleSelect(cat)}
         >
-          {cat.title}
+          {cat}
         </button>
       ))}
     </div>

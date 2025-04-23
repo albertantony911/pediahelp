@@ -43,8 +43,7 @@ export default function BlogPage({ fallbackPosts, categories }: BlogPageProps) {
   }, [displayedPosts]);
 
   return (
-    <section className="max-w-6xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-8 text-center">Our Blog</h1>
+    <section className="max-w-6xl mx-auto px-4 py-12 bg-dark-shade">
 
       <InstantSearch
         searchClient={searchClient}
@@ -58,12 +57,7 @@ export default function BlogPage({ fallbackPosts, categories }: BlogPageProps) {
 
         <BlogSearchAlgolia onFilterChange={setFilteredPosts} />
 
-        <BlogCategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelect={setSelectedCategory}
-          onReset={() => setSelectedCategory(null)}
-        />
+        <BlogCategoryFilter />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           {displayedPosts.map((post) => {
