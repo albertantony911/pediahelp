@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
 
 import Breadcrumbs from '@/components/ui/breadcrumbs';
 import PortableTextRenderer from '@/components/portable-text-renderer';
@@ -17,6 +18,11 @@ import { generatePageMetadata } from '@/sanity/lib/metadata';
 import type { POSTS_SLUGS_QUERYResult } from '@/sanity.types';
 import type { BreadcrumbLink, PostWithDoctor } from '@/types';
 
+// Define the correct type for Next.js dynamic params
+interface PageParams {
+  slug: string;
+}
+
 export async function generateStaticParams() {
   const posts: POSTS_SLUGS_QUERYResult = await fetchSanityPostsStaticParams();
 
@@ -33,10 +39,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
-}) {
-  // Await params before using it
-  const { slug } = await params;
+  params: Promise<PageParams>;
+}): Promise<Metadata> {
+  // Resolve the params promise to get the slug
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   
   const post = await fetchSanityPostBySlug({ slug }) as PostWithDoctor;
 
@@ -51,10 +58,11 @@ export async function generateMetadata({
 export default async function PostPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<PageParams>;
 }) {
-  // Await params before using it
-  const { slug } = await params;
+  // Resolve the params promise to get the slug
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   
   const post = await fetchSanityPostBySlug({ slug }) as PostWithDoctor;
 
