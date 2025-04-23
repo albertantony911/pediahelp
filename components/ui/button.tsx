@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,12 @@ const buttonVariants = cva(
         outline:
           'bg-transparent border border-gray-300 text-gray-800 hover:bg-gray-100',
         link: 'text-[var(--dark-shade)] underline-offset-4 hover:underline',
-        whatsapp:'bg-white text-[var(--dark-shade)] active:bg-[#1EBE5D] active:text-white active:border-transparent hover:bg-[#1EBE5D] hover:text-white border border-[var(--dark-shade)]  focus-visible:ring-[#25D366]/50 active:scale-[0.96] transition-all duration-150 ease-out'
+        whatsapp: `
+          bg-white text-[var(--dark-shade)] border border-[var(--dark-shade)]  
+          hover:bg-[#1EBE5D] hover:text-white 
+          active:bg-[#1EBE5D] active:text-white 
+          active:border-transparent focus-visible:ring-[#25D366]/50
+        `,
       },
       size: {
         sm: 'px-4 py-2 text-sm',
@@ -41,22 +47,51 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+type ButtonBaseProps = {
   asChild?: boolean;
+  external?: boolean;
   href?: string;
-}
+} & VariantProps<typeof buttonVariants>;
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, href, ...props }, ref) => {
+type ButtonProps =
+  | (React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonBaseProps)
+  | (React.AnchorHTMLAttributes<HTMLAnchorElement> & ButtonBaseProps);
+
+const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, href, external, ...props }, ref) => {
+    const classes = cn(buttonVariants({ variant, size }), className);
+
+    // External <a> (WhatsApp or any full link)
+    if (href && external) {
+      return (
+        <a
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          href={href}
+          className={classes}
+          target="_blank"
+          rel="noopener noreferrer"
+          {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        />
+      );
+    }
+
+    // Internal <Link>
+    if (href) {
+      return (
+        <Link href={href} className={classes}>
+          {props.children}
+        </Link>
+      );
+    }
+
+    // Button or <Slot>
     const Comp = asChild ? Slot : 'button';
 
     return (
       <Comp
-        ref={ref}
-        className={cn(buttonVariants({ variant, size }), className)}
-        {...props}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        className={classes}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       />
     );
   }

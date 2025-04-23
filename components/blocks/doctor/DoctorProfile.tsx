@@ -84,6 +84,7 @@ export default function DoctorProfileCard({
                 href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(
                   `Hi, I'd like to book a consultation with ${name} via PediaHelp.`
                 )}`}
+                external
                 className="w-[40%] sm:w-auto flex items-center justify-center px-5 py-2.5"
               >
                 <FaWhatsapp className="w-5 h-5 mr-1" />
@@ -98,12 +99,15 @@ export default function DoctorProfileCard({
                 Message
               </Button>
             )}
+
             <Button
+              asChild
               variant="default"
-              href={`/consultation/${slugString}/booking`}
               className="w-2/3 sm:w-auto px-6 py-2.5"
             >
-              Book Appointment
+              <Link href={`/consultation/${slugString}/booking`}>
+                Book Appointment
+              </Link>
             </Button>
           </div>
         </div>
@@ -115,7 +119,7 @@ export default function DoctorProfileCard({
 function DoctorPhoto({ name, photoUrl, rating, reviewCount }: { name: string; photoUrl?: string; rating: string; reviewCount: number }) {
   return (
     <div className="hidden sm:block w-[150px] relative">
-      <div className="h-full rounded-xl overflow-hidden bg-gray-100">
+      <div className="h-full rounded-xl overflow-hidden bg-gray-100 drop-shadow-dark-shade">
         {photoUrl ? (
           <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
         ) : (
