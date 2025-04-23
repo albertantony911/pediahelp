@@ -23,7 +23,7 @@ export default function Hero1({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div className="flex flex-col justify-center">
           {tagLine && (
-            <h1 className="leading-[0] font-sans animate-fade-up [animation-delay:100ms] opacity-0">
+            <h1 className="leading-[0] font-secondary animate-fade-up [animation-delay:100ms] opacity-0">
               <span className="text-base font-semibold">{tagLine}</span>
             </h1>
           )}

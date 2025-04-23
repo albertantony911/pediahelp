@@ -10,6 +10,7 @@ import doctor from './schemas/documents/doctor';
 import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
+
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
 import link from "./schemas/blocks/shared/link";
@@ -19,6 +20,7 @@ import sectionPadding from "./schemas/blocks/shared/section-padding";
 // Schema UI objects
 import hero1 from "./schemas/blocks/hero/hero-1";
 import hero2 from "./schemas/blocks/hero/hero-2";
+import heroSearch from "./schemas/blocks/hero/heroSearch";
 import sectionHeader from "./schemas/blocks/section-header";
 import splitRow from "./schemas/blocks/split/split-row";
 import splitContent from "./schemas/blocks/split/split-content";
@@ -63,6 +65,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     // blocks
     hero1,
     hero2,
+    heroSearch,
     sectionHeader,
     splitRow,
     splitContent,
