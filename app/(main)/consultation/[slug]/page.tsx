@@ -112,7 +112,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
   const languages = Array.isArray(doctor.languages) ? doctor.languages : [];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 bg-dark-shade">
       {/* 5. Profile Card */}
       <DoctorProfileCard {...doctor} reviews={reviews} />
 

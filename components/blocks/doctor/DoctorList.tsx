@@ -40,10 +40,8 @@ export default function DoctorList({
   );
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-center mb-4 text-gray-900">
-        OUR DOCTORS
-      </h2>
+    <div className="space-y-6 mt-7">
+      
 
       {loading ? (
         <div className="text-center py-8 text-gray-600">Loading doctors...</div>

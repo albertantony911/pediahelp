@@ -17,7 +17,6 @@ const searchClient = algoliasearch(
   process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
 );
 
-// ✅ Now returns Doctor[], where each Doctor includes reviews
 async function getDoctors(): Promise<Doctor[]> {
   try {
     const doctors = await client.fetch<Doctor[]>(
@@ -51,7 +50,7 @@ async function getDoctors(): Promise<Doctor[]> {
           }`,
           { id: doctor._id }
         );
-        return { ...doctor, reviews }; // ✅ Embed reviews into Doctor
+        return { ...doctor, reviews };
       })
     );
 
@@ -69,7 +68,6 @@ export default function ConsultationPageWrapper() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Fetch on mount
   useEffect(() => {
     async function loadDoctors() {
       try {
@@ -84,7 +82,6 @@ export default function ConsultationPageWrapper() {
     loadDoctors();
   }, []);
 
-  // ✅ Filter by specialty
   const filteredBySpecialty = useMemo(() => {
     if (!selectedSpecialty) return undefined;
     return allDoctors.filter(
@@ -92,7 +89,6 @@ export default function ConsultationPageWrapper() {
     );
   }, [allDoctors, selectedSpecialty]);
 
-  // ✅ Algolia search results
   const handleFilterChange = useCallback((hits: { objectID: string }[]) => {
     setSearchHits(hits);
   }, []);
@@ -106,8 +102,7 @@ export default function ConsultationPageWrapper() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white text-gray-300 px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
+      <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8">
         <div className="text-center py-8 text-gray-600">Loading doctors...</div>
       </div>
     );
@@ -115,8 +110,7 @@ export default function ConsultationPageWrapper() {
 
   if (error || !allDoctors.length) {
     return (
-      <div className="min-h-screen bg-white text-gray-300 max-w-lg px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
+      <div className="min-h-screen bg-dark-shade text-gray-300 max-w-lg px-4 py-8">
         <div className="text-center py-8 text-red-400">
           {error || 'Failed to load doctors. Please try again later.'}
         </div>
@@ -125,24 +119,22 @@ export default function ConsultationPageWrapper() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-300 px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-6">FIND YOUR DOCTOR</h1>
-
-      <SpecialtyFilter
-        onFilter={(val) => setSelectedSpecialty(val)}
-        onReset={() => setSelectedSpecialty(null)}
-      />
-
+    <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8">
       <InstantSearch searchClient={searchClient} indexName="doctors_index">
         <Configure
           filters={selectedSpecialty ? `keywords:${selectedSpecialty.toLowerCase()}` : ''}
           hitsPerPage={12}
         />
 
-        <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-white dark:bg-zinc-900">
+        {/* Search bar comes first */}
+        <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-dark-shade ">
           <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
         </div>
 
+        {/* Then specialty filter */}
+        <SpecialtyFilter />
+
+        {/* Doctor list */}
         <DoctorList
           allDoctors={allDoctors}
           filteredDoctors={displayedDoctors === allDoctors ? undefined : displayedDoctors}
