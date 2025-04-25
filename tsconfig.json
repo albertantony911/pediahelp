@@ -26,6 +26,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "types/**/*.d.ts"
-  ],
+, "lib/clearAlgoliaIndex.js"  ],
   "exclude": ["node_modules"]
 }

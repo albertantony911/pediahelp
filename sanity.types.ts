@@ -907,6 +907,21 @@ export type Code = {
 
 export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Testimonial | Faq | Category | Post | Author | Page | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
+// Source: ./app/(main)/blog/doctor/[slug]/page.tsx
+// Variable: doctorPostsQuery
+// Query: {    "doctor": *[_type == "doctor" && slug.current == $slug][0]{      _id,      name,      specialty,      photo { asset->{ url } },      slug,      expertise,      experienceYears,      whatsappNumber,      appointmentFee,      reviews[] { _id, name, rating, comment, submittedAt }    },    "posts": *[_type == "post" && doctor._ref == *[_type == "doctor" && slug.current == $slug][0]._id] | order(publishedAt desc){      _id,      title,      slug,      excerpt,      publishedAt,      mainImage { asset->{ url } }    }  }
+export type DoctorPostsQueryResult = {
+  doctor: null;
+  posts: Array<{
+    _id: string;
+    title: string | null;
+    slug: Slug | null;
+    excerpt: string | null;
+    publishedAt: null;
+    mainImage: null;
+  }>;
+};
+
 // Source: ./app/sitemap.ts
 // Variable: pagesQuery
 // Query: *[_type == 'page'] | order(slug.current) {      'url': $baseUrl + select(slug.current == 'index' => '', '/' + slug.current),      'lastModified': _updatedAt,      'changeFrequency': 'daily',      'priority': select(        slug.current == 'index' => 1,        0.5      )    }
@@ -923,6 +938,15 @@ export type PostsQueryResult = Array<{
   lastModified: string;
   changeFrequency: "weekly";
   priority: 0.7;
+}>;
+
+// Source: ./sanity/queries/category.ts
+// Variable: getAllCategoriesQuery
+// Query: *[_type == "category"] | order(orderRank) {    _id,    title,    slug  }
+export type GetAllCategoriesQueryResult = Array<{
+  _id: string;
+  title: string | null;
+  slug: null;
 }>;
 
 // Source: ./sanity/queries/page.ts
@@ -1676,7 +1700,7 @@ export type PAGES_SLUGS_QUERYResult = Array<{
 
 // Source: ./sanity/queries/post.ts
 // Variable: POST_QUERY
-// Query: *[_type == "post" && slug.current == $slug][0]{    title,    slug,    image{      ...,      asset->{        _id,        url,        mimeType,        metadata {          lqip,          dimensions {            width,            height          }        }      },      alt    },    body[]{      ...,      _type == "image" => {        ...,        asset->{          _id,          url,          mimeType,          metadata {            lqip,            dimensions {              width,              height            }          }        }      }    },    author->{      name,      image {        ...,        asset->{          _id,          url,          mimeType,          metadata {            lqip,            dimensions {              width,              height            }          }        },        alt      }    },    _createdAt,    _updatedAt,    meta_title,    meta_description,    noindex,    ogImage {      asset->{        _id,        url,        metadata {          dimensions {            width,            height          }        }      },    }}
+// Query: *[_type == "post" && slug.current == $slug][0]{  title,  slug,  image {    ...,    asset->{      _id,      url,      mimeType,      metadata {        lqip,        dimensions {          width,          height        }      }    },    alt  },  body[] {    ...,    _type == "image" => {      ...,      asset->{        _id,        url,        mimeType,        metadata {          lqip,          dimensions {            width,            height          }        }      }    }  },  categories[]->{    _id,    title,    slug  },  doctorAuthor-> {    _id,    name,    slug,    photo {      asset->{        _id,        url,        mimeType,        metadata {          lqip,          dimensions { width, height }        }      }    },    specialty,    experienceYears,    expertise,    whatsappNumber,    appointmentFee,    reviews[]->{      _id,      name,      rating,      comment,      submittedAt    }  },  _createdAt,  _updatedAt,  meta_title,  meta_description,  noindex,  ogImage {    asset->{      _id,      url,      metadata {        dimensions {          width,          height        }      }    }  }}
 export type POST_QUERYResult = {
   title: string | null;
   slug: Slug | null;
@@ -1745,27 +1769,12 @@ export type POST_QUERYResult = {
     _type: "youtube";
     _key: string;
   }> | null;
-  author: {
-    name: string | null;
-    image: {
-      asset: {
-        _id: string;
-        url: string | null;
-        mimeType: string | null;
-        metadata: {
-          lqip: string | null;
-          dimensions: {
-            width: number | null;
-            height: number | null;
-          } | null;
-        } | null;
-      } | null;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      alt: string | null;
-      _type: "image";
-    } | null;
-  } | null;
+  categories: Array<{
+    _id: string;
+    title: string | null;
+    slug: null;
+  }> | null;
+  doctorAuthor: null;
   _createdAt: string;
   _updatedAt: string;
   meta_title: string | null;
@@ -1785,11 +1794,13 @@ export type POST_QUERYResult = {
   } | null;
 } | null;
 // Variable: POSTS_QUERY
-// Query: *[_type == "post" && defined(slug)] | order(_createdAt desc){    title,    slug,    excerpt,    image{      asset->{        _id,        url,        mimeType,        metadata {          lqip,          dimensions {            width,            height          }        }      },      alt    },}
+// Query: *[_type == "post" && defined(slug.current)] | order(_createdAt desc) {  _id,  title,  slug,  excerpt,  publishedAt,  image {    asset->{      _id,      url,      mimeType,      metadata {        lqip,        dimensions {          width,          height        }      }    },    alt  },  doctorAuthor-> {    _id,    name,    slug,    specialty,    photo {      asset->{ url }    }  }}
 export type POSTS_QUERYResult = Array<{
+  _id: string;
   title: string | null;
   slug: Slug | null;
   excerpt: string | null;
+  publishedAt: null;
   image: {
     asset: {
       _id: string;
@@ -1805,23 +1816,56 @@ export type POSTS_QUERYResult = Array<{
     } | null;
     alt: string | null;
   } | null;
+  doctorAuthor: null;
 }>;
 // Variable: POSTS_SLUGS_QUERY
-// Query: *[_type == "post" && defined(slug)]{slug}
+// Query: *[_type == "post" && defined(slug.current)]{  slug}
 export type POSTS_SLUGS_QUERYResult = Array<{
   slug: Slug | null;
+}>;
+// Variable: BLOG_PREVIEW_QUERY
+// Query: *[_type == "post" && defined(slug)] | order(_createdAt desc) {  _id,  title,  slug,  excerpt,  image {    asset->{      _id,      url,      metadata { lqip, dimensions { width, height } }    },    alt  },  author->{ name },  categories[]->{ _id, title }}
+export type BLOG_PREVIEW_QUERYResult = Array<{
+  _id: string;
+  title: string | null;
+  slug: Slug | null;
+  excerpt: string | null;
+  image: {
+    asset: {
+      _id: string;
+      url: string | null;
+      metadata: {
+        lqip: string | null;
+        dimensions: {
+          width: number | null;
+          height: number | null;
+        } | null;
+      } | null;
+    } | null;
+    alt: string | null;
+  } | null;
+  author: {
+    name: string | null;
+  } | null;
+  categories: Array<{
+    _id: string;
+    title: string | null;
+  }> | null;
 }>;
 
 // Query TypeMap
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
+    "\n  {\n    \"doctor\": *[_type == \"doctor\" && slug.current == $slug][0]{\n      _id,\n      name,\n      specialty,\n      photo { asset->{ url } },\n      slug,\n      expertise,\n      experienceYears,\n      whatsappNumber,\n      appointmentFee,\n      reviews[] { _id, name, rating, comment, submittedAt }\n    },\n    \"posts\": *[_type == \"post\" && doctor._ref == *[_type == \"doctor\" && slug.current == $slug][0]._id] | order(publishedAt desc){\n      _id,\n      title,\n      slug,\n      excerpt,\n      publishedAt,\n      mainImage { asset->{ url } }\n    }\n  }\n": DoctorPostsQueryResult;
     "\n    *[_type == 'page'] | order(slug.current) {\n      'url': $baseUrl + select(slug.current == 'index' => '', '/' + slug.current),\n      'lastModified': _updatedAt,\n      'changeFrequency': 'daily',\n      'priority': select(\n        slug.current == 'index' => 1,\n        0.5\n      )\n    }\n  ": PagesQueryResult;
     "\n    *[_type == 'post'] | order(_updatedAt desc) {\n      'url': $baseUrl + '/blog/' + slug.current,\n      'lastModified': _updatedAt,\n      'changeFrequency': 'weekly',\n      'priority': 0.7\n    }\n  ": PostsQueryResult;
+    "\n  *[_type == \"category\"] | order(orderRank) {\n    _id,\n    title,\n    slug\n  }\n": GetAllCategoriesQueryResult;
     "\n  *[_type == \"page\" && slug.current == $slug][0]{\n    blocks[]{\n      \n  _type == \"hero-1\" => {\n    _type,\n    _key,\n    tagLine,\n    title,\n    body[]{\n      ...,\n      _type == \"image\" => {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        }\n      }\n    },\n    image{\n      ...,\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n    links,\n  }\n,\n      \n  _type == \"hero-2\" => {\n    _type,\n    _key,\n    tagLine,\n    title,\n    body[]{\n      ...,\n      _type == \"image\" => {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        }\n      }\n    },\n    links,\n  }\n,\n      \n  _type == \"section-header\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    sectionWidth,\n    stackAlign,\n    tagLine,\n    title,\n    description,\n    link,\n  }\n,\n      \n  _type == \"split-row\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    noGap,\n    splitColumns[]{\n      \n  _type == \"split-content\" => {\n    _type,\n    _key,\n    sticky,\n    padding,\n    colorVariant,\n    tagLine,\n    title,\n    body[]{\n      ...,\n      _type == \"image\" => {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        }\n      }\n    },\n    link,\n  }\n,\n      \n  _type == \"split-cards-list\" => {\n    _type,\n    _key,\n    list[]{\n      tagLine,\n      title,\n      body[]{\n        ...,\n        _type == \"image\" => {\n          ...,\n          asset->{\n            _id,\n            url,\n            mimeType,\n            metadata {\n              lqip,\n              dimensions {\n                width,\n                height\n              }\n            }\n          }\n        }\n      },\n    },\n  }\n,\n      \n  _type == \"split-image\" => {\n    _type,\n    _key,\n    image{\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n  }\n,\n      \n  _type == \"split-info-list\" => {\n    _type,\n    _key,\n    list[]{\n      image{\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        },\n        alt\n      },\n      title,\n      body[]{\n        ...,\n        _type == \"image\" => {\n          ...,\n          asset->{\n            _id,\n            url,\n            mimeType,\n            metadata {\n              lqip,\n              dimensions {\n                width,\n                height\n              }\n            }\n          }\n        }\n      },\n      tags[],\n    },\n  }\n,\n    },\n  }\n,\n      \n  _type == \"grid-row\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    gridColumns,\n    columns[]{\n      \n  _type == \"grid-card\" => {\n    _type,\n    _key,\n    title,\n    excerpt,\n    image{\n      ...,\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n    link,\n  }\n,\n      \n  _type == \"pricing-card\" => {\n    _type,\n    _key,\n    title,\n    tagLine,\n    price,\n    list[],\n    excerpt,\n    link,\n  }\n,\n      \n  _type == \"grid-post\" => {\n    _type,\n    _key,\n    post->{\n      title,\n      slug,\n      excerpt,\n      image{\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        },\n        alt\n      },\n      categories[]->{\n        _id,\n        title,\n      },\n    },\n  }\n,\n    },\n  }\n,\n      \n  _type == \"carousel-1\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    size,\n    orientation,\n    indicators,\n    images[]{\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n  }\n,\n      \n  _type == \"carousel-2\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    testimonial[]->{\n      _id,\n      name,\n      title,\n      image{\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        },\n        alt\n      },\n      body[]{\n        ...,\n        _type == \"image\" => {\n          ...,\n          asset->{\n            _id,\n            url,\n            mimeType,\n            metadata {\n              lqip,\n              dimensions {\n                width,\n                height\n              }\n            }\n          }\n        }\n      },\n      rating,\n    },\n  }\n,\n      \n  _type == \"timeline-row\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    timelines[]{\n      title,\n      tagLine,\n      body[]{\n        ...,\n        _type == \"image\" => {\n          ...,\n          asset->{\n            _id,\n            url,\n            mimeType,\n            metadata {\n              lqip,\n              dimensions {\n                width,\n                height\n              }\n            }\n          }\n        }\n      },\n    },\n  }\n,\n      \n  _type == \"cta-1\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    sectionWidth,\n    stackAlign,\n    tagLine,\n    title,\n    body[]{\n      ...,\n      _type == \"image\" => {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        }\n      }\n    },\n    links,\n  }\n,\n      \n  _type == \"logo-cloud-1\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    title,\n    images[]{\n      ...,\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n  }\n,\n      \n  _type == \"faqs\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    faqs[]->{\n      _id,\n      title,\n      body[]{\n        ...,\n        _type == \"image\" => {\n          ...,\n          asset->{\n            _id,\n            url,\n            mimeType,\n            metadata {\n              lqip,\n              dimensions {\n                width,\n                height\n              }\n            }\n          }\n        }\n      },\n    },\n  }\n,\n      \n  _type == \"form-newsletter\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n    stackAlign,\n    consentText,\n    buttonText,\n    successMessage,\n  }\n,\n      \n  _type == \"all-posts\" => {\n    _type,\n    _key,\n    padding,\n    colorVariant,\n  }\n,\n    },\n    meta_title,\n    meta_description,\n    noindex,\n    ogImage {\n      asset->{\n        _id,\n        url,\n        metadata {\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n    }\n  }\n": PAGE_QUERYResult;
     "*[_type == \"page\" && defined(slug)]{slug}": PAGES_SLUGS_QUERYResult;
-    "*[_type == \"post\" && slug.current == $slug][0]{\n    title,\n    slug,\n    image{\n      ...,\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n    body[]{\n      ...,\n      _type == \"image\" => {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        }\n      }\n    },\n    author->{\n      name,\n      image {\n        ...,\n        asset->{\n          _id,\n          url,\n          mimeType,\n          metadata {\n            lqip,\n            dimensions {\n              width,\n              height\n            }\n          }\n        },\n        alt\n      }\n    },\n    _createdAt,\n    _updatedAt,\n    meta_title,\n    meta_description,\n    noindex,\n    ogImage {\n      asset->{\n        _id,\n        url,\n        metadata {\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n    }\n}": POST_QUERYResult;
-    "*[_type == \"post\" && defined(slug)] | order(_createdAt desc){\n    title,\n    slug,\n    excerpt,\n    image{\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      },\n      alt\n    },\n}": POSTS_QUERYResult;
-    "*[_type == \"post\" && defined(slug)]{slug}": POSTS_SLUGS_QUERYResult;
+    "*[_type == \"post\" && slug.current == $slug][0]{\n  title,\n  slug,\n  image {\n    ...,\n    asset->{\n      _id,\n      url,\n      mimeType,\n      metadata {\n        lqip,\n        dimensions {\n          width,\n          height\n        }\n      }\n    },\n    alt\n  },\n  body[] {\n    ...,\n    _type == \"image\" => {\n      ...,\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions {\n            width,\n            height\n          }\n        }\n      }\n    }\n  },\n  categories[]->{\n    _id,\n    title,\n    slug\n  },\n  doctorAuthor-> {\n    _id,\n    name,\n    slug,\n    photo {\n      asset->{\n        _id,\n        url,\n        mimeType,\n        metadata {\n          lqip,\n          dimensions { width, height }\n        }\n      }\n    },\n    specialty,\n    experienceYears,\n    expertise,\n    whatsappNumber,\n    appointmentFee,\n    reviews[]->{\n      _id,\n      name,\n      rating,\n      comment,\n      submittedAt\n    }\n  },\n  _createdAt,\n  _updatedAt,\n  meta_title,\n  meta_description,\n  noindex,\n  ogImage {\n    asset->{\n      _id,\n      url,\n      metadata {\n        dimensions {\n          width,\n          height\n        }\n      }\n    }\n  }\n}": POST_QUERYResult;
+    "*[_type == \"post\" && defined(slug.current)] | order(_createdAt desc) {\n  _id,\n  title,\n  slug,\n  excerpt,\n  publishedAt,\n  image {\n    asset->{\n      _id,\n      url,\n      mimeType,\n      metadata {\n        lqip,\n        dimensions {\n          width,\n          height\n        }\n      }\n    },\n    alt\n  },\n  doctorAuthor-> {\n    _id,\n    name,\n    slug,\n    specialty,\n    photo {\n      asset->{ url }\n    }\n  }\n}": POSTS_QUERYResult;
+    "*[_type == \"post\" && defined(slug.current)]{\n  slug\n}": POSTS_SLUGS_QUERYResult;
+    "\n*[_type == \"post\" && defined(slug)] | order(_createdAt desc) {\n  _id,\n  title,\n  slug,\n  excerpt,\n  image {\n    asset->{\n      _id,\n      url,\n      metadata { lqip, dimensions { width, height } }\n    },\n    alt\n  },\n  author->{ name },\n  categories[]->{ _id, title }\n}\n": BLOG_PREVIEW_QUERYResult;
   }
 }

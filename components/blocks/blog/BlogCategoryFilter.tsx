@@ -22,23 +22,19 @@ export default function BlogCategoryFilter() {
 
   const handleSelect = (category: string) => {
     setSelected(category);
-    if (category === 'All') {
-      refine('');
-    } else {
-      refine(category);
-    }
+    refine(category === 'All' ? '' : category);
   };
 
   return (
-    <div className="flex gap-2 flex-wrap my-6 justify-center px-4">
+    <div className="flex gap-1.5 flex-wrap my-4 justify-center px-4">
       {categories.map((cat) => (
         <button
           key={cat}
           className={clsx(
-            'px-4 py-2 rounded-full border text-sm font-medium transition',
+            'px-3 py-1.5 rounded-full border text-xs font-normal transition-colors duration-200',
             selected === cat
-              ? 'bg-light-shade text-white border-light-shade'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
+              ? 'bg-light-shade text-white border-light-shade hover:bg-light-shade/80 active:bg-light-shade'
+              : 'bg-muted text-muted-foreground border-border hover:bg-accent'
           )}
           onClick={() => handleSelect(cat)}
         >

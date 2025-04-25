@@ -1,10 +1,15 @@
-import { Button } from "@/components/ui/button";
+'use client';
+
+import { useMemo } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
-import { stegaClean } from "next-sanity";
 import PortableTextRenderer from "@/components/portable-text-renderer";
 import { PAGE_QUERYResult } from "@/sanity.types";
+
+import algoliasearch from 'algoliasearch/lite';
+import { InstantSearch } from 'react-instantsearch';
+import DoctorSearchHero from '@/components/blocks/doctor/DoctorSearchHero';
 
 type Hero1Props = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
@@ -16,11 +21,20 @@ export default function Hero1({
   title,
   body,
   image,
-  links,
 }: Hero1Props) {
+  const searchClient = useMemo(
+    () =>
+      algoliasearch(
+        process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
+        process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
+      ),
+    []
+  );
+
   return (
     <div className="container dark:bg-background py-20 lg:pt-40">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* Left Section */}
         <div className="flex flex-col justify-center">
           {tagLine && (
             <h1 className="leading-[0] font-secondary animate-fade-up [animation-delay:100ms] opacity-0">
@@ -37,26 +51,20 @@ export default function Hero1({
               <PortableTextRenderer value={body} />
             </div>
           )}
-          {links && links.length > 0 && (
-            <div className="mt-10 flex flex-wrap gap-4 animate-fade-up [animation-delay:400ms] opacity-0">
-              {links.map((link) => (
-                <Button
-                  key={link.title}
-                  variant={stegaClean(link?.buttonVariant)}
-                  asChild
-                >
-                  <Link
-                    href={link.href as string}
-                    target={link.target ? "_blank" : undefined}
-                    rel={link.target ? "noopener" : undefined}
-                  >
-                    {link.title}
-                  </Link>
-                </Button>
-              ))}
-            </div>
-          )}
+
+          {/* Algolia Search Wrapper */}
+          <div className="mt-10 animate-fade-up [animation-delay:400ms] opacity-0">
+            <InstantSearch
+              searchClient={searchClient}
+              indexName="doctors_index" // 🔁 Replace with your real doctor index
+              future={{ preserveSharedStateOnUnmount: true }}
+            >
+              <DoctorSearchHero />
+            </InstantSearch>
+          </div>
         </div>
+
+        {/* Right Section */}
         <div className="flex flex-col justify-center">
           {image && image.asset?._id && (
             <Image

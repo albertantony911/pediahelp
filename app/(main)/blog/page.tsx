@@ -3,7 +3,6 @@ import { fetchSanityBlogPreviews, fetchSanityCategories } from '@/sanity/lib/fet
 import BlogPage from '@/components/blocks/blog/BlogPage';
 import type { BlogPreview, Category } from '@/types';
 
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Blog | Pediahelp',

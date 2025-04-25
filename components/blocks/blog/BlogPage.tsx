@@ -6,7 +6,7 @@ import { InstantSearch, Configure } from 'react-instantsearch';
 
 import BlogCategoryFilter from './BlogCategoryFilter';
 import BlogSearchAlgolia from './BlogSearchAlgolia';
-import PostCard from './PostCard';
+import PostCard from '@/components/blocks/blog/PostCard';
 
 import type { PostWithDoctor, Category } from '@/types';
 

@@ -41,7 +41,6 @@ export default defineType({
       of: [
         { type: "hero-1" },
         { type: "hero-2" },
-        { type: "heroSearch" },
         { type: "section-header" },
         { type: "split-row" },
         { type: "grid-row" },
@@ -60,7 +59,7 @@ export default defineType({
             {
               name: "hero",
               title: "Hero",
-              of: ["hero-1", "hero-2", "heroSearch"],
+              of: ["hero-1", "hero-2"],
             },
             {
               name: "logo-cloud",

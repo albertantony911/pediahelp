@@ -53,18 +53,10 @@ export async function syncDoctorsToAlgolia() {
       'unordered(specialty)',
       'unordered(expertise)',
       'unordered(searchKeywords)',
-      'unordered(languages)'
+      'unordered(languages)',
     ],
     attributesForFaceting: ['searchable(specialty)', 'searchable(languages)'],
     customRanking: ['desc(experienceYears)', 'asc(appointmentFee)'],
-    ranking: [
-      'words',
-      'filters',
-      'typo',
-      'attribute',
-      'proximity',
-      'exact',
-      'custom'
-    ]
+    ranking: ['words', 'filters', 'typo', 'attribute', 'proximity', 'exact', 'custom'],
   });
 }

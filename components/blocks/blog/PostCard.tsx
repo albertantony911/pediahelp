@@ -1,62 +1,60 @@
-'use client';
+// components/blocks/blog/PostCard.tsx
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import Link from "next/link";
+import { urlFor } from "@/sanity/lib/image";
+import { ChevronRight } from "lucide-react";
+import type { PostWithDoctor } from "@/types";
 
-import { Post } from '@/types';
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
-
-type CompatiblePost = Post & {
-  slug?: { current?: string } | string;
-  image?: { asset?: { url?: string } } | { url?: string } | null;
-  imageUrl?: string;
-};
+type AlgoliaPost = PostWithDoctor & { objectID?: string };
 
 interface PostCardProps {
-  post: CompatiblePost;
+  post: AlgoliaPost;
+  className?: string;
 }
 
-export default function PostCard({ post }: PostCardProps) {
-  const slug =
-    typeof post.slug === 'string'
-      ? post.slug
-      : post.slug?.current || '';
-
-  const title = post.title ?? 'Untitled';
-  const excerpt = post.excerpt ?? '';
-
-  const imageUrl =
-    post.image && 'asset' in post.image
-      ? post.image.asset?.url
-      : (post.image as { url?: string })?.url ?? (post as any).imageUrl;
+export default function PostCard({ post, className }: PostCardProps) {
+  const { title, excerpt, image } = post;
+  const slug = typeof post.slug === "string" ? post.slug : post.slug?.current ?? "";
 
   return (
-    <Link
-      href={`/blog/${slug}`}
-      className="group relative block overflow-hidden rounded-4xl shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-      aria-label={`Read blog post: ${title}`}
-    >
-      {imageUrl && (
-        <div className="relative w-full h-48 overflow-hidden">
-          <Image
-            src={imageUrl}
-            alt={title}
-            fill
-            sizes="(min-width: 1024px) 33vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+    <Link href={`/blog/${slug}`}>
+      <div
+        className={cn(
+          "flex w-full flex-col justify-between overflow-hidden transition ease-in-out group border rounded-3xl p-4 hover:border-primary",
+          className
+        )}
+      >
+        <div className="flex flex-col">
+          {image && image.asset?._id && (
+            <div className="mb-4 relative h-[15rem] sm:h-[20rem] md:h-[25rem] lg:h-[9.5rem] xl:h-[12rem] rounded-2xl overflow-hidden">
+              <Image
+                src={urlFor(image).url()}
+                alt={image.alt || title || ""}
+                placeholder={image?.asset?.metadata?.lqip ? "blur" : undefined}
+                blurDataURL={image?.asset?.metadata?.lqip || ""}
+                fill
+                style={{
+                  objectFit: "cover",
+                }}
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                quality={100}
+              />
+            </div>
+          )}
+          {title && (
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-[1.5rem] leading-[1.2]">{title}</h3>
+            </div>
+          )}
+          {excerpt && <p>{excerpt}</p>}
+        </div>
+        <div className="mt-3 xl:mt-6 w-10 h-10 border rounded-full flex items-center justify-center group-hover:border-primary">
+          <ChevronRight
+            className="text-border group-hover:text-primary"
+            size={24}
           />
         </div>
-      )}
-
-      <div className="p-5 bg-white dark:bg-zinc-900 transition-colors duration-300">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary">
-          {title}
-        </h3>
-        <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3">
-          {excerpt}
-        </p>
-        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
-          Read more <ArrowRight className="ml-1 w-4 h-4" />
-        </span>
       </div>
     </Link>
   );

@@ -28,7 +28,7 @@ interface Doctor {
   name: string;
   specialty?: string;
   photoUrl?: string;
-  slug?: { current: string };
+  slug?: string;
 }
 
 interface DoctorSearchHeroProps {
@@ -42,10 +42,11 @@ export default function DoctorSearchHero({
   maxSuggestions = 5,
   onResultSelect,
 }: DoctorSearchHeroProps) {
-  const { query, refine } = useSearchBox();
+  const { refine } = useSearchBox();
   const { results } = useInstantSearch();
   const router = useRouter();
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -54,7 +55,6 @@ export default function DoctorSearchHero({
   const [isSearching, setIsSearching] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showRedirectDialog, setShowRedirectDialog] = useState(false);
-
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -67,6 +67,19 @@ export default function DoctorSearchHero({
       setRecentSearches(JSON.parse(saved).slice(0, 4));
     }
   }, []);
+
+  useEffect(() => {
+    if (results?.hits) {
+      console.log('Algolia search results:', JSON.stringify(results.hits, null, 2));
+      const drSeher = (results.hits as Doctor[]).find((d) => d.name === 'Dr Seher Kamal');
+      if (drSeher) {
+        console.log('Dr Seher Kamal in results:', drSeher);
+      }
+    }
+    if (results?.hits?.length === 0 && searchQuery.trim()) {
+      setSelectedDoctor(null);
+    }
+  }, [results, searchQuery]);
 
   const debouncedRefine = useRef(
     debounce((value: string) => {
@@ -83,13 +96,20 @@ export default function DoctorSearchHero({
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setSearchQuery(value);
     setShowSuggestions(!!value.trim());
     setActiveSuggestion(-1);
-    value === '' ? refine('') : debouncedRefine(value);
+    setSelectedDoctor(null);
+    if (value === '') {
+      refine('');
+      setIsSearching(false);
+    } else {
+      debouncedRefine(value);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    const hits = results?.hits as Doctor[] || [];
+    const hits = (results?.hits as Doctor[]) || [];
 
     switch (e.key) {
       case 'ArrowDown':
@@ -104,17 +124,22 @@ export default function DoctorSearchHero({
         e.preventDefault();
         const selected = hits[activeSuggestion];
         if (selected) {
+          console.log('Enter pressed with selected doctor:', JSON.stringify(selected, null, 2));
           refine(selected.name);
+          setSearchQuery(selected.name);
           updateRecentSearches(selected.name);
           setSelectedDoctor(selected);
           if (onResultSelect) onResultSelect(selected);
+          goToDoctorProfile();
         } else {
+          console.log('Enter pressed without selection, query:', searchQuery);
           goToDoctorProfile();
         }
         setShowSuggestions(false);
         break;
       case 'Escape':
         refine('');
+        setSearchQuery('');
         setShowSuggestions(false);
         searchRef.current?.blur();
         break;
@@ -126,8 +151,9 @@ export default function DoctorSearchHero({
       setIsFocused(false);
       setShowSuggestions(false);
       const hits = (results?.hits as Doctor[]) || [];
-      if (query.trim() && hits.length === 0) {
+      if (searchQuery.trim() && hits.length === 0) {
         refine('');
+        setSearchQuery('');
         setShowResetNotice(true);
         setTimeout(() => setShowResetNotice(false), 2500);
       }
@@ -135,32 +161,58 @@ export default function DoctorSearchHero({
   };
 
   const handleSuggestionClick = (doctor: Doctor) => {
+    console.log('Suggestion clicked:', JSON.stringify(doctor, null, 2));
     refine(doctor.name);
+    setSearchQuery(doctor.name);
     updateRecentSearches(doctor.name);
     setSelectedDoctor(doctor);
     setShowSuggestions(false);
     if (onResultSelect) onResultSelect(doctor);
+    goToDoctorProfile();
   };
 
   const handleRecentClick = (search: string) => {
     refine(search);
+    setSearchQuery(search);
     setShowSuggestions(true);
   };
 
   const goToDoctorProfile = () => {
-    const trimmedQuery = query.trim();
+    const trimmedQuery = searchQuery.trim();
 
-    if (selectedDoctor?.slug?.current) {
-      router.push(`/consultation/${selectedDoctor.slug.current}`);
-    } else {
-      setShowRedirectDialog(true);
-      setTimeout(() => {
-        setShowRedirectDialog(false);
-        router.push(trimmedQuery ? `/consultation?query=${encodeURIComponent(trimmedQuery)}` : '/consultation');
-        refine('');
-        setSelectedDoctor(null);
-      }, 1500);
+    console.log('goToDoctorProfile called. SelectedDoctor:', JSON.stringify(selectedDoctor, null, 2), 'Query:', trimmedQuery);
+
+    if (!trimmedQuery && !selectedDoctor) {
+      console.log('No query or selected doctor, showing reset notice');
+      setShowResetNotice(true);
+      setTimeout(() => setShowResetNotice(false), 2500);
+      return;
     }
+
+    // First try with slug
+    if (selectedDoctor?.slug) {
+      console.log('Navigating to doctor profile with slug:', selectedDoctor.slug);
+      router.push(`/consultation/${selectedDoctor.slug}`);
+      return;
+    }
+    
+    // Fallback to objectID if slug is missing
+    if (selectedDoctor?.objectID) {
+      console.log('Fallback: Using objectID as slug:', selectedDoctor.objectID);
+      router.push(`/consultation/${selectedDoctor.objectID}`);
+      return;
+    }
+
+    // Last resort fallback
+    console.log('Falling back to consultation page. SelectedDoctor:', selectedDoctor);
+    setShowRedirectDialog(true);
+    setTimeout(() => {
+      setShowRedirectDialog(false);
+      router.push(trimmedQuery ? `/consultation?query=${encodeURIComponent(trimmedQuery)}` : '/consultation');
+      refine('');
+      setSearchQuery('');
+      setSelectedDoctor(null);
+    }, 1500);
   };
 
   return (
@@ -180,23 +232,22 @@ export default function DoctorSearchHero({
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-
             <Input
               ref={searchRef}
               type="text"
               placeholder={placeholder}
-              value={query || ''}
+              value={searchQuery}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={() => {
                 searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 window.scrollBy({ top: -100, behavior: 'smooth' });
                 setIsFocused(true);
-                setShowSuggestions(!!query?.trim() || recentSearches.length > 0);
+                setShowSuggestions(!!searchQuery.trim() || recentSearches.length > 0);
               }}
               onClick={() => {
                 setIsFocused(true);
-                setShowSuggestions(!!query?.trim() || recentSearches.length > 0);
+                setShowSuggestions(!!searchQuery.trim() || recentSearches.length > 0);
               }}
               onBlur={handleBlur}
               className={`w-full bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5 transition-all ${
@@ -212,10 +263,11 @@ export default function DoctorSearchHero({
               </div>
             )}
 
-            {(query || '').trim() && (
+            {searchQuery.trim() && (
               <button
                 onClick={() => {
                   refine('');
+                  setSearchQuery('');
                   setShowSuggestions(false);
                 }}
                 className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2"
@@ -227,7 +279,7 @@ export default function DoctorSearchHero({
           </div>
         </div>
 
-        {showSuggestions && (query || '').trim() && (
+        {showSuggestions && searchQuery.trim() && (
           <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
             <ul ref={suggestionsRef} className="p-2" role="listbox">
               {(results?.hits as Doctor[])?.length === 0 ? (
@@ -253,9 +305,7 @@ export default function DoctorSearchHero({
                         <img src={doctor.photoUrl} alt={doctor.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xl font-semibold text-gray-500">
-                            {doctor.name.charAt(0)}
-                          </span>
+                          <span className="text-xl font-semibold text-gray-500">{doctor.name.charAt(0)}</span>
                         </div>
                       )}
                     </div>
@@ -272,7 +322,7 @@ export default function DoctorSearchHero({
           </div>
         )}
 
-        {isFocused && !query?.trim() && recentSearches.length > 0 && (
+        {isFocused && !searchQuery.trim() && recentSearches.length > 0 && (
           <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
             <ul className="p-2" role="listbox">
               {recentSearches.map((search, index) => (
@@ -291,11 +341,10 @@ export default function DoctorSearchHero({
 
         {showResetNotice && (
           <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-            Search reset due to no matches.
+            Please enter a search query or select a doctor.
           </div>
         )}
 
-        {/* CTA Buttons */}
         <div className="mt-6 flex gap-3 justify-center">
           <Button onClick={goToDoctorProfile} className="rounded-full px-6">
             Search
@@ -308,7 +357,6 @@ export default function DoctorSearchHero({
         </div>
       </div>
 
-      {/* Filter Drawer */}
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <DrawerContent className="px-6 pb-8 pt-6 rounded-t-2xl border-t border-muted bg-background">
           <DrawerHeader>
@@ -323,15 +371,12 @@ export default function DoctorSearchHero({
         </DrawerContent>
       </Drawer>
 
-      {/* Redirect Dialog */}
       <AlertDialog open={showRedirectDialog} onOpenChange={setShowRedirectDialog}>
         <AlertDialogContent className="max-w-sm animate-fade-in text-center">
           <AlertDialogHeader>
             <AlertDialogTitle>Redirecting...</AlertDialogTitle>
           </AlertDialogHeader>
-          <p className="text-muted-foreground text-sm mt-2">
-            Taking you to the doctor search page.
-          </p>
+          <p className="text-muted-foreground text-sm mt-2">Taking you to the doctor search page.</p>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
           </AlertDialogFooter>
