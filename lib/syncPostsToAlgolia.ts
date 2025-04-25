@@ -23,24 +23,49 @@ export async function syncPostsToAlgolia() {
       slug { current },
       excerpt,
       publishedAt,
-      image { asset->{ url } },
-      doctor->{ name, photo { asset->{ url } }, slug },
+      image {
+        alt,
+        asset->{
+          _ref,
+          mimeType,
+          metadata { lqip }
+        }
+      },
+      doctor->{
+        name,
+        slug,
+        photo {
+          alt,
+          asset->{
+            _ref,
+            mimeType,
+            metadata { lqip }
+          }
+        }
+      },
       categories[]->{ _id, title }
     }
   `);
 
   const records = posts.map((post: any) => {
     const objectID = post._id || post.slug?.current || crypto.randomUUID();
+
     return {
       objectID,
       title: post.title ?? '',
       slug: post.slug?.current ?? '',
       excerpt: post.excerpt ?? '',
       publishedAt: post.publishedAt ?? '',
-      imageUrl: post.image?.asset?.url ?? '',
+
+      // ✅ Store full image object for use with urlFor()
+      image: post.image ?? null,
+
+      // ✅ Store full doctor photo
       doctorName: post.doctor?.name ?? '',
       doctorSlug: post.doctor?.slug?.current ?? '',
-      doctorPhotoUrl: post.doctor?.photo?.asset?.url ?? '',
+      doctorPhoto: post.doctor?.photo ?? null,
+
+      // ✅ Store categories cleanly
       categoryTitles: post.categories?.map((c: any) => c.title) ?? [],
       categoryIds: post.categories?.map((c: any) => c._id) ?? [],
     };
@@ -53,7 +78,7 @@ export async function syncPostsToAlgolia() {
       'unordered(title)',
       'unordered(excerpt)',
       'unordered(categoryTitles)',
-      'unordered(doctorName)'
+      'unordered(doctorName)',
     ],
     attributesForFaceting: ['searchable(categoryIds)'],
     customRanking: ['desc(publishedAt)'],
@@ -64,7 +89,7 @@ export async function syncPostsToAlgolia() {
       'attribute',
       'proximity',
       'exact',
-      'custom'
+      'custom',
     ],
   });
 
