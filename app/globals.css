@@ -176,16 +176,12 @@
 }
 
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
   }
-}
-.animate-fade-in-down {
-  animation: fadeInDown 0.8s ease-out forwards;
 }

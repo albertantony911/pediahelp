@@ -48,6 +48,7 @@ export interface Doctor {
   whatsappNumber?: string;
   reviewCount?: number;
   reviews?: Review[];
+  searchKeywords?: string[];
 }
 
 // ✅ Doctor Card Props (renamed to match actual component)
