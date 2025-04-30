@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Drawer,
   DrawerTrigger,
@@ -8,13 +8,113 @@ import {
   DrawerHeader,
   DrawerFooter,
   DrawerClose,
-} from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
-import DoctorList from '@/components/blocks/doctor/DoctorList';
-import DoctorSearch from '@/components/blocks/doctor/DoctorSearch';
-import { client } from '@/sanity/lib/client';
-import { groq } from 'next-sanity';
-import type { Doctor, Review } from '@/types';
+} from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
+import DoctorList from '@/components/blocks/doctor/DoctorList'
+import DoctorSearch from '@/components/blocks/doctor/DoctorSearch'
+import { client } from '@/sanity/lib/client'
+import { groq } from 'next-sanity'
+import type { Doctor, Review } from '@/types'
+
+type Props = {
+  children: React.ReactNode
+}
+
+export function DoctorSearchDrawer({ children }: Props) {
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([])
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    async function loadDoctors() {
+      try {
+        const data = await getDoctors()
+        setAllDoctors(data)
+      } catch (err) {
+        setError('Failed to load doctors. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadDoctors()
+  }, [])
+
+  const handleFilterChange = useCallback((filtered: Doctor[]) => {
+    setFilteredDoctors(filtered)
+  }, [])
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return
+    if (scrollRef.current.scrollTop < -30) {
+      const closeBtn = document.querySelector('[data-drawer-close]')
+      if (closeBtn instanceof HTMLElement) {
+        closeBtn.click()
+      }
+    }
+  }
+
+  return (
+    <Drawer>
+      <DrawerTrigger asChild>{children}</DrawerTrigger>
+
+      <DrawerContent className="max-h-[90vh] overflow-hidden rounded-t-[2.5rem] shadow-2xl">
+        <div className="mx-auto w-full max-w-2xl flex flex-col h-[90vh]">
+          {loading ? (
+            <div className="text-center text-gray-400 py-8">Loading doctors...</div>
+          ) : error || !allDoctors.length ? (
+            <div className="text-center text-red-400 py-8">
+              {error || 'No doctors found.'}
+            </div>
+          ) : (
+            <>
+              {/* Pull Hint + Search */}
+              <DrawerHeader className="sticky top-0 z-20 flex flex-col items-center bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b pt-3 pb-2">
+                <p className="text-xs text-muted-foreground tracking-wide mb-2">
+                  Pull down to close
+                </p>
+                <div className="w-full px-4">
+                  <DoctorSearch
+                    allDoctors={allDoctors}
+                    onFilterChange={handleFilterChange}
+                  />
+                </div>
+              </DrawerHeader>
+
+              {/* Scrollable List */}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto px-4 pt-4 scrollbar-hide"
+              >
+                <DoctorList
+                  allDoctors={allDoctors}
+                  filteredDoctors={
+                    filteredDoctors.length ? filteredDoctors : undefined
+                  }
+                />
+              </div>
+
+              {/* Sticky Footer */}
+              <DrawerFooter className="sticky bottom-0 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 px-4 py-6 border-t">
+                <DrawerClose asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full font-semibold hover:bg-muted transition"
+                    data-drawer-close
+                  >
+                    Close
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </>
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
 
 async function getDoctors(): Promise<Doctor[]> {
   try {
@@ -39,7 +139,7 @@ async function getDoctors(): Promise<Doctor[]> {
           others
         }
       }`
-    );
+    )
 
     const doctorsWithReviews = await Promise.all(
       doctors.map(async (doctor) => {
@@ -48,121 +148,14 @@ async function getDoctors(): Promise<Doctor[]> {
             _id, name, rating, comment, submittedAt
           }`,
           { id: doctor._id }
-        );
-        return { ...doctor, reviews };
+        )
+        return { ...doctor, reviews }
       })
-    );
+    )
 
-    return doctorsWithReviews;
+    return doctorsWithReviews
   } catch (error) {
-    console.error('Error fetching doctors:', error);
-    return [];
+    console.error('Error fetching doctors:', error)
+    return []
   }
-}
-
-export function DoctorSearchDrawer() {
-  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    async function loadDoctors() {
-      try {
-        const data = await getDoctors();
-        setAllDoctors(data);
-      } catch (err) {
-        setError('Failed to load doctors. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadDoctors();
-  }, []);
-
-  const handleFilterChange = useCallback((filtered: Doctor[]) => {
-    setFilteredDoctors(filtered);
-  }, []);
-
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
-    if (scrollRef.current.scrollTop < -30) {
-      const closeBtn = document.querySelector('[data-drawer-close]');
-      if (closeBtn instanceof HTMLElement) {
-        closeBtn.click();
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center text-gray-400 py-8">
-        Loading doctors...
-      </div>
-    );
-  }
-
-  if (error || !allDoctors.length) {
-    return (
-      <div className="text-center text-red-400 py-8">
-        {error || 'No doctors found.'}
-      </div>
-    );
-  }
-
-  return (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <Button
-          variant="secondary"
-          className="rounded-full px-6 py-3 font-medium text-lg transition hover:scale-105 active:scale-95"
-        >
-          Search doctors or specialty
-        </Button>
-      </DrawerTrigger>
-
-      <DrawerContent className="max-h-[90vh] overflow-hidden rounded-t-[2.5rem] shadow-2xl">
-        <div className="mx-auto w-full max-w-2xl flex flex-col h-[90vh]">
-          {/* Pull Hint Only */}
-          <DrawerHeader className="sticky top-0 z-20 flex flex-col items-center bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b pt-3 pb-2">
-            <p className="text-xs text-muted-foreground tracking-wide mb-2">
-              Pull down to close
-            </p>
-            <div className="w-full px-4">
-              <DoctorSearch
-                allDoctors={allDoctors}
-                onFilterChange={handleFilterChange}
-              />
-            </div>
-          </DrawerHeader>
-
-          {/* Scrollable Doctor List */}
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-4 pt-4 scrollbar-hide"
-          >
-            <DoctorList
-              allDoctors={allDoctors}
-              filteredDoctors={filteredDoctors.length ? filteredDoctors : undefined}
-            />
-          </div>
-
-          {/* Sticky Footer */}
-          <DrawerFooter className="sticky bottom-0 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 px-4 py-6 border-t">
-            <DrawerClose asChild>
-              <Button
-                variant="outline"
-                className="w-full font-semibold hover:bg-muted transition"
-                data-drawer-close
-              >
-                Close
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
 }

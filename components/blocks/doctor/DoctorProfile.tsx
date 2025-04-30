@@ -119,7 +119,7 @@ export default function DoctorProfileCard({
 function DoctorPhoto({ name, photoUrl, rating, reviewCount }: { name: string; photoUrl?: string; rating: string; reviewCount: number }) {
   return (
     <div className="hidden sm:block w-[150px] relative">
-      <div className="h-full rounded-xl overflow-hidden bg-gray-100 drop-shadow-dark-shade">
+      <div className="h-full rounded-xl overflow-hidden bg-gray-100 drop-shadow-dark-shade" >
         {photoUrl ? (
           <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
         ) : (

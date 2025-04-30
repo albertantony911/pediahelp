@@ -122,3 +122,4 @@ export type BlogPreview = {
   author?: { name?: string | null };
   categories?: Array<{ _id: string; title?: string | null }>;
 };
+
