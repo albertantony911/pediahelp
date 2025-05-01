@@ -132,6 +132,53 @@
   }
 }
 
+@utility left-container {
+  width: 100%;
+  @media (width >= 640px) {
+    padding-left: 2rem;
+    margin-left: auto;
+    max-width: 640px;
+  }
+  @media (width >= 768px) {
+    padding-left: 2rem;
+    max-width: 768px;
+  }
+  @media (width >= 1024px) {
+    padding-left: 3rem;
+    max-width: 768px;
+  }
+  @media (width >= 1280px) {
+    padding-left: 4rem;
+    max-width: 768px;
+  }
+  @media (width >= 1536px) {
+    padding-left: 4rem;
+    max-width: 768px;
+  }
+}
+
+
+@utility right-container {
+  width: 100%;
+  @media (width >= 640px) {
+    padding-right: 2rem;
+    margin-right: auto;
+    max-width: 100%;
+  }
+  @media (width >= 768px) {
+    padding-right: 2rem;
+  }
+  @media (width >= 1024px) {
+    padding-right: 3rem;
+  }
+  @media (width >= 1280px) {
+    padding-right: 4rem;
+  }
+  @media (width >= 1536px) {
+    padding-right: 4rem;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

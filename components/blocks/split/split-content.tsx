@@ -1,17 +1,22 @@
-import { cn } from "@/lib/utils";
-import PortableTextRenderer from "@/components/portable-text-renderer";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import TagLine from "@/components/ui/tag-line";
-import { createElement } from "react";
-import { stegaClean } from "next-sanity";
-import { PAGE_QUERYResult } from "@/sanity.types";
+'use client';
 
-type Block = NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number];
-type SplitRow = Extract<Block, { _type: "split-row" }>;
+import Link from 'next/link';
+import { createElement } from 'react';
+import { cn } from '@/lib/utils';
+import { stegaClean } from 'next-sanity';
+import PortableTextRenderer from '@/components/portable-text-renderer';
+import { Button } from '@/components/ui/button';
+
+import { Theme } from '@/components/ui/theme/Theme';
+import { Subtitle, Title, Content } from '@/components/ui/theme/typography';
+
+import { PAGE_QUERYResult } from '@/sanity.types';
+
+type Block = NonNullable<NonNullable<PAGE_QUERYResult>['blocks']>[number];
+type SplitRow = Extract<Block, { _type: 'split-row' }>;
 type SplitContent = Extract<
-  NonNullable<SplitRow["splitColumns"]>[number],
-  { _type: "split-content" }
+  NonNullable<SplitRow['splitColumns']>[number],
+  { _type: 'split-content' }
 >;
 
 interface SplitContentProps extends SplitContent {
@@ -28,48 +33,52 @@ export default function SplitContent({
   link,
 }: SplitContentProps) {
   return (
-    <div
-      className={cn(
-        !sticky ? "flex flex-col justify-center" : undefined,
-        padding?.top ? "pt-16 xl:pt-20" : undefined,
-        padding?.bottom ? "pb-16 xl:pb-20" : undefined
-      )}
-    >
-      <div
-        className={cn(
-          "flex flex-col items-start",
-          sticky ? "lg:sticky lg:top-56" : undefined,
-          noGap ? "px-10" : undefined
-        )}
-      >
-        {tagLine && <TagLine title={tagLine} element="h2" />}
-        {title &&
-          createElement(
-            tagLine ? "h3" : "h2",
-            {
-              className: cn("my-4 font-semibold leading-[1.2]"),
-            },
-            title
+    <Theme variant="white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 lg:pt-40">
+        <div
+          className={cn(
+            'flex flex-col justify-center',
+            sticky && 'lg:sticky lg:top-56',
+            padding?.top && 'pt-16 xl:pt-20',
+            padding?.bottom && 'pb-16 xl:pb-20',
+            noGap && 'px-10'
           )}
-        {body && <PortableTextRenderer value={body} />}
-        {link?.href && (
-          <div className="flex flex-col">
-            <Button
-              className="mt-2"
-              variant={stegaClean(link?.buttonVariant)}
-              size="lg"
-              asChild
-            >
-              <Link
-                href={link.href}
-                target={link.target ? "_blank" : undefined}
+        >
+          {tagLine && <Subtitle>{tagLine}</Subtitle>}
+
+          {title &&
+            createElement(
+              tagLine ? 'h3' : 'h2',
+              {},
+              <Title>{title}</Title>
+            )}
+
+          {body && (
+            <Content as="div">
+              <PortableTextRenderer value={body} />
+            </Content>
+          )}
+
+          {link?.href && (
+            <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+              <Button
+                
+                asChild
               >
-                {link.title}
-              </Link>
-            </Button>
-          </div>
-        )}
+                <Link
+                  href={link.href}
+                  target={link.target ? '_blank' : undefined}
+                >
+                  {link.title}
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Right column intentionally blank for mirror structure */}
+        <div className="flex flex-col justify-center"></div>
       </div>
-    </div>
+    </Theme>
   );
 }
