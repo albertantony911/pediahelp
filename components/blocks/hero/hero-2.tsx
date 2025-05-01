@@ -27,7 +27,7 @@ export default function Hero2({ tagLine, title, body, links }: Hero2Props) {
               </Content>
               
             )}
-            <div className="mt-0 animate-fade-up [animation-delay:400ms] opacity-0">
+            <div >
               <Button href="/about" variant="secondary" >
                 Our Story
               </Button>

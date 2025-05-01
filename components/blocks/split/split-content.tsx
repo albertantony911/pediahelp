@@ -33,7 +33,7 @@ export default function SplitContent({
   link,
 }: SplitContentProps) {
   return (
-    <Theme variant="white">
+    <Theme variant="dark-shade" >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 lg:pt-40">
         <div
           className={cn(

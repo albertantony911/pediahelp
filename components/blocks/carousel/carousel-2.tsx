@@ -11,7 +11,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselDots,
 } from '@/components/ui/carousel';
 
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
@@ -56,20 +55,19 @@ export default function Carousel2({
   if (doctors.length === 0) return null;
 
   return (
-    <div className="flex flex-col  gap-10 py-20 lg:pt-32 bg-dark-shade w-full ">
-      {/* Left - Themed Content */}
-      <Theme variant="dark-shade" >
-        <div className="w-full mx-auto lg:mx-0 text-center  ">
+    <div className="flex flex-col gap-8 py-16 lg:pt-24 bg-dark-shade w-full">
+      {/* Header Content */}
+      <Theme variant="dark-shade">
+        <div className="w-full mx-auto md:text-center px-4">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
-            <Content as="div" >
+            <Content as="div">
               <PortableTextRenderer value={body} />
             </Content>
           )}
-
           {buttonText && buttonLink && (
-            <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+            <div>
               <Button asChild variant="secondary">
                 <Link href={buttonLink}>{buttonText}</Link>
               </Button>
@@ -78,8 +76,8 @@ export default function Carousel2({
         </div>
       </Theme>
 
-      {/* Right - Carousel Outside Theme */}
-      <div className=" w-full  mx-auto ">
+      {/* Carousel */}
+      <div className="w-full mx-auto">
         <Carousel
           plugins={[
             Autoplay({
@@ -93,41 +91,41 @@ export default function Carousel2({
             {doctors.map((doc) => (
               <CarouselItem
                 key={doc._id}
-                className="basis-1/2 pl-2 sm:pl-2 md:pl-4 md:basis-1/3 lg:basis-1/5 xl:basis-[18%]"
+                className="basis-1/2 pl-3 sm:pl-4 md:pl-5 md:basis-1/3 lg:basis-[22%] xl:basis-[18%]"
               >
-                <Card className="h-full shadow-sm rounded-xl transition-transform hover:-translate-y-1 hover:shadow-md">
-                  <CardContent className="p-3 sm:p-4 flex flex-col items-center gap-2 sm:gap-3">
-                    <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-lg overflow-hidden bg-muted">
+                <Card className="h-full shadow-md rounded-xl bg-white transition-transform hover:-translate-y-1 hover:shadow-lg border-none">
+                  <CardContent className="p-4 flex flex-col items-center gap-3">
+                    <div className="w-full h-36 sm:h-40 rounded-lg overflow-hidden bg-muted">
                       {doc.photo?.asset?.url ? (
                         <img
-                          src={urlFor(doc.photo).width(200).height(240).url()}
+                          src={urlFor(doc.photo).width(300).height(320).url()}
                           alt={doc.name}
                           className="object-cover w-full h-full"
                         />
                       ) : (
-                        <div className="flex items-center justify-center w-full h-full text-muted-foreground text-sm font-semibold">
+                        <div className="flex items-center justify-center w-full h-full text-muted-foreground text-lg font-semibold">
                           {doc.name?.slice(0, 2) || 'Dr'}
                         </div>
                       )}
                     </div>
 
                     <div className="text-center">
-                      <h3 className="font-semibold text-xs sm:text-sm">{doc.name}</h3>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground">{doc.specialty}</p>
+                      <h3 className="font-semibold text-sm sm:text-base text-gray-900">{doc.name}</h3>
+                      <p className="text-xs text-gray-500">{doc.specialty}</p>
                     </div>
 
-                    <div className="flex gap-2 mt-2 flex-wrap justify-center">
+                    <div className="flex gap-2 mt-2">
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         className="text-xs px-3 py-1"
                         asChild
                       >
                         <Link href={`/consultation/${doc.slug.current}`}>Profile</Link>
                       </Button>
-
                       <Button
                         size="sm"
+                        variant="secondary"
                         className="text-xs px-3 py-1"
                         asChild
                       >
@@ -139,10 +137,6 @@ export default function Carousel2({
               </CarouselItem>
             ))}
           </CarouselContent>
-
-          <div className="w-full flex justify-center mt-4">
-            <CarouselDots className="gap-2 [&>button]:w-2.5 [&>button]:h-2.5 [&>button]:bg-muted-foreground [&>button[aria-current='true']]:bg-primary rounded-full" />
-          </div>
         </Carousel>
       </div>
     </div>
