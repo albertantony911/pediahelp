@@ -49,7 +49,7 @@ export default function DesktopNav() {
       aria-label="Primary navigation"
       className={cn(
         'fixed top-0 inset-x-0 z-50',
-        'bg-transparent backdrop-blur-md',
+        'bg-transparent ',
         'pt-[calc(env(safe-area-inset-top))] px-4'
       )}
     >
