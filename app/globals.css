@@ -201,3 +201,34 @@
     display: none; /* Safari and Chrome */
   }
 }
+
+
+@keyframes floatPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-floatPulse {
+  animation: floatPulse 2.5s ease-in-out infinite;
+}
+
+.animate-pop {
+  animation: popIn 0.4s ease-out;
+}

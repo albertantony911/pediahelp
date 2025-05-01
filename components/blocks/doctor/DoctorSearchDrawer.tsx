@@ -5,6 +5,7 @@ import {
   Drawer,
   DrawerTrigger,
   DrawerContent,
+  DrawerTitle,
   DrawerHeader,
   DrawerFooter,
   DrawerClose,
@@ -27,6 +28,7 @@ export function DoctorSearchDrawer({ children }: Props) {
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Fetch all doctors on mount
   useEffect(() => {
     async function loadDoctors() {
       try {
@@ -38,20 +40,21 @@ export function DoctorSearchDrawer({ children }: Props) {
         setLoading(false)
       }
     }
+
     loadDoctors()
   }, [])
 
+  // Update filtered doctor list
   const handleFilterChange = useCallback((filtered: Doctor[]) => {
     setFilteredDoctors(filtered)
   }, [])
 
+  // Handle scroll-up gesture to close drawer
   const handleScroll = () => {
     if (!scrollRef.current) return
     if (scrollRef.current.scrollTop < -30) {
       const closeBtn = document.querySelector('[data-drawer-close]')
-      if (closeBtn instanceof HTMLElement) {
-        closeBtn.click()
-      }
+      if (closeBtn instanceof HTMLElement) closeBtn.click()
     }
   }
 
@@ -60,7 +63,11 @@ export function DoctorSearchDrawer({ children }: Props) {
       <DrawerTrigger asChild>{children}</DrawerTrigger>
 
       <DrawerContent className="max-h-[90vh] overflow-hidden rounded-t-[2.5rem] shadow-2xl">
+        {/* ✅ Accessibility title (visually hidden) */}
+        <DrawerTitle className="sr-only">Search for Doctors</DrawerTitle>
+
         <div className="mx-auto w-full max-w-2xl flex flex-col h-[90vh]">
+          {/* === Loading / Error States === */}
           {loading ? (
             <div className="text-center text-gray-400 py-8">Loading doctors...</div>
           ) : error || !allDoctors.length ? (
@@ -69,7 +76,7 @@ export function DoctorSearchDrawer({ children }: Props) {
             </div>
           ) : (
             <>
-              {/* Pull Hint + Search */}
+              {/* === Sticky Search Header === */}
               <DrawerHeader className="sticky top-0 z-20 flex flex-col items-center bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b pt-3 pb-2">
                 <p className="text-xs text-muted-foreground tracking-wide mb-2">
                   Pull down to close
@@ -82,7 +89,7 @@ export function DoctorSearchDrawer({ children }: Props) {
                 </div>
               </DrawerHeader>
 
-              {/* Scrollable List */}
+              {/* === Scrollable Doctor List === */}
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
@@ -96,7 +103,7 @@ export function DoctorSearchDrawer({ children }: Props) {
                 />
               </div>
 
-              {/* Sticky Footer */}
+              {/* === Sticky Footer with Close === */}
               <DrawerFooter className="sticky bottom-0 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 px-4 py-6 border-t">
                 <DrawerClose asChild>
                   <Button

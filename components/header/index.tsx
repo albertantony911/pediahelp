@@ -32,7 +32,7 @@ export default function Header() {
             <Logo />
           </Link>
           <div className="hidden xl:flex gap-7 items-center justify-between">
-            <DesktopNav navItems={navItems} />
+            <DesktopNav navItems={[]} />
           </div>
         </div>
       </div>
