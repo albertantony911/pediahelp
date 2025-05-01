@@ -59,7 +59,7 @@ export default function BottomNav() {
       className={cn(
         'fixed bottom-0 inset-x-0 z-50 xl:hidden',
         'bg-white border-t shadow-sm',
-        'flex items-center justify-between h-22 px-4',
+        'flex items-center justify-between h-18 px-4',
         'pb-[calc(env(safe-area-inset-bottom))]'
       )}
     >
