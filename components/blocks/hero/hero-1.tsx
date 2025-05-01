@@ -7,6 +7,8 @@ import { urlFor } from '@/sanity/lib/image'
 import PortableTextRenderer from '@/components/portable-text-renderer'
 import { PAGE_QUERYResult } from '@/sanity.types'
 import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer'
+import { Button } from '@/components/ui/button';
+
 
 // Theme & Typography
 import { Theme } from '@/components/ui/theme/Theme'
@@ -32,9 +34,9 @@ export default function Hero1({ tagLine, title, body, image }: Hero1Props) {
 
           <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
             <DoctorSearchDrawer>
-              <button className="bg-mid-shade text-white  font-bold px-6 py-3 rounded-full">
+              <Button variant="secondary" >
                 Book a Consultation
-              </button>
+              </Button>
             </DoctorSearchDrawer>
           </div>
         </div>

@@ -227,7 +227,7 @@ function ProfileLink({ slug }: { slug: string }) {
   return (
     <Button
       asChild
-      variant="secondary"
+      variant="outline"
       className="text-xs sm:text-sm px-3 py-1"
     >
       <Link href={`/consultation/${slug}`} className="flex items-center gap-1.5">
@@ -271,7 +271,7 @@ function ShareProfilePill({ slug }: { slug: string }) {
   return (
     <Button
       onClick={handleShare}
-      variant="secondary"
+      variant="outline"
       className={`text-xs sm:text-sm px-3 py-1 flex items-center gap-1.5 ${isPressed ? 'scale-95 bg-[#264E5B] text-white shadow-inner' : ''}`}
       aria-label={copied ? 'Link copied to clipboard' : 'Share doctor profile'}
     >
