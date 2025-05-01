@@ -1,43 +1,56 @@
-import { defineField, defineType } from "sanity";
-import { Quote } from "lucide-react";
+import { defineField, defineType } from 'sanity';
+import { Users } from 'lucide-react';
 
 export default defineType({
-  name: "carousel-2",
-  type: "object",
-  title: "Carousel 2",
-  icon: Quote,
-  description: "A carousel of testimonials",
+  name: 'carousel-2',
+  type: 'object',
+  title: 'Doctor Team Carousel',
+  icon: Users,
   fields: [
     defineField({
-      name: "padding",
-      type: "section-padding",
+      name: 'tagLine',
+      type: 'string',
+      title: 'Tagline (Optional)',
     }),
     defineField({
-      name: "colorVariant",
-      type: "color-variant",
-      title: "Color Variant",
-      description: "Select a background color variant",
+      name: 'title',
+      type: 'string',
+      title: 'Title (Optional)',
     }),
     defineField({
-      name: "testimonial",
-      type: "array",
-      of: [
-        {
-          name: "testimonial",
-          type: "reference",
-          to: [{ type: "testimonial" }],
-        },
-      ],
+      name: 'body',
+      type: 'array',
+      title: 'Body (Optional)',
+      of: [{ type: 'block' }],
+    }),
+    defineField({
+      name: 'buttonText',
+      type: 'string',
+      title: 'Button Text (Optional)',
+    }),
+    defineField({
+      name: 'buttonLink',
+      type: 'url',
+      title: 'Button Link (Optional)',
+    }),
+    defineField({
+      name: 'padding',
+      type: 'section-padding',
+    }),
+    defineField({
+      name: 'colorVariant',
+      type: 'color-variant',
     }),
   ],
   preview: {
     select: {
-      title: "testimonial.0.name",
+      title: 'title',
     },
     prepare({ title }) {
       return {
-        title: "Testimonials Carousel",
-        subtitle: title,
+        title: title || 'Doctor Team Carousel',
+        subtitle: 'Carousel of top 7 doctors',
+        media: Users,
       };
     },
   },

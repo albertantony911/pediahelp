@@ -59,6 +59,9 @@ importers:
       '@sanity/code-input':
         specifier: ^5.1.2
         version: 5.1.2(@babel/runtime@7.27.0)(@codemirror/lint@6.8.5)(@codemirror/theme-one-dark@6.1.2)(@emotion/is-prop-valid@1.2.2)(codemirror@6.0.1)(react-dom@18.2.0(react@18.2.0))(react-is@18.3.1)(react@18.2.0)(sanity@3.85.1(@emotion/is-prop-valid@1.2.2)(@types/node@18.19.86)(@types/react@18.3.20)(immer@10.1.1)(jiti@2.4.2)(lightningcss@1.29.2)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(styled-components@6.1.17(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1))(styled-components@6.1.17(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
+      '@sanity/codegen':
+        specifier: ^3.87.0
+        version: 3.87.0
       '@sanity/image-url':
         specifier: ^1.1.0
         version: 1.1.0
@@ -92,6 +95,9 @@ importers:
       dotenv:
         specifier: ^16.5.0
         version: 16.5.0
+      embla-carousel-autoplay:
+        specifier: ^8.6.0
+        version: 8.6.0(embla-carousel@8.6.0)
       embla-carousel-react:
         specifier: ^8.5.2
         version: 8.6.0(react@18.2.0)
@@ -2916,6 +2922,10 @@ packages:
     resolution: {integrity: sha512-8mJl5olrX48EdYjfuM+g1XyCUPUpoKcEc57XriBcVskiAEyFcYhzjTKYNybfOS5KXCL+rtDVjIi5X9/akfwgbw==}
     engines: {node: '>=18'}
 
+  '@sanity/codegen@3.87.0':
+    resolution: {integrity: sha512-ukpEkh8RqN9zAMqofNJOvz7zRK4gp9XBRPbKUs6PRerilqN83wCCSEI4+jX0AhkzBKYvH6FAV3WKfmC9bktvYQ==}
+    engines: {node: '>=18'}
+
   '@sanity/color@3.0.6':
     resolution: {integrity: sha512-2TjYEvOftD0v7ukx3Csdh9QIu44P2z7NDJtlC3qITJRYV36J7R6Vfd3trVhFnN77/7CZrGjqngrtohv8VqO5nw==}
     engines: {node: '>=18.0.0'}
@@ -4334,6 +4344,11 @@ packages:
   electron-to-chromium@1.5.138:
     resolution: {integrity: sha512-FWlQc52z1dXqm+9cCJ2uyFgJkESd+16j6dBEjsgDNuHjBpuIzL8/lRc0uvh1k8RNI6waGo6tcy2DvwkTBJOLDg==}
 
+  embla-carousel-autoplay@8.6.0:
+    resolution: {integrity: sha512-OBu5G3nwaSXkZCo1A6LTaFMZ8EpkYbwIaH+bPqdBnDGQ2fh4+NbzjXjs2SktoPNKCtflfVMc75njaDHOYXcrsA==}
+    peerDependencies:
+      embla-carousel: 8.6.0
+
   embla-carousel-react@8.6.0:
     resolution: {integrity: sha512-0/PjqU7geVmo6F734pmPqpyHqiM99olvyecY7zdweCw+6tKEXnrE90pBiBbMMU8s5tICemzpQ3hi5EpxzGW+JA==}
     peerDependencies:
@@ -4852,6 +4867,10 @@ packages:
 
   groq@3.85.1:
     resolution: {integrity: sha512-Irhw0+syeBhzcbFViRFi9ikPhAHefSx9+Rj8A53I9av2QWJbnoN5WwHX7S0Z3LSUzMswym79HVTnXRM3MCf36g==}
+    engines: {node: '>=18'}
+
+  groq@3.87.0:
+    resolution: {integrity: sha512-d8RDHFXTln2ieeeTfT68JDvwRT5w07U7GJL/DRYdJnhiVNA8kAs0hbvfFVjQUQRwyMYPZvOw/EMwjh++ISbvkQ==}
     engines: {node: '>=18'}
 
   gunzip-maybe@1.4.2:
@@ -10370,6 +10389,26 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@sanity/codegen@3.87.0':
+    dependencies:
+      '@babel/core': 7.26.10
+      '@babel/generator': 7.27.0
+      '@babel/preset-env': 7.26.9(@babel/core@7.26.10)
+      '@babel/preset-react': 7.26.3(@babel/core@7.26.10)
+      '@babel/preset-typescript': 7.27.0(@babel/core@7.26.10)
+      '@babel/register': 7.25.9(@babel/core@7.26.10)
+      '@babel/traverse': 7.27.0
+      '@babel/types': 7.27.0
+      debug: 4.4.0(supports-color@8.1.1)
+      globby: 11.1.0
+      groq: 3.87.0
+      groq-js: 1.16.1
+      json5: 2.2.3
+      tsconfig-paths: 4.2.0
+      zod: 3.24.3
+    transitivePeerDependencies:
+      - supports-color
+
   '@sanity/color@3.0.6': {}
 
   '@sanity/comlink@2.0.5':
@@ -12029,6 +12068,10 @@ snapshots:
 
   electron-to-chromium@1.5.138: {}
 
+  embla-carousel-autoplay@8.6.0(embla-carousel@8.6.0):
+    dependencies:
+      embla-carousel: 8.6.0
+
   embla-carousel-react@8.6.0(react@18.2.0):
     dependencies:
       embla-carousel: 8.6.0
@@ -12789,6 +12832,8 @@ snapshots:
       - supports-color
 
   groq@3.85.1: {}
+
+  groq@3.87.0: {}
 
   gunzip-maybe@1.4.2:
     dependencies:

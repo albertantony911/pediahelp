@@ -18,8 +18,14 @@ const backgroundVariants = {
 
 export function Theme({ variant, children, className }: ThemeProps) {
   return (
-    <section className={cn("w-full", backgroundVariants[variant], className)}>
-      <div className="container max-sm:px-10 ">
+    <section
+      className={cn(
+        "w-full text-left", // 👈 universal left alignment for all text inside
+        backgroundVariants[variant],
+        className
+      )}
+    >
+      <div className="container max-sm:px-10 text-left">
         <TypographyProvider variant={`${variant}-bg` as any}>
           {children}
         </TypographyProvider>

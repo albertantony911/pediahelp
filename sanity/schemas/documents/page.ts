@@ -8,21 +8,13 @@ export default defineType({
   title: "Page",
   icon: Files,
   groups: [
-    {
-      name: "content",
-      title: "Content",
-    },
-    {
-      name: "seo",
-      title: "SEO",
-    },
-    {
-      name: "settings",
-      title: "Settings",
-    },
+    { name: "content", title: "Content" },
+    { name: "seo", title: "SEO" },
+    { name: "settings", title: "Settings" },
   ],
   fields: [
     defineField({ name: "title", type: "string", group: "content" }),
+
     defineField({
       name: "slug",
       title: "Slug",
@@ -34,6 +26,7 @@ export default defineType({
       },
       validation: (Rule) => Rule.required(),
     }),
+
     defineField({
       name: "blocks",
       type: "array",
@@ -45,7 +38,7 @@ export default defineType({
         { type: "split-row" },
         { type: "grid-row" },
         { type: "carousel-1" },
-        { type: "carousel-2" },
+        { type: "doctorTeamCarousel" }, // ✅ updated here
         { type: "timeline-row" },
         { type: "cta-1" },
         { type: "logo-cloud-1" },
@@ -84,7 +77,7 @@ export default defineType({
             {
               name: "carousel",
               title: "Carousel",
-              of: ["carousel-1", "carousel-2"],
+              of: ["carousel-1", "doctorTeamCarousel"], // ✅ replaced "carousel-2"
             },
             {
               name: "timeline",
@@ -122,18 +115,21 @@ export default defineType({
         },
       },
     }),
+
     defineField({
       name: "meta_title",
       title: "Meta Title",
       type: "string",
       group: "seo",
     }),
+
     defineField({
       name: "meta_description",
       title: "Meta Description",
       type: "text",
       group: "seo",
     }),
+
     defineField({
       name: "noindex",
       title: "No Index",
@@ -141,12 +137,14 @@ export default defineType({
       initialValue: false,
       group: "seo",
     }),
+
     defineField({
       name: "ogImage",
       title: "Open Graph Image - [1200x630]",
       type: "image",
       group: "seo",
     }),
+
     orderRankField({ type: "page" }),
   ],
 });

@@ -35,7 +35,7 @@ export default function Hero1({ tagLine, title, body, image }: Hero1Props) {
           <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
             <DoctorSearchDrawer>
               <Button variant="secondary" >
-                Book a Consultation
+                Book Consultation
               </Button>
             </DoctorSearchDrawer>
           </div>
