@@ -87,13 +87,13 @@ export default function Carousel2({
       </Theme>
 
       {/* Carousel */}
-      <div className="w-full mx-auto overflow-hidden" ref={emblaRef}>
+      <div className="w-full mx-auto max-w-[640px] sm:max-w-[768px] md:max-w-[1024px] lg:max-w-[1280px] xl:max-w-[1440px] overflow-hidden" ref={emblaRef}>
         <div className="flex">
           {doctors.map((doc) => (
-            <div
-              key={doc._id}
-              className="flex-[0_0_50%] sm:flex-[0_0_33.33%] md:flex-[0_0_25%] lg:flex-[0_0_22%] xl:flex-[0_0_18%] pl-3 sm:pl-4 md:pl-5"
-            >
+<div
+  key={doc._id}
+  className="flex-[0_0_50%] sm:flex-[0_0_33.33%] md:flex-[0_0_25%] lg:flex-[0_0_22%] xl:flex-[0_0_18%] pl-3 sm:pl-4 md:pl-5 max-w-[240px]"
+>
               <Card className="h-full shadow-md rounded-xl bg-white transition-all duration-300 border border-transparent hover:border-blue-500 hover:shadow-blue-500/50 hover:shadow-lg">
                 <CardContent className="p-4 flex flex-col items-center gap-3">
                   <div className="w-full h-36 sm:h-40 rounded-lg overflow-hidden bg-muted">
