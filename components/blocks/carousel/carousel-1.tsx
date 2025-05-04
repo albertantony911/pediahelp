@@ -6,40 +6,20 @@ import Image from 'next/image';
 import { groq } from 'next-sanity';
 import { urlFor } from '@/sanity/lib/image';
 import { client } from '@/sanity/lib/client';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  CarouselDots,
-  CarouselCounter,
-} from "@/components/ui/carousel";
-import { cn } from "@/lib/utils";
-import { PAGE_QUERYResult } from "@/sanity.types";
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import { Theme } from '@/components/ui/theme/Theme';
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
 import PortableTextRenderer from '@/components/portable-text-renderer';
 import { ArrowRight } from "lucide-react";
-
-const CAROUSEL_SIZES = {
-  one: "basis-full",
-  two: "basis-full md:basis-1/2",
-  three: "basis-full md:basis-1/2 lg:basis-1/3",
-} as const;
-
-type CarouselSize = keyof typeof CAROUSEL_SIZES;
+import { PAGE_QUERYResult } from "@/sanity.types";
 
 type Carousel1 = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
   { _type: "carousel-1" }
 >;
 
-interface Carousel1Props
-  extends Omit<NonNullable<Carousel1>, "_type" | "_key"> {
-  size: CarouselSize | null;
-  indicators: "none" | "dots" | "count" | null;
-}
+interface Carousel1Props extends Omit<NonNullable<Carousel1>, "_type" | "_key"> {}
 
 interface Post {
   _id: string;
@@ -70,7 +50,7 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   return (
     <Link
       href={`/blog/${slug}`}
-      className="group relative block overflow-hidden rounded-2xl shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-white dark:bg-zinc-900"
+      className="group relative block overflow-hidden rounded-2xl shadow-md transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-white dark:bg-zinc-900 max-w-[300px] mx-auto"
       aria-label={`Read blog post: ${post.title || "Untitled"}`}
     >
       {imageUrl && (
@@ -79,13 +59,13 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
             src={imageUrl}
             alt={post.image?.alt || post.title || "Blog Post Image"}
             fill
-            sizes="(min-width: 1024px) 33vw, 100vw"
+            sizes="(max-width: 640px) 100vw, 300px"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
       )}
       <div className="p-5 transition-colors duration-300">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
           {post.title || "Untitled"}
         </h3>
         {post.excerpt && (
@@ -101,15 +81,26 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   );
 };
 
-export default function Carousel1({
-  theme,
-  tagLine,
-  title,
-  body,
-  size = "one",
-  indicators = "none",
-}: Carousel1Props) {
+export default function Carousel1({ theme, tagLine, title, body }: Carousel1Props) {
   const [posts, setPosts] = useState<Post[]>([]);
+
+  const [emblaRef] = useEmblaCarousel(
+    {
+      loop: true,
+      dragFree: true,
+      align: 'start',
+      slidesToScroll: 1,
+      breakpoints: {
+        '(max-width: 640px)': { slidesToScroll: 1, dragFree: false },
+      },
+    },
+    [
+      Autoplay({
+        delay: 3000,
+        stopOnInteraction: false,
+      }),
+    ]
+  );
 
   useEffect(() => {
     client
@@ -157,32 +148,18 @@ export default function Carousel1({
         </div>
 
         {/* Carousel */}
-        <Carousel>
-          <CarouselContent>
+        <div className="w-full mx-auto max-w-[640px] sm:max-w-[768px] md:max-w-[1024px] lg:max-w-[1280px] xl:max-w-[1440px] overflow-hidden" ref={emblaRef}>
+          <div className="flex">
             {posts.map((post) => (
-              <CarouselItem
+              <div
                 key={post._id}
-                className={cn(CAROUSEL_SIZES[size as CarouselSize], "px-2")}
+                className="flex-[0_0_100%] sm:flex-[0_0_33.33%] lg:flex-[0_0_25%] pl-3 sm:pl-4 md:pl-5"
               >
                 <PostCard post={post} />
-              </CarouselItem>
+              </div>
             ))}
-          </CarouselContent>
-          <CarouselPrevious
-            variant="secondary"
-            className="-left-3 md:-left-8 xl:-left-12"
-          />
-          <CarouselNext
-            variant="secondary"
-            className="-right-3 md:-right-8 xl:-right-12"
-          />
-          {indicators !== "none" && (
-            <div className="w-full flex justify-center">
-              {indicators === "dots" && <CarouselDots />}
-              {indicators === "count" && <CarouselCounter />}
-            </div>
-          )}
-        </Carousel>
+          </div>
+        </div>
       </div>
     </Theme>
   );

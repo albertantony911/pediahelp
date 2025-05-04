@@ -26,8 +26,6 @@ export const carousel1Query = groq`
         }
       }
     },
-    size,
     orientation,
-    indicators,
   }
 `;

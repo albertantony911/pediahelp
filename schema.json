@@ -2607,48 +2607,6 @@
             }
           },
           "optional": true
-        },
-        "size": {
-          "type": "objectAttribute",
-          "value": {
-            "type": "union",
-            "of": [
-              {
-                "type": "string",
-                "value": "one"
-              },
-              {
-                "type": "string",
-                "value": "two"
-              },
-              {
-                "type": "string",
-                "value": "three"
-              }
-            ]
-          },
-          "optional": true
-        },
-        "indicators": {
-          "type": "objectAttribute",
-          "value": {
-            "type": "union",
-            "of": [
-              {
-                "type": "string",
-                "value": "none"
-              },
-              {
-                "type": "string",
-                "value": "dots"
-              },
-              {
-                "type": "string",
-                "value": "count"
-              }
-            ]
-          },
-          "optional": true
         }
       }
     }

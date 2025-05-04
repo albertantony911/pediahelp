@@ -36,35 +36,6 @@ export default defineType({
       type: "block-content",
       title: "Body (Optional)",
     }),
-    defineField({
-      name: "size",
-      type: "string",
-      title: "Size",
-      options: {
-        list: [
-          { title: "One", value: "one" },
-          { title: "Two", value: "two" },
-          { title: "Three", value: "three" },
-        ],
-        layout: "radio",
-      },
-      initialValue: "one",
-    }),
-    defineField({
-      name: "indicators",
-      type: "string",
-      title: "Slide Indicators",
-      options: {
-        list: [
-          { title: "None", value: "none" },
-          { title: "Dots", value: "dots" },
-          { title: "Count", value: "count" },
-        ],
-        layout: "radio",
-      },
-      initialValue: "none",
-      description: "Choose how to indicate carousel progress and position",
-    }),
   ],
   preview: {
     select: {
