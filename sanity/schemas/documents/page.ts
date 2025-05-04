@@ -2,27 +2,57 @@ import { defineField, defineType } from "sanity";
 import { Files } from "lucide-react";
 import { orderRankField } from "@sanity/orderable-document-list";
 
+// Organized insert menu groups
+const insertMenuGroups = [
+  { name: "hero", title: "Hero", of: ["hero-1", "hero-2"] },
+  { name: "logo-cloud", title: "Logo Cloud", of: ["logo-cloud-1"] },
+  { name: "section-header", title: "Section Header", of: ["section-header"] },
+  { name: "grid", title: "Grid", of: ["grid-row"] },
+  { name: "split", title: "Split", of: ["split-row"] },
+  { name: "carousel", title: "Carousel", of: ["carousel-1", "carousel-2"] },
+  { name: "timeline", title: "Timeline", of: ["timeline-row"] },
+  { name: "cta", title: "CTA", of: ["cta-1"] },
+  { name: "faqs", title: "FAQs", of: ["faqs"] },
+  { name: "forms", title: "Forms", of: ["form-newsletter"] },
+  { name: "all-posts", title: "All Posts", of: ["all-posts"] },
+  { name: "layout", title: "Layout", of: ["section-block"] },
+];
+
+// All block types
+const blockTypes = [
+  "hero-1",
+  "hero-2",
+  "section-header",
+  "split-row",
+  "grid-row",
+  "carousel-1",
+  "carousel-2",
+  "timeline-row",
+  "cta-1",
+  "logo-cloud-1",
+  "faqs",
+  "form-newsletter",
+  "all-posts",
+  "section-block",
+];
+
 export default defineType({
   name: "page",
   type: "document",
   title: "Page",
   icon: Files,
   groups: [
-    {
-      name: "content",
-      title: "Content",
-    },
-    {
-      name: "seo",
-      title: "SEO",
-    },
-    {
-      name: "settings",
-      title: "Settings",
-    },
+    { name: "content", title: "Content" },
+    { name: "seo", title: "SEO" },
+    { name: "settings", title: "Settings" },
   ],
   fields: [
-    defineField({ name: "title", type: "string", group: "content" }),
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+      group: "content",
+    }),
     defineField({
       name: "slug",
       title: "Slug",
@@ -36,82 +66,13 @@ export default defineType({
     }),
     defineField({
       name: "blocks",
+      title: "Page Sections",
       type: "array",
       group: "content",
-      of: [
-        { type: "hero-1" },
-        { type: "hero-2" },
-        { type: "section-header" },
-        { type: "split-row" },
-        { type: "grid-row" },
-        { type: "carousel-1" },
-        { type: "carousel-2" },
-        { type: "timeline-row" },
-        { type: "cta-1" },
-        { type: "logo-cloud-1" },
-        { type: "faqs" },
-        { type: "form-newsletter" },
-        { type: "all-posts" },
-      ],
+      of: blockTypes.map((type) => ({ type })),
       options: {
         insertMenu: {
-          groups: [
-            {
-              name: "hero",
-              title: "Hero",
-              of: ["hero-1", "hero-2"],
-            },
-            {
-              name: "logo-cloud",
-              title: "Logo Cloud",
-              of: ["logo-cloud-1"],
-            },
-            {
-              name: "section-header",
-              title: "Section Header",
-              of: ["section-header"],
-            },
-            {
-              name: "grid",
-              title: "Grid",
-              of: ["grid-row"],
-            },
-            {
-              name: "split",
-              title: "Split",
-              of: ["split-row"],
-            },
-            {
-              name: "carousel",
-              title: "Carousel",
-              of: ["carousel-1", "carousel-2"],
-            },
-            {
-              name: "timeline",
-              title: "Timeline",
-              of: ["timeline-row"],
-            },
-            {
-              name: "cta",
-              title: "CTA",
-              of: ["cta-1"],
-            },
-            {
-              name: "faqs",
-              title: "FAQs",
-              of: ["faqs"],
-            },
-            {
-              name: "forms",
-              title: "Forms",
-              of: ["form-newsletter"],
-            },
-            {
-              name: "all-posts",
-              title: "All Posts",
-              of: ["all-posts"],
-            },
-          ],
+          groups: insertMenuGroups,
           views: [
             {
               name: "grid",
@@ -122,6 +83,8 @@ export default defineType({
         },
       },
     }),
+
+    // SEO Fields
     defineField({
       name: "meta_title",
       title: "Meta Title",
@@ -147,6 +110,8 @@ export default defineType({
       type: "image",
       group: "seo",
     }),
+
+    // Orderable
     orderRankField({ type: "page" }),
   ],
 });

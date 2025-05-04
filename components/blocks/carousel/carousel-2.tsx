@@ -68,7 +68,7 @@ export default function Carousel2({
     <div className="flex flex-col gap-8 py-16 lg:pt-24 bg-dark-shade w-full">
       {/* Section Header */}
       <Theme variant="dark-shade">
-        <div className="w-full mx-auto md:text-center px-4">
+        <div className="w-full mx-auto md:text-center ">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (

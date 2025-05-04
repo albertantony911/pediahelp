@@ -11,6 +11,8 @@ import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
 
+
+
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
 import link from "./schemas/blocks/shared/link";
@@ -41,6 +43,8 @@ import logoCloud1 from "./schemas/blocks/logo-cloud/logo-cloud-1";
 import faqs from "./schemas/blocks/faqs";
 import newsletter from "./schemas/blocks/forms/newsletter";
 import allPosts from "./schemas/blocks/all-posts";
+import sectionBlock from './schemas/blocks/section-block';
+
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -85,5 +89,6 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     faqs,
     newsletter,
     allPosts,
+    sectionBlock,
   ],
 };
