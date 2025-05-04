@@ -9,24 +9,7 @@ export const sectionBlockQuery = groq`
     layout,
     tagLine,
     title,
-    body[]{
-      ...,
-      _type == "image" => {
-        ...,
-        asset->{
-          _id,
-          url,
-          mimeType,
-          metadata {
-            lqip,
-            dimensions {
-              width,
-              height
-            }
-          }
-        }
-      }
-    },
+    body,
     image {
       ...,
       alt,

@@ -1,5 +1,3 @@
-// /sanity/schemas/blocks/section-block.ts
-
 import { defineType, defineField } from 'sanity'
 
 const sectionBlock = defineType({
@@ -54,9 +52,9 @@ const sectionBlock = defineType({
     }),
     defineField({
       name: 'href',
-      title: 'Button Link (Optional)',
+      title: 'Button Link',
       type: 'url',
-      description: 'Optional: If provided, the button will link to this URL. Otherwise, it opens the drawer.',
+      description: 'Provide a URL for the button (e.g., https://example.com).',
     }),
     defineField({
       name: 'buttonVariant',

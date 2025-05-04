@@ -4,7 +4,6 @@ import Image from 'next/image'
 import { urlFor } from '@/sanity/lib/image'
 import PortableTextRenderer from '@/components/portable-text-renderer'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer'
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme'
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography'
 import { VariantProps } from 'class-variance-authority'
@@ -45,22 +44,14 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
           {title && <Title>{title}</Title>}
           {Array.isArray(body) && body.length > 0 && (
             <Content as="div">
-                <PortableTextRenderer value={body} />
+              <PortableTextRenderer value={body} />
             </Content>
-            )}
-          {buttonLabel && (
+          )}
+          {buttonLabel && href && (
             <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
-              {href ? (
-                <Button variant={buttonVariant ?? 'default'} href={href}>
-                  {buttonLabel}
-                </Button>
-              ) : (
-                <DoctorSearchDrawer>
-                  <Button variant={buttonVariant ?? 'default'}>
-                    {buttonLabel}
-                  </Button>
-                </DoctorSearchDrawer>
-              )}
+              <Button variant={buttonVariant ?? 'default'} href={href}>
+                {buttonLabel}
+              </Button>
             </div>
           )}
         </div>
