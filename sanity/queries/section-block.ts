@@ -27,7 +27,14 @@ export const sectionBlockQuery = groq`
       }
     },
     buttonLabel,
-    href,
+    link {
+      internalLink->{
+        slug {
+          current
+        }
+      },
+      externalUrl
+    },
     buttonVariant
   }
 `

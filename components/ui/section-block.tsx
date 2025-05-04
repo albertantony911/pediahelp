@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { urlFor } from '@/sanity/lib/image'
 import PortableTextRenderer from '@/components/portable-text-renderer'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -15,7 +16,10 @@ interface SectionBlockProps {
   layout?: LayoutOption
   buttonVariant?: VariantProps<typeof buttonVariants>['variant'] | null
   buttonLabel?: string | null
-  href?: string | null
+  link?: {
+    internalLink: { slug: { current: string | null } | null } | null // Removed ? to exclude undefined
+    externalUrl: string | null // Removed ? to exclude undefined
+  } | null
   tagLine?: string | null
   title?: string | null
   body?: any[] | null
@@ -27,13 +31,19 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
   layout = 'image-right',
   buttonVariant = 'default',
   buttonLabel,
-  href,
+  link,
   tagLine,
   title,
   body,
   image,
 }) => {
   const isImageLeft = layout === 'image-left'
+
+  // Determine the href and whether it's internal
+  const href = link?.internalLink?.slug?.current
+    ? `/${link.internalLink.slug.current}` // Prepend '/' for internal links
+    : link?.externalUrl || null
+  const isInternal = !!link?.internalLink?.slug?.current
 
   return (
     <Theme variant={theme || 'white'}>
@@ -49,9 +59,18 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
           )}
           {buttonLabel && href && (
             <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
-              <Button variant={buttonVariant ?? 'default'} href={href}>
-                {buttonLabel}
-              </Button>
+              {isInternal ? (
+                <Button asChild variant={buttonVariant ?? 'default'}>
+                  <Link href={href}>{buttonLabel}</Link>
+                </Button>
+              ) : (
+                <Button
+                  variant={buttonVariant ?? 'default'}
+                  href={href} // External URL handled by Button component
+                >
+                  {buttonLabel}
+                </Button>
+              )}
             </div>
           )}
         </div>

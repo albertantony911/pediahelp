@@ -51,10 +51,32 @@ const sectionBlock = defineType({
       description: 'Label for the button. Leave empty to hide the button.',
     }),
     defineField({
-      name: 'href',
+      name: 'link',
       title: 'Button Link',
-      type: 'url',
-      description: 'Provide a URL for the button (e.g., https://example.com).',
+      type: 'object',
+      description: 'Choose an internal page or provide an external URL.',
+      fields: [
+        defineField({
+          name: 'internalLink',
+          title: 'Internal Link',
+          type: 'reference',
+          to: [{ type: 'page' }], // Adjust 'page' to match your page document type
+          description: 'Select an internal page for the button.',
+        }),
+        defineField({
+          name: 'externalUrl',
+          title: 'External URL',
+          type: 'url',
+          description: 'Provide an external URL (e.g., https://example.com).',
+        }),
+      ],
+      validation: (Rule) =>
+        Rule.custom((fields) => {
+          if (fields?.internalLink && fields?.externalUrl) {
+            return 'Choose either an internal link or an external URL, not both.'
+          }
+          return true
+        }),
     }),
     defineField({
       name: 'buttonVariant',
