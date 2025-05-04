@@ -53,7 +53,7 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 border">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 ">
         {/* Mobile: Image first if isImageLeftMobile is true, else Text first */}
         <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
           {isImageLeftMobile && <ImageBlock image={image} />}
