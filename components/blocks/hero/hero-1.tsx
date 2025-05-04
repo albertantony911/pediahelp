@@ -9,7 +9,6 @@ import { PAGE_QUERYResult } from '@/sanity.types'
 import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer'
 import { Button } from '@/components/ui/button';
 
-
 // Theme & Typography
 import { Theme } from '@/components/ui/theme/Theme'
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography'
@@ -19,9 +18,9 @@ type Hero1Props = Extract<
   { _type: 'hero-1' }
 >
 
-export default function Hero1({ tagLine, title, body, image }: Hero1Props) {
+export default function Hero1({ theme, tagLine, title, body, image }: Hero1Props) {
   return (
-    <Theme variant="dark-shade">
+    <Theme variant={theme || "dark-shade"}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 lg:pt-40">
         <div className="flex flex-col justify-center text-left">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
@@ -34,7 +33,7 @@ export default function Hero1({ tagLine, title, body, image }: Hero1Props) {
 
           <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
             <DoctorSearchDrawer>
-              <Button  variant="secondary" >
+              <Button variant="secondary">
                 Book Consultation
               </Button>
             </DoctorSearchDrawer>

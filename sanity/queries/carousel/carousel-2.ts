@@ -5,13 +5,12 @@ export const carousel2Query = groq`
   _type == "carousel-2" => {
     _type,
     _key,
+    theme,
     tagLine,
     title,
     body,
     buttonText,
     buttonLink,
-    padding,
-    colorVariant,
     testimonial[]->{
       _id,
       name,

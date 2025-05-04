@@ -6,17 +6,35 @@ export default defineType({
   type: "object",
   title: "Carousel 1",
   icon: GalleryHorizontal,
-  description: "A carousel of images",
+  description: "A carousel of blog posts",
   fields: [
     defineField({
-      name: "padding",
-      type: "section-padding",
+      name: "theme",
+      title: "Theme Variant",
+      type: "string",
+      options: {
+        list: [
+          { title: "Dark Shade", value: "dark-shade" },
+          { title: "Mid Shade", value: "mid-shade" },
+          { title: "Light Shade", value: "light-shade" },
+          { title: "White", value: "white" },
+        ],
+      },
     }),
     defineField({
-      name: "colorVariant",
-      type: "color-variant",
-      title: "Color Variant",
-      description: "Select a background color variant",
+      name: "tagLine",
+      type: "string",
+      title: "Tagline (Optional)",
+    }),
+    defineField({
+      name: "title",
+      type: "string",
+      title: "Title (Optional)",
+    }),
+    defineField({
+      name: "body",
+      type: "block-content",
+      title: "Body (Optional)",
     }),
     defineField({
       name: "size",
@@ -47,33 +65,15 @@ export default defineType({
       initialValue: "none",
       description: "Choose how to indicate carousel progress and position",
     }),
-    defineField({
-      name: "images",
-      type: "array",
-      of: [
-        defineField({
-          name: "image",
-          title: "Image",
-          type: "image",
-          fields: [
-            {
-              name: "alt",
-              type: "string",
-              title: "Alternative Text",
-            },
-          ],
-        }),
-      ],
-    }),
   ],
   preview: {
     select: {
-      title: "images.0.alt",
+      title: "title",
     },
     prepare({ title }) {
       return {
-        title: "Carousel",
-        subtitle: title,
+        title: "Blog Post Carousel",
+        subtitle: title || "No title",
       };
     },
   },

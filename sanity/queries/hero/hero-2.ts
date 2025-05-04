@@ -26,6 +26,17 @@ export const hero2Query = groq`
         }
       }
     },
-    links,
+    buttons[]{
+      buttonLabel,
+      link {
+        internalLink->{
+          slug {
+            current
+          }
+        },
+        externalUrl
+      },
+      buttonVariant
+    }
   }
 `;
