@@ -7,14 +7,17 @@ export default defineType({
   icon: ListCollapse,
   fields: [
     defineField({
-      name: "padding",
-      type: "section-padding",
-    }),
-    defineField({
-      name: "colorVariant",
-      type: "color-variant",
-      title: "Color Variant",
-      description: "Select a background color variant",
+      name: "theme",
+      title: "Theme Variant",
+      type: "string",
+      options: {
+        list: [
+          { title: "Dark Shade", value: "dark-shade" },
+          { title: "Mid Shade", value: "mid-shade" },
+          { title: "Light Shade", value: "light-shade" },
+          { title: "White", value: "white" },
+        ],
+      },
     }),
     defineField({
       name: "faqs",

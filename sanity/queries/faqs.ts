@@ -5,8 +5,7 @@ export const faqsQuery = groq`
   _type == "faqs" => {
     _type,
     _key,
-    padding,
-    colorVariant,
+    theme,
     faqs[]->{
       _id,
       title,

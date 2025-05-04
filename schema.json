@@ -922,46 +922,26 @@
             "value": "faqs"
           }
         },
-        "padding": {
-          "type": "objectAttribute",
-          "value": {
-            "type": "inline",
-            "name": "section-padding"
-          },
-          "optional": true
-        },
-        "colorVariant": {
+        "theme": {
           "type": "objectAttribute",
           "value": {
             "type": "union",
             "of": [
               {
                 "type": "string",
-                "value": "background"
+                "value": "dark-shade"
               },
               {
                 "type": "string",
-                "value": "primary"
+                "value": "mid-shade"
               },
               {
                 "type": "string",
-                "value": "secondary"
+                "value": "light-shade"
               },
               {
                 "type": "string",
-                "value": "card"
-              },
-              {
-                "type": "string",
-                "value": "accent"
-              },
-              {
-                "type": "string",
-                "value": "destructive"
-              },
-              {
-                "type": "string",
-                "value": "muted"
+                "value": "white"
               }
             ]
           },
@@ -4439,6 +4419,31 @@
             "type": "string",
             "value": "hero-2"
           }
+        },
+        "theme": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "dark-shade"
+              },
+              {
+                "type": "string",
+                "value": "mid-shade"
+              },
+              {
+                "type": "string",
+                "value": "light-shade"
+              },
+              {
+                "type": "string",
+                "value": "white"
+              }
+            ]
+          },
+          "optional": true
         },
         "tagLine": {
           "type": "objectAttribute",

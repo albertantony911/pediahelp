@@ -279,3 +279,10 @@
 .animate-pop {
   animation: popIn 0.4s ease-out;
 }
+
+
+.squircle {
+  --squircle: 40%;
+  aspect-ratio: 1;
+  border-radius: var(--squircle) / calc(var(--squircle) * 0.8);
+}
