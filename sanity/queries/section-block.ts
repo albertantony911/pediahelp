@@ -7,6 +7,7 @@ export const sectionBlockQuery = groq`
     _key,
     theme,
     layout,
+    reverseOnMobile,
     tagLine,
     title,
     body,

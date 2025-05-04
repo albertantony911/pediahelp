@@ -380,6 +380,13 @@
           },
           "optional": true
         },
+        "reverseOnMobile": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "boolean"
+          },
+          "optional": true
+        },
         "tagLine": {
           "type": "objectAttribute",
           "value": {

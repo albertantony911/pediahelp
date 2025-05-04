@@ -29,6 +29,13 @@ const sectionBlock = defineType({
         ],
       },
     }),
+    defineField({
+      name: 'reverseOnMobile',
+      title: 'Reverse Layout on Mobile',
+      type: 'boolean',
+      description: 'If enabled, reverses the image position on mobile devices (below 1024px).',
+      initialValue: false,
+    }),
     defineField({ name: 'tagLine', title: 'Tagline', type: 'string' }),
     defineField({ name: 'title', title: 'Title', type: 'string' }),
     defineField({
@@ -60,7 +67,7 @@ const sectionBlock = defineType({
           name: 'internalLink',
           title: 'Internal Link',
           type: 'reference',
-          to: [{ type: 'page' }], // Adjust 'page' to match your page document type
+          to: [{ type: 'page' }],
           description: 'Select an internal page for the button.',
         }),
         defineField({
