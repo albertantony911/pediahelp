@@ -45,6 +45,9 @@ export default function SpecialtyCard({ theme, tagLine, title, body, cards, butt
     : link?.externalUrl || null;
   const isInternal = !!link?.internalLink?.slug?.current;
 
+  // Determine if we have 1 or 2 items on desktop to apply special styling
+  const isFewItemsOnDesktop = cards && cards.length <= 2;
+
   return (
     <Theme variant={theme || "white"}>
       <div className="flex flex-col gap-8 py-20 lg:pt-40">
@@ -74,10 +77,17 @@ export default function SpecialtyCard({ theme, tagLine, title, body, cards, butt
 
         {/* Grid */}
         {cards && cards.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {cards.map((card, index) => (
-              <SpecialtyCardItem {...card} key={card._key || index} />
-            ))}
+          <div className="w-full mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
+              {cards.map((card, index) => (
+                <div
+                  key={card._key || index}
+                  className={`w-full ${isFewItemsOnDesktop ? 'lg:max-w-[300px]' : 'lg:w-full'}`}
+                >
+                  <SpecialtyCardItem {...card} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
