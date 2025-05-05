@@ -68,6 +68,68 @@ export type Geopoint = {
   alt?: number;
 };
 
+export type SpecialtyCard = {
+  _type: "specialty-card";
+  theme?: "dark-shade" | "mid-shade" | "light-shade" | "white";
+  tagLine?: string;
+  title?: string;
+  body?: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal" | "h1" | "h2" | "h3" | "h4" | "blockquote";
+    listItem?: "bullet" | "number";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  } | {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+    _key: string;
+  } | {
+    videoId?: string;
+    _type: "youtube";
+    _key: string;
+  } | {
+    _key: string;
+  } & Code>;
+  cards?: Array<{
+    name?: string;
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      alt?: string;
+      _type: "image";
+    };
+    link?: string;
+    _key: string;
+  }>;
+};
+
 export type SectionBlock = {
   _type: "section-block";
   theme?: "dark-shade" | "mid-shade" | "light-shade" | "white";
@@ -1139,7 +1201,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery
