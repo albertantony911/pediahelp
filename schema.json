@@ -8041,6 +8041,21 @@
                   "type": "inline",
                   "name": "section-block"
                 }
+              },
+              {
+                "type": "object",
+                "attributes": {
+                  "_key": {
+                    "type": "objectAttribute",
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "rest": {
+                  "type": "inline",
+                  "name": "specialty-card"
+                }
               }
             ]
           }

@@ -12,7 +12,8 @@ import { logoCloud1Query } from "./logo-cloud/logo-cloud-1";
 import { faqsQuery } from "./faqs";
 import { formNewsletterQuery } from "./forms/newsletter";
 import { allPostsQuery } from "./all-posts";
-import { sectionBlockQuery } from './section-block'
+import { sectionBlockQuery } from './section-block';
+import { specialtyCardQuery } from "./specialty-card"; // Import the specialty-card query
 
 export const PAGE_QUERY = groq`
   *[_type == "page" && slug.current == $slug][0]{
@@ -31,6 +32,7 @@ export const PAGE_QUERY = groq`
       ${formNewsletterQuery},
       ${allPostsQuery},
       ${sectionBlockQuery},
+      ${specialtyCardQuery}, // Add the specialty-card query
     },
     meta_title,
     meta_description,

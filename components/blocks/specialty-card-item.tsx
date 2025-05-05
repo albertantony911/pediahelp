@@ -7,24 +7,21 @@ interface SpecialtyCardItemProps {
   image?: {
     asset?: {
       _id: string;
-      url: string;
-      mimeType: string;
+      url: string | null;
+      mimeType: string | null;
       metadata?: {
-        lqip?: string;
-        dimensions?: {
-          width: number;
-          height: number;
-        };
-      };
-    };
+        lqip?: string | null;
+        dimensions?: { width: number | null; height: number | null } | null;
+      } | null;
+    } | null;
     alt?: string | null;
+    _type: "image";
   } | null;
-  alt?: string | null;
   link?: string | null;
   _key?: string;
 }
 
-export default function SpecialtyCardItem({ name, image, alt, link }: SpecialtyCardItemProps) {
+export default function SpecialtyCardItem({ name, image, link }: SpecialtyCardItemProps) {
   return (
     <Link
       href={link ?? "#"}
@@ -35,7 +32,7 @@ export default function SpecialtyCardItem({ name, image, alt, link }: SpecialtyC
         {image && image.asset?._id && (
           <Image
             src={urlFor(image).url()}
-            alt={alt || name || "Specialty Image"}
+            alt={image.alt || name || "Specialty Image"}
             fill
             sizes="(max-width: 640px) 100vw, 25vw"
             className="object-cover"
@@ -46,7 +43,7 @@ export default function SpecialtyCardItem({ name, image, alt, link }: SpecialtyC
         )}
         {/* Hidden for visual display but available for screen readers */}
         <span className="sr-only">{name || "Specialty"}</span>
-        {alt && <span className="sr-only">{alt}</span>}
+        {image?.alt && <span className="sr-only">{image.alt}</span>}
       </div>
     </Link>
   );

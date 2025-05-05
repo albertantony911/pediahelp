@@ -16,6 +16,7 @@ const insertMenuGroups = [
   { name: "forms", title: "Forms", of: ["form-newsletter"] },
   { name: "all-posts", title: "All Posts", of: ["all-posts"] },
   { name: "layout", title: "Layout", of: ["section-block"] },
+  { name: "specialty", title: "Specialty", of: ["specialty-card"] }, // Add Specialty group for specialty-card
 ];
 
 // All block types
@@ -34,6 +35,7 @@ const blockTypes = [
   "form-newsletter",
   "all-posts",
   "section-block",
+  "specialty-card", // Add specialty-card to allowed block types
 ];
 
 export default defineType({

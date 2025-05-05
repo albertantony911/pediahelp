@@ -4,28 +4,27 @@ import PortableTextRenderer from "@/components/portable-text-renderer";
 import SpecialtyCardItem from "./specialty-card-item";
 
 interface SpecialtyCardProps {
+  _type: "specialty-card";
+  _key: string;
   theme?: "dark-shade" | "mid-shade" | "light-shade" | "white" | null;
   tagLine?: string | null;
   title?: string | null;
-  body?: any[] | null; // Adjust based on your PortableTextRenderer type
+  body?: any[] | null; // Type as any[] | null to allow any PortableText content
   cards?: Array<{
     name?: string | null;
     image?: {
       asset?: {
         _id: string;
-        url: string;
-        mimeType: string;
+        url: string | null;
+        mimeType: string | null;
         metadata?: {
-          lqip?: string;
-          dimensions?: {
-            width: number;
-            height: number;
-          };
-        };
-      };
+          lqip?: string | null;
+          dimensions?: { width: number | null; height: number | null } | null;
+        } | null;
+      } | null;
       alt?: string | null;
+      _type: "image";
     } | null;
-    alt?: string | null;
     link?: string | null;
     _key?: string;
   }> | null;
