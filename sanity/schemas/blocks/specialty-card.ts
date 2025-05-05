@@ -1,101 +1,160 @@
-import { defineField, defineType } from "sanity";
-import { LayoutGrid } from "lucide-react";
+import { defineType, defineField } from 'sanity'
 
-export default defineType({
-  name: "specialty-card",
-  title: "Specialty Card Block",
-  type: "object",
-  icon: LayoutGrid,
+const specialtyCard = defineType({
+  name: 'specialty-card',
+  type: 'object',
+  title: 'Specialty Card Block',
   fields: [
     defineField({
-      name: "theme",
-      title: "Theme Variant",
-      type: "string",
+      name: 'theme',
+      title: 'Theme Variant',
+      type: 'string',
       options: {
         list: [
-          { title: "Dark Shade", value: "dark-shade" },
-          { title: "Mid Shade", value: "mid-shade" },
-          { title: "Light Shade", value: "light-shade" },
-          { title: "White", value: "white" },
+          { title: 'Dark Shade', value: 'dark-shade' },
+          { title: 'Mid Shade', value: 'mid-shade' },
+          { title: 'Light Shade', value: 'light-shade' },
+          { title: 'White', value: 'white' },
         ],
       },
     }),
     defineField({
-      name: "tagLine",
-      type: "string",
-      title: "Tagline (Optional)",
+      name: 'tagLine',
+      title: 'Tagline',
+      type: 'string',
     }),
     defineField({
-      name: "title",
-      type: "string",
-      title: "Title (Optional)",
+      name: 'title',
+      title: 'Title',
+      type: 'string',
     }),
     defineField({
-      name: "body",
-      type: "block-content",
-      title: "Body (Optional)",
-    }),
-    defineField({
-      name: "cards",
-      type: "array",
-      title: "Specialty Cards",
+      name: 'body',
+      title: 'Body',
+      type: 'array',
       of: [
         {
-          type: "object",
-          fields: [
-            defineField({
-              name: "name",
-              type: "string",
-              title: "Specialty Name",
-              description: "Name of the specialty (hidden visually, used for SEO and screen readers)",
-            }),
-            defineField({
-              name: "image",
-              type: "image",
-              title: "Specialty Image",
-              description: "Square image representing the specialty",
-              fields: [
-                {
-                  name: "alt",
-                  type: "string",
-                  title: "Alternative Text",
-                  description: "Alt text for accessibility and SEO (hidden visually)",
-                },
-              ],
-            }),
-            defineField({
-              name: "link",
-              type: "url",
-              title: "Link",
-              description: "URL to the specialty page",
-            }),
+          type: 'block',
+          styles: [
+            { title: 'Normal', value: 'normal' },
+            { title: 'H1', value: 'h1' },
+            { title: 'H2', value: 'h2' },
+            { title: 'H3', value: 'h3' },
+            { title: 'H4', value: 'h4' },
+            { title: 'Blockquote', value: 'blockquote' },
           ],
-          preview: {
-            select: {
-              title: "name",
-              media: "image",
-            },
-            prepare({ title, media }) {
-              return {
-                title: title || "Specialty Card",
-                subtitle: title || "No name",
-                media,
-              };
-            },
+          lists: [
+            { title: 'Bullet', value: 'bullet' },
+            { title: 'Numbered', value: 'number' },
+          ],
+          marks: {
+            decorators: [
+              { title: 'Strong', value: 'strong' },
+              { title: 'Emphasis', value: 'em' },
+            ],
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  { name: 'href', type: 'url', title: 'URL' },
+                ],
+              },
+            ],
           },
         },
       ],
     }),
+    defineField({
+      name: 'cards',
+      title: 'Specialty Cards',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'card',
+          fields: [
+            defineField({
+              name: 'name',
+              type: 'string',
+              title: 'Name',
+            }),
+            defineField({
+              name: 'image',
+              type: 'image',
+              title: 'Image',
+              options: {
+                hotspot: true,
+              },
+              fields: [
+                {
+                  name: 'alt',
+                  type: 'string',
+                  title: 'Alternative Text',
+                },
+              ],
+            }),
+            defineField({
+              name: 'link',
+              title: 'Link',
+              type: 'string',
+            }),
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'buttonLabel',
+      title: 'Button Label',
+      type: 'string',
+      description: 'Label for the button. Leave empty to hide the button.',
+    }),
+    defineField({
+      name: 'link',
+      title: 'Button Link',
+      type: 'object',
+      description: 'Choose an internal page or provide an external URL.',
+      fields: [
+        defineField({
+          name: 'internalLink',
+          title: 'Internal Link',
+          type: 'reference',
+          to: [{ type: 'page' }],
+          description: 'Select an internal page for the button.',
+        }),
+        defineField({
+          name: 'externalUrl',
+          title: 'External URL',
+          type: 'url',
+          description: 'Provide an external URL (e.g., https://example.com).',
+        }),
+      ],
+      validation: (Rule) =>
+        Rule.custom((fields) => {
+          if (fields?.internalLink && fields?.externalUrl) {
+            return 'Choose either an internal link or an external URL, not both.'
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'buttonVariant',
+      title: 'Button Variant',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Default', value: 'default' },
+          { title: 'Secondary', value: 'secondary' },
+          { title: 'Ghost', value: 'ghost' },
+          { title: 'Outline', value: 'outline' },
+          { title: 'Destructive', value: 'destructive' },
+          { title: 'Link', value: 'link' },
+          { title: 'WhatsApp', value: 'whatsapp' },
+        ],
+      },
+    }),
   ],
-  preview: {
-    select: {
-      title: "title",
-    },
-    prepare({ title }) {
-      return {
-        title: "Specialty Card Block",
-        subtitle: title || "No title",
-      };
-    },
-  },
-});
+})
+
+export default specialtyCard
