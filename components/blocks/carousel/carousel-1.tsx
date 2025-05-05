@@ -50,7 +50,7 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   return (
     <Link
       href={`/blog/${slug}`}
-      className="group relative block overflow-hidden rounded-2xl shadow-md transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-white dark:bg-zinc-900 max-w-[300px] mx-auto"
+      className="group relative overflow-hidden rounded-4xl shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-white dark:bg-zinc-900 max-w-[300px] mx-auto min-h-[350px] flex flex-col"
       aria-label={`Read blog post: ${post.title || "Untitled"}`}
     >
       {imageUrl && (
@@ -64,16 +64,16 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
           />
         </div>
       )}
-      <div className="p-5 transition-colors duration-300">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
+      <div className="p-5 flex flex-col flex-1 transition-colors duration-300">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
           {post.title || "Untitled"}
         </h3>
         {post.excerpt && (
-          <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3">
+          <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3 flex-1">
             {post.excerpt}
           </p>
         )}
-        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
+        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-auto">
           Read more <ArrowRight className="ml-1 w-4 h-4" />
         </span>
       </div>
