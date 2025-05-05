@@ -14,6 +14,7 @@ import FormNewsletter from "@/components/blocks/forms/newsletter";
 import AllPosts from "@/components/blocks/all-posts";
 import SectionBlock from '@/components/ui/section-block';
 import SpecialtyCard from "@/components/blocks/specialty-card"; // Import the SpecialtyCard component
+import ContactForm from "@/components/blocks/forms/ContactForm";
 
 type Block = NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number];
 
@@ -35,6 +36,7 @@ const componentMap: {
   "all-posts": AllPosts,
   "section-block": SectionBlock,
   "specialty-card": SpecialtyCard, // Register the specialty-card block
+  "contact-form": ContactForm,
 };
 
 export default function Blocks({ blocks }: { blocks: Block[] }) {

@@ -14,6 +14,7 @@ import { formNewsletterQuery } from "./forms/newsletter";
 import { allPostsQuery } from "./all-posts";
 import { sectionBlockQuery } from './section-block';
 import { specialtyCardQuery } from "./specialty-card"; // Import the specialty-card query
+import { contactFormQuery } from "./forms/contact-form";
 
 export const PAGE_QUERY = groq`
   *[_type == "page" && slug.current == $slug][0]{
@@ -33,6 +34,7 @@ export const PAGE_QUERY = groq`
       ${allPostsQuery},
       ${sectionBlockQuery},
       ${specialtyCardQuery}, // Add the specialty-card query
+      ${contactFormQuery},
     },
     meta_title,
     meta_description,

@@ -13,7 +13,7 @@ const insertMenuGroups = [
   { name: "timeline", title: "Timeline", of: ["timeline-row"] },
   { name: "cta", title: "CTA", of: ["cta-1"] },
   { name: "faqs", title: "FAQs", of: ["faqs"] },
-  { name: "forms", title: "Forms", of: ["form-newsletter"] },
+  { name: "forms", title: "Forms", of: ["form-newsletter", "contact-form"] },
   { name: "all-posts", title: "All Posts", of: ["all-posts"] },
   { name: "layout", title: "Layout", of: ["section-block"] },
   { name: "specialty", title: "Specialty", of: ["specialty-card"] }, // Add Specialty group for specialty-card
@@ -33,6 +33,7 @@ const blockTypes = [
   "logo-cloud-1",
   "faqs",
   "form-newsletter",
+  "contact-form",
   "all-posts",
   "section-block",
   "specialty-card", // Add specialty-card to allowed block types

@@ -43,6 +43,7 @@ import newsletter from "./schemas/blocks/forms/newsletter";
 import allPosts from "./schemas/blocks/all-posts";
 import sectionBlock from './schemas/blocks/section-block';
 import specialtyCard from "./schemas/blocks/specialty-card"; // Add the new specialty-card block
+import contactForm from './schemas/blocks/forms/contact-form'
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -89,5 +90,6 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     allPosts,
     sectionBlock,
     specialtyCard, // Register the specialty-card block
+    contactForm,
   ],
 };
