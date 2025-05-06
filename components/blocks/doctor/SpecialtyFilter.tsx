@@ -26,22 +26,48 @@ const specialties: { name: string; label: string; icon: LucideIcon }[] = [
 ];
 
 export default function SpecialtyFilter() {
-  const { refine } = useSearchBox(); // Use Algolia's refine hook
+  const { refine } = useSearchBox();
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [isTouched, setIsTouched] = useState<Record<string, boolean>>({});
+  const [isToggleTouched, setIsToggleTouched] = useState(false);
 
   const visible = expanded ? specialties : specialties.slice(0, 4);
 
   const handleSelect = (name: string) => {
     setSelected(name);
-    refine(name); // Simulate search input
-    setExpanded(false); // Collapse after selecting
+    refine(name);
+    setExpanded(false);
   };
 
   const handleReset = () => {
     setSelected(null);
     refine('');
     setExpanded(false);
+  };
+
+  // Handle touch start for mobile (specialty/reset buttons)
+  const handleTouchStart = (key: string) => {
+    setIsTouched((prev) => ({ ...prev, [key]: true }));
+  };
+
+  // Handle touch end with a delay for animation (specialty/reset buttons)
+  const handleTouchEnd = (key: string) => {
+    setTimeout(() => {
+      setIsTouched((prev) => ({ ...prev, [key]: false }));
+    }, 100);
+  };
+
+  // Handle touch start for toggle button
+  const handleToggleTouchStart = () => {
+    setIsToggleTouched(true);
+  };
+
+  // Handle touch end for toggle button
+  const handleToggleTouchEnd = () => {
+    setTimeout(() => {
+      setIsToggleTouched(false);
+    }, 100);
   };
 
   return (
@@ -58,12 +84,15 @@ export default function SpecialtyFilter() {
             <button
               key={name}
               onClick={() => handleSelect(name)}
+              onTouchStart={() => handleTouchStart(name)}
+              onTouchEnd={() => handleTouchEnd(name)}
               className="group flex flex-col mt-1 items-center justify-center"
             >
               <div
                 className={clsx(
-                  'w-14 h-14 rounded-full bg-white text-green-600 shadow-sm flex items-center justify-center transition-all',
-                  isActive && 'ring-2 ring-green-500 scale-105'
+                  'w-14 h-14 rounded-full bg-white text-green-600 shadow-sm flex items-center justify-center transition-all duration-300 hover:shadow-md hover:scale-105 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95 active:brightness-105',
+                  isActive && 'ring-2 ring-green-500 scale-105',
+                  isTouched[name] && 'scale-95 brightness-105'
                 )}
               >
                 <Icon className="w-7 h-7" />
@@ -78,9 +107,16 @@ export default function SpecialtyFilter() {
         {expanded && (
           <button
             onClick={handleReset}
+            onTouchStart={() => handleTouchStart('reset')}
+            onTouchEnd={() => handleTouchEnd('reset')}
             className="group flex flex-col items-center justify-center"
           >
-            <div className="w-14 h-14 rounded-full bg-white text-green-600 shadow-sm flex items-center justify-center">
+            <div
+              className={clsx(
+                'w-14 h-14 rounded-full bg-white text-green-600 shadow-sm flex items-center justify-center transition-all duration-300 hover:shadow-md hover:scale-105 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95 active:brightness-105',
+                isTouched['reset'] && 'scale-95 brightness-105'
+              )}
+            >
               <Stethoscope className="w-7 h-7" />
             </div>
             <span className="mt-1 text-xs text-white font-medium text-center">All</span>
@@ -91,7 +127,12 @@ export default function SpecialtyFilter() {
       <div className="flex justify-center mt-5 pr-1">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-white text-sm flex items-center gap-1 hover:text-green-400 transition-all"
+          onTouchStart={handleToggleTouchStart}
+          onTouchEnd={handleToggleTouchEnd}
+          className={clsx(
+            'px-4 py-2 rounded-full bg-white text-green-600 text-sm flex items-center gap-1 shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95 active:brightness-105',
+            isToggleTouched && 'scale-95 brightness-105'
+          )}
         >
           {expanded ? (
             <>
