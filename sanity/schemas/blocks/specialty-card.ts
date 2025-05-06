@@ -1,4 +1,4 @@
-import { defineType, defineField } from 'sanity'
+import { defineType, defineField } from 'sanity';
 
 const specialtyCard = defineType({
   name: 'specialty-card',
@@ -99,35 +99,25 @@ const specialtyCard = defineType({
               name: 'link',
               title: 'Link',
               type: 'object',
-              description: 'Choose an internal page or provide an external URL for this card.',
               fields: [
                 defineField({
-                  name: 'internalLink',
-                  title: 'Internal Link',
-                  type: 'reference',
-                  to: [{ type: 'page' }],
-                  description: 'Select an internal page for the card.',
-                }),
-                defineField({
-                  name: 'externalUrl',
-                  title: 'External URL',
+                  name: 'href',
+                  title: 'Link URL',
                   type: 'url',
-                  description: 'Provide an external URL (e.g., https://example.com).',
+                  description: 'Provide a URL (e.g., https://example.com or /internal-page).',
+                  validation: (Rule) =>
+                    Rule.uri({
+                      scheme: ['http', 'https', '/'],
+                      allowRelative: true,
+                    }),
                 }),
               ],
-              validation: (Rule) =>
-                Rule.custom((fields) => {
-                  if (fields?.internalLink && fields?.externalUrl) {
-                    return 'Choose either an internal link or an external URL, not both.'
-                  }
-                  return true
-                }),
             }),
           ],
         },
       ],
     }),
   ],
-})
+});
 
-export default specialtyCard
+export default specialtyCard;

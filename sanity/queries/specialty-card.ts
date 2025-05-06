@@ -10,10 +10,10 @@ export const specialtyCardQuery = groq`
     title,
     body,
     cards[] {
+      _key,
       name,
       image {
-        alt,
-        asset-> {
+        asset->{
           _id,
           url,
           mimeType,
@@ -24,17 +24,14 @@ export const specialtyCardQuery = groq`
               height
             }
           }
-        }
+        },
+        alt
       },
       link {
-        internalLink-> {
-          slug {
-            current
-          }
-        },
-        externalUrl
-      },
-      _key
+        _type,
+        _key,
+        href
+      }
     }
   }
 `;

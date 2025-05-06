@@ -35,7 +35,7 @@ const componentMap: {
   "form-newsletter": FormNewsletter,
   "all-posts": AllPosts,
   "section-block": SectionBlock,
-  "specialty-card": SpecialtyCard, // Register the specialty-card block
+  "specialty-card": SpecialtyCard, 
   "contact-form": ContactForm,
 };
 
