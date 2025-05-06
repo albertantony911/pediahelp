@@ -1,60 +1,66 @@
-// app/api/contact/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from 'next-sanity';
-import nodemailer from 'nodemailer';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-// Initialize Sanity client
-const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
-  apiVersion: '2024-10-18',
-  useCdn: false,
-  token: process.env.SANITY_API_TOKEN!,
-});
+// Define the expected shape of the form data
+interface ContactFormData {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
 
 export async function POST(req: NextRequest) {
-  const { name, email, phone, message } = await req.json();
-
-  if (!name || !email || !phone || !message) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
   try {
-    // 1. Save contact inquiry in Sanity
-    await client.create({
-      _type: 'contactMessage',
-      name,
-      email,
-      phone,
-      message,
-      responded: false,
-      submittedAt: new Date().toISOString(),
-    });
+    // Parse the incoming request body
+    const body: ContactFormData = await req.json();
 
-    // 2. Email Notification
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SUPPORT_EMAIL_USER!,
-        pass: process.env.SUPPORT_EMAIL_PASS!,
-      },
-    });
+    // Basic validation
+    if (!body.name || !body.email || !body.phone || !body.message) {
+      return NextResponse.json(
+        { error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
 
-    await transporter.sendMail({
-      from: `"Pediahelp Contact Form" <${process.env.SUPPORT_EMAIL_USER}>`,
-      to: process.env.SUPPORT_EMAIL_RECEIVER!,
-      subject: `📥 New Contact Form Submission from ${name}`,
-      text: `
-Name: ${name}
-Email: ${email}
-Phone: ${phone}
-Message: ${message}
-      `.trim(),
-    });
+    // Validate email format (basic regex)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      return NextResponse.json(
+        { error: 'Invalid email address' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('❌ Contact submission failed:', error);
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+    // Validate phone format (matches the format used in the form: +[country code][10-digit number])
+    const phoneRegex = /^\+\d{1,3}\d{10}$/;
+    if (!phoneRegex.test(body.phone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+    // Store the submission in Firestore
+    const submission = {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      message: body.message,
+      submittedAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(db, 'contact-submissions'), submission);
+
+    return NextResponse.json(
+      { message: 'Form submitted successfully' },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('Error submitting form:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
   }
 }

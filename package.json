@@ -33,6 +33,7 @@
     "@sanity/preview-url-secret": "^2.1.8",
     "@sanity/ui": "^2.15.13",
     "@sanity/vision": "^3.85.1",
+    "@types/validator": "^13.15.0",
     "algoliasearch": "^4.24.0",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
@@ -45,6 +46,7 @@
     "firebase": "^11.6.0",
     "framer-motion": "^12.6.3",
     "fuse.js": "^7.1.0",
+    "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",
     "libphonenumber-js": "^1.12.6",
     "lodash": "^4.17.21",
@@ -70,6 +72,7 @@
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
+    "validator": "^13.15.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.2"
   },

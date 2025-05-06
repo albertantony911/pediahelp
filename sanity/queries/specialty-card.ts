@@ -1,4 +1,4 @@
-import { groq } from 'next-sanity'
+import { groq } from 'next-sanity';
 
 // @sanity-typegen-ignore
 export const specialtyCardQuery = groq`
@@ -12,9 +12,8 @@ export const specialtyCardQuery = groq`
     cards[] {
       name,
       image {
-        ...,
         alt,
-        asset->{
+        asset-> {
           _id,
           url,
           mimeType,
@@ -27,18 +26,15 @@ export const specialtyCardQuery = groq`
           }
         }
       },
-      link,
-      _key
-    },
-    buttonLabel,
-    link {
-      internalLink->{
-        slug {
-          current
-        }
+      link {
+        internalLink-> {
+          slug {
+            current
+          }
+        },
+        externalUrl
       },
-      externalUrl
-    },
-    buttonVariant
+      _key
+    }
   }
-`
+`;

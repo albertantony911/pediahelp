@@ -1,11 +1,11 @@
-import { defineField, defineType } from 'sanity';
-import { Mail } from 'lucide-react';
+import { defineType, defineField } from 'sanity';
+import { Contact2 } from 'lucide-react';
 
 export default defineType({
   name: 'contact-form',
   title: 'Contact Form',
   type: 'object',
-  icon: Mail,
+  icon: Contact2,
   fields: [
     defineField({
       name: 'theme',
@@ -20,30 +20,24 @@ export default defineType({
         ],
       },
     }),
-    defineField({
-      name: 'tagLine',
-      title: 'Tagline',
-      type: 'string',
-    }),
-    defineField({
-      name: 'title',
-      title: 'Title',
-      type: 'string',
-    }),
+    defineField({ name: 'tagLine', type: 'string', title: 'Tagline' }),
+    defineField({ name: 'title', type: 'string', title: 'Title' }),
     defineField({
       name: 'successMessage',
-      title: 'Thank You Message',
-      type: 'text',
+      title: 'Success Message',
+      type: 'string',
+      description: 'Message to display after successful form submission',
     }),
   ],
   preview: {
     select: {
       title: 'title',
+      tagLine: 'tagLine',
     },
-    prepare({ title }) {
+    prepare({ title, tagLine }) {
       return {
         title: 'Contact Form',
-        subtitle: title,
+        subtitle: title || tagLine || 'Untitled Contact Form',
       };
     },
   },

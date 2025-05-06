@@ -1,6 +1,5 @@
-import Link from "next/link";
-import Image from "next/image";
-import { urlFor } from "@/sanity/lib/image";
+import Image from 'next/image';
+import { urlFor } from '@/sanity/lib/image';
 
 interface SpecialtyCardItemProps {
   name?: string | null;
@@ -11,40 +10,33 @@ interface SpecialtyCardItemProps {
       mimeType: string | null;
       metadata?: {
         lqip?: string | null;
-        dimensions?: { width: number | null; height: number | null } | null;
+        dimensions?: { width: number; height: number } | null;
       } | null;
     } | null;
     alt?: string | null;
-    _type: "image";
+    _type: 'image';
   } | null;
-  link?: string | null;
   _key?: string;
 }
 
-export default function SpecialtyCardItem({ name, image, link }: SpecialtyCardItemProps) {
+export default function SpecialtyCardItem({ name, image }: SpecialtyCardItemProps) {
+  if (!image?.asset?._id) return null;
+
+  const lqip = image.asset?.metadata?.lqip || '';
+
   return (
-    <Link
-      href={link ?? "#"}
-      className="group block rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
-      aria-label={`View specialty: ${name || "Specialty"}`}
-    >
-      <div className="relative aspect-square">
-        {image && image.asset?._id && (
-          <Image
-            src={urlFor(image).url()}
-            alt={image.alt || name || "Specialty Image"}
-            fill
-            sizes="(max-width: 640px) 100vw, 25vw"
-            className="object-cover"
-            quality={100}
-            placeholder={image?.asset?.metadata?.lqip ? "blur" : undefined}
-            blurDataURL={image?.asset?.metadata?.lqip || ""}
-          />
-        )}
-        {/* Hidden for visual display but available for screen readers */}
-        <span className="sr-only">{name || "Specialty"}</span>
-        {image?.alt && <span className="sr-only">{image.alt}</span>}
-      </div>
-    </Link>
+    <div className="flex flex-col items-center rounded-2xl shadow-md w-full overflow-hidden">
+      <Image
+        className="rounded-2xl object-cover w-full h-auto aspect-square"
+        src={urlFor(image).url()}
+        alt={image.alt || ''}
+        width={300}
+        height={300}
+        placeholder={lqip ? 'blur' : undefined}
+        blurDataURL={lqip}
+        quality={100}
+      />
+      {name && <p className="sr-only mt-2 text-center text-sm font-medium px-2 pb-2">{name}</p>}
+    </div>
   );
 }

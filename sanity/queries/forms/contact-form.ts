@@ -1,5 +1,6 @@
 import { groq } from 'next-sanity';
 
+// @sanity-typegen-ignore
 export const contactFormQuery = groq`
   _type == "contact-form" => {
     _type,
@@ -7,20 +8,6 @@ export const contactFormQuery = groq`
     theme,
     tagLine,
     title,
-    description[] {
-      ...,
-      _type == "image" => {
-        ...,
-        asset->{
-          _id,
-          url,
-          mimeType,
-          metadata {
-            lqip,
-            dimensions { width, height }
-          }
-        }
-      }
-    }
+    successMessage
   }
 `;

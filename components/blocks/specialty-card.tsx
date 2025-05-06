@@ -2,9 +2,7 @@ import { Theme } from "@/components/ui/theme/Theme";
 import { Title, Subtitle, Content } from "@/components/ui/theme/typography";
 import PortableTextRenderer from "@/components/portable-text-renderer";
 import SpecialtyCardItem from "./specialty-card-item";
-import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
-import { VariantProps } from 'class-variance-authority';
 
 interface SpecialtyCardProps {
   _type: "specialty-card";
@@ -22,32 +20,21 @@ interface SpecialtyCardProps {
         mimeType: string | null;
         metadata?: {
           lqip?: string | null;
-          dimensions?: { width: number | null; height: number | null } | null;
+          dimensions?: { width: number; height: number } | null;
         } | null;
       } | null;
       alt?: string | null;
       _type: "image";
     } | null;
-    link?: string | null;
+    link?: {
+      internalLink?: { slug?: { current: string | null } | null } | null;
+      externalUrl?: string | null;
+    } | null;
     _key?: string;
   }> | null;
-  buttonLabel?: string | null;
-  link?: {
-    internalLink?: { slug?: { current: string | null } | null } | null;
-    externalUrl?: string | null;
-  } | null;
-  buttonVariant?: VariantProps<typeof buttonVariants>['variant'] | null;
 }
 
-export default function SpecialtyCard({ theme, tagLine, title, body, cards, buttonLabel, link, buttonVariant }: SpecialtyCardProps) {
-  const href = link?.internalLink?.slug?.current
-    ? `/${link.internalLink.slug.current}`
-    : link?.externalUrl || null;
-  const isInternal = !!link?.internalLink?.slug?.current;
-
-  // Determine if we have 1 or 2 items on desktop to apply special styling
-  const isFewItemsOnDesktop = cards && cards.length <= 2;
-
+export default function SpecialtyCard({ theme, tagLine, title, body, cards }: SpecialtyCardProps) {
   return (
     <Theme variant={theme || "white"}>
       <div className="flex flex-col gap-8 py-20 lg:pt-40">
@@ -60,33 +47,49 @@ export default function SpecialtyCard({ theme, tagLine, title, body, cards, butt
               <PortableTextRenderer value={body} />
             </Content>
           )}
-          {buttonLabel && href && (
-            <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
-              {isInternal ? (
-                <Button asChild variant={buttonVariant ?? 'default'}>
-                  <Link href={href}>{buttonLabel}</Link>
-                </Button>
-              ) : (
-                <Button variant={buttonVariant ?? 'default'} href={href}>
-                  {buttonLabel}
-                </Button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Grid */}
         {cards && cards.length > 0 && (
           <div className="w-full mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
-              {cards.map((card, index) => (
-                <div
-                  key={card._key || index}
-                  className={`w-full ${isFewItemsOnDesktop ? 'lg:max-w-[300px]' : 'lg:w-full'}`}
-                >
-                  <SpecialtyCardItem {...card} />
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 justify-items-center">
+              {cards.map((card, index) => {
+                // Determine the href and whether it's internal
+                const href = card.link?.internalLink?.slug?.current
+                  ? `/${card.link.internalLink.slug.current}`
+                  : card.link?.externalUrl || null;
+                const isInternal = !!card.link?.internalLink?.slug?.current;
+
+                // If there's no link, render the card without a wrapper
+                if (!href) {
+                  return (
+                    <div
+                      key={card._key || index}
+                      className="w-full max-w-[300px] transition-transform duration-300 hover:scale-105"
+                    >
+                      <SpecialtyCardItem {...card} />
+                    </div>
+                  );
+                }
+
+                // Render the card with a Link or <a> tag based on the link type
+                return (
+                  <div
+                    key={card._key || index}
+                    className="w-full max-w-[300px] transition-transform duration-300 hover:scale-105"
+                  >
+                    {isInternal ? (
+                      <Link href={href}>
+                        <SpecialtyCardItem {...card} />
+                      </Link>
+                    ) : (
+                      <a href={href} target="_blank" rel="noopener noreferrer">
+                        <SpecialtyCardItem {...card} />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
