@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { groq } from 'next-sanity';
 import { urlFor } from '@/sanity/lib/image';
 import { client } from '@/sanity/lib/client';
-
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 
@@ -36,8 +35,8 @@ export default function Carousel2({
   const [emblaRef] = useEmblaCarousel(
     {
       loop: true,
+      align: 'center',
       dragFree: true,
-      align: 'start',
       slidesToScroll: 1,
     },
     [
@@ -51,7 +50,7 @@ export default function Carousel2({
   useEffect(() => {
     client
       .fetch<Doctor[]>(
-        groq`*[_type == "doctor"] | order(orderRank asc)[0...7] {
+        groq`*[_type == "doctor"] | order(orderRank asc)[0...5] {
           _id,
           name,
           specialty,
@@ -63,13 +62,18 @@ export default function Carousel2({
       .catch((err) => console.error('Doctor fetch failed:', err));
   }, []);
 
+  // 🔁 Virtual duplication to ensure smooth infinite scroll
+  const visibleDoctors = doctors.length < 6
+    ? [...doctors, ...doctors, ...doctors]
+    : doctors;
+
   if (doctors.length === 0) return null;
 
   return (
-    <Theme variant={theme || 'dark-shade'}>
-      <div className="flex flex-col gap-8 py-20 lg:pt-40 w-full">
-        {/* Section Header */}
-        <div className="w-full mx-auto md:text-center">
+    <div className="w-full">
+      {/* Header Section */}
+      <Theme variant={theme || 'dark-shade'}>
+        <div className="pt-10 pb-10 w-full mx-auto md:text-center px-4">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
@@ -78,25 +82,28 @@ export default function Carousel2({
             </Content>
           )}
           {buttonText && buttonLink && (
-            <div>
+            <div className="mt-4">
               <Button asChild variant="secondary">
                 <Link href={buttonLink}>{buttonText}</Link>
               </Button>
             </div>
           )}
         </div>
+      </Theme>
 
-        {/* Carousel */}
-        <div className="w-full mx-auto max-w-[640px] sm:max-w-[768px] md:max-w-[1024px] lg:max-w-[1280px] xl:max-w-[1440px] overflow-hidden" ref={emblaRef}>
-          <div className="flex">
-            {doctors.map((doc) => (
+      {/* Carousel Section */}
+      <Theme variant={theme || 'dark-shade'} disableContainer className="!text-inherit">
+        <div ref={emblaRef} className="overflow-hidden px-4 pb-10 max-w-[1150px] mx-auto">
+          <div className="flex gap-5 ">
+            {visibleDoctors.map((doc, i) => (
               <div
-                key={doc._id}
-                className="flex-[0_0_50%] sm:flex-[0_0_33.33%] md:flex-[0_0_25%] lg:flex-[0_0_22%] xl:flex-[0_0_18%] pl-3 sm:pl-4 md:pl-5 max-w-[240px]"
+                key={`${doc._id}-${i}`}
+                className="basis-[210px] flex-shrink-0 first:ml-4 "
               >
-                <Card className="h-full shadow-md rounded-xl bg-white transition-all duration-300 border border-transparent hover:border-blue-500 hover:shadow-blue-500/50 hover:shadow-lg">
-                  <CardContent className="p-4 flex flex-col items-center gap-3">
-                    <div className="w-full h-36 sm:h-40 rounded-lg overflow-hidden bg-muted">
+                <Card className="h-full shadow-md rounded-4xl bg-white transition-all duration-300 border border-transparent hover:border-light-shade">
+                  <CardContent className="p-4 flex flex-col items-center gap-1">
+                    {/* Image */}
+                    <div className="w-full h-36 sm:h-36 rounded-lg overflow-hidden bg-muted">
                       {doc.photo?.asset?.url ? (
                         <img
                           src={urlFor(doc.photo).width(300).height(320).url()}
@@ -110,16 +117,30 @@ export default function Carousel2({
                       )}
                     </div>
 
-                    <div className="text-center">
-                      <h3 className="font-semibold text-sm sm:text-base text-gray-900">{doc.name}</h3>
+                    {/* Name & Specialty */}
+                    <div className="text-center mt-2">
+                      <h3 className="font-semibold text-sm sm:text-base text-gray-900">
+                        {doc.name}
+                      </h3>
                       <p className="text-xs text-gray-500">{doc.specialty}</p>
                     </div>
 
+                    {/* Buttons */}
                     <div className="flex gap-2 mt-2">
-                      <Button size="sm" variant="outline" className="text-xs px-3 py-1" asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs px-3 py-1"
+                        asChild
+                      >
                         <Link href={`/consultation/${doc.slug.current}`}>Profile</Link>
                       </Button>
-                      <Button size="sm" variant="secondary" className="text-xs px-3 py-1" asChild>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="text-xs px-3 py-1"
+                        asChild
+                      >
                         <Link href={`/consultation/${doc.slug.current}/booking`}>Book</Link>
                       </Button>
                     </div>
@@ -129,7 +150,7 @@ export default function Carousel2({
             ))}
           </div>
         </div>
-      </div>
-    </Theme>
+      </Theme>
+    </div>
   );
 }

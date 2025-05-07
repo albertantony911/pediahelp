@@ -20,6 +20,22 @@ export default defineType({
       },
     }),
     defineField({
+      name: "tagLine",
+      title: "Tagline",
+      type: "string",
+    }),
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+    }),
+    defineField({
+      name: "body",
+      title: "Body",
+      type: "array",
+      of: [{ type: "block" }],
+    }),
+    defineField({
       name: "faqs",
       type: "array",
       title: "FAQs",
@@ -34,7 +50,7 @@ export default defineType({
   ],
   preview: {
     select: {
-      title: "faqs.0.title",
+      title: "title",
     },
     prepare({ title }) {
       return {

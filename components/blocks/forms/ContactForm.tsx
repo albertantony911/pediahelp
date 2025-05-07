@@ -23,7 +23,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
+import PortableTextRenderer from '@/components/portable-text-renderer';
 
 // Define form validation schema with Zod
 const formSchema = z.object({
@@ -51,8 +53,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
   // Initialize form with react-hook-form and Zod validation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,11 +70,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
   const name = watch('name');
   const email = watch('email');
   const phone = watch('phone');
-  const message = watch('message');
   const otp = watch('otp');
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isPhoneValid = /^[0-9]{10}$/.test(phone);
-  const isMessageValid = message.length >= 6 && message.length <= 500;
 
   // Initialize reCAPTCHA verifier
   useEffect(() => {
@@ -116,10 +113,10 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
 
   // Handle OTP verification
   const handleVerifyOtp = async () => {
-    if (!confirmationResult || !otp) return;
+    if (!confirmationResult || !otp) return; // Ensure otp is defined
     setIsVerifyingOtp(true);
     try {
-      await confirmationResult.confirm(otp);
+      await confirmationResult.confirm(otp); // Now TypeScript knows otp is a string
       setIsVerified(true);
       toast.success('Phone number verified!');
     } catch (error: any) {
@@ -183,38 +180,21 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: 'easeIn' } },
   };
 
-  // Dynamic card background based on hover/focus state
-  const getCardBackground = () => {
-    if (isFocused) return 'bg-white/70 dark:bg-gray-800/70';
-    if (isHovered) return 'bg-white/50 dark:bg-gray-800/50';
-    return 'bg-white/30 dark:bg-gray-800/30';
-  };
-
   return (
     <Theme variant={theme || 'white'}>
-      <div className="py-16 max-w-lg mx-auto px-4 sm:max-w-md">
+      <div className="py-16 max-w-lg mx-auto px-4">
         {step !== 'success' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center mb-8"
           >
-            {tagLine && (
-              <p className="text-sm text-muted-foreground mb-2">{tagLine}</p>
-            )}
-            {title ? (
-              <h2 className="text-3xl font-semibold">{title}</h2>
-            ) : (
-              <h2 className="text-3xl font-semibold">Get in Touch</h2>
-            )}
+            {tagLine && <Subtitle>{tagLine}</Subtitle>}
+            {title && <Title>{title}</Title>}
           </motion.div>
         )}
 
-        <Card
-          className={`border-none shadow-xl backdrop-blur-md transition-all duration-300 ${getCardBackground()}`}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+        <Card className="border-none shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md">
           <CardContent className="p-6">
             {step === 'form' && (
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
@@ -225,7 +205,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                             <User className="w-4 h-4" /> Name
                           </FormLabel>
                           <div className="relative">
@@ -234,9 +214,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                                 {...field}
                                 placeholder="Your Name"
                                 disabled={otpSent}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
-                                className="rounded-xl border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all shadow-sm hover:shadow-md"
+                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
                               />
                             </FormControl>
                             {name && !otpSent && renderStatusIcon(!!name.trim())}
@@ -250,7 +228,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                             <Mail className="w-4 h-4" /> Email
                           </FormLabel>
                           <div className="relative">
@@ -260,9 +238,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                                 placeholder="Your Email"
                                 type="email"
                                 disabled={otpSent}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
-                                className="rounded-xl border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all shadow-sm hover:shadow-md"
+                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
                               />
                             </FormControl>
                             {email && !otpSent && renderStatusIcon(isEmailValid)}
@@ -276,10 +252,10 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                             <Phone className="w-4 h-4" /> Phone Number
                           </FormLabel>
-                          <div className="relative flex items-center border border-gray-200/50 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md">
+                          <div className="relative flex items-center border border-gray-200/50 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm">
                             <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">
                               🇮🇳 +91
                             </div>
@@ -291,8 +267,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                                 pattern="[0-9]*"
                                 disabled={otpSent}
                                 placeholder="Enter 10-digit mobile number"
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
                                 className="w-full px-3 py-2 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100"
                                 onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
                               />
@@ -302,7 +276,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                                 Edit
                               </Button>
                             )}
-                            {!otpSent && phone && renderStatusIcon(isPhoneValid)}
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -313,23 +286,18 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                             <MessageSquare className="w-4 h-4" /> Message
                           </FormLabel>
-                          <div className="relative">
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Your Message"
-                                rows={4}
-                                disabled={otpSent}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
-                                className="rounded-xl border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all shadow-sm hover:shadow-md resize-none"
-                              />
-                            </FormControl>
-                            {message && !otpSent && renderStatusIcon(isMessageValid)}
-                          </div>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              placeholder="Your Message"
+                              rows={4}
+                              disabled={otpSent}
+                              className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all resize-none"
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -338,7 +306,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                     <Button
                       type="submit"
                       disabled={isSendingOtp}
-                      className="w-full rounded-xl bg-primary/90 hover:bg-primary hover:scale-105 transition-all duration-200 backdrop-blur-sm shadow-md hover:shadow-lg"
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
                     >
                       {isSendingOtp ? (
                         <>
@@ -362,27 +330,25 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       name="otp"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
-                            <Phone className="w-4 h-4" /> Verify Phone Number
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <Phone className="w-4 h-4" /> Enter OTP
                           </FormLabel>
                           <p className="text-sm text-muted-foreground mb-2">
-                            Enter the OTP sent to <span className="font-semibold">+91{phone}</span>
+                            OTP sent to <span className="font-semibold">+91{phone}</span>
                           </p>
                           <FormControl>
                             <InputOTP
                               maxLength={6}
                               {...field}
                               disabled={isVerifyingOtp || isVerified}
-                              onFocus={() => setIsFocused(true)}
-                              onBlur={() => setIsFocused(false)}
                             >
                               <InputOTPGroup>
-                                <InputOTPSlot index={0} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
-                                <InputOTPSlot index={1} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
-                                <InputOTPSlot index={2} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
-                                <InputOTPSlot index={3} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
-                                <InputOTPSlot index={4} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
-                                <InputOTPSlot index={5} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg w-12 h-12 shadow-sm hover:shadow-md" />
+                                <InputOTPSlot index={0} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
+                                <InputOTPSlot index={1} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
+                                <InputOTPSlot index={2} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
+                                <InputOTPSlot index={3} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
+                                <InputOTPSlot index={4} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
+                                <InputOTPSlot index={5} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
                               </InputOTPGroup>
                             </InputOTP>
                           </FormControl>
@@ -394,7 +360,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                       <Button
                         onClick={handleVerifyOtp}
                         disabled={isVerifyingOtp || !otp || otp.length !== 6}
-                        className="w-full rounded-xl bg-primary/90 hover:bg-primary hover:scale-105 transition-all duration-200 backdrop-blur-sm shadow-md hover:shadow-lg"
+                        className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
                       >
                         {isVerifyingOtp ? (
                           <>
@@ -408,43 +374,30 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                   </form>
                 </Form>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4"
-                >
-                  {isVerified && (
+                {isVerified && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4"
+                  >
                     <p className="text-sm text-green-600 flex items-center gap-2 mb-4 justify-center">
                       <CheckCircle2 className="w-4 h-4" /> Phone number verified!
                     </p>
-                  )}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <Button
-                            onClick={form.handleSubmit(onSubmit)}
-                            disabled={isSubmitting || !isVerified}
-                            className="w-full rounded-xl transition-all duration-200 backdrop-blur-sm disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:scale-105"
-                          >
-                            {isSubmitting ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...
-                              </>
-                            ) : (
-                              'Send Message'
-                            )}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {!isVerified && (
-                        <TooltipContent>
-                          <p>Please verify your phone number to send the message</p>
-                        </TooltipContent>
+                    <Button
+                      onClick={form.handleSubmit(onSubmit)}
+                      disabled={isSubmitting}
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...
+                        </>
+                      ) : (
+                        'Send Message'
                       )}
-                    </Tooltip>
-                  </TooltipProvider>
-                </motion.div>
+                    </Button>
+                  </motion.div>
+                )}
               </motion.div>
             )}
 

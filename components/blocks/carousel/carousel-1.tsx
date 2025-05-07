@@ -8,6 +8,7 @@ import { urlFor } from '@/sanity/lib/image';
 import { client } from '@/sanity/lib/client';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
+
 import { Theme } from '@/components/ui/theme/Theme';
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
 import PortableTextRenderer from '@/components/portable-text-renderer';
@@ -65,7 +66,7 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
         </div>
       )}
       <div className="p-5 flex flex-col flex-1 transition-colors duration-300">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
           {post.title || "Untitled"}
         </h3>
         {post.excerpt && (
@@ -87,12 +88,9 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
   const [emblaRef] = useEmblaCarousel(
     {
       loop: true,
+      align: 'center',
       dragFree: true,
-      align: 'start',
       slidesToScroll: 1,
-      breakpoints: {
-        '(max-width: 640px)': { slidesToScroll: 1, dragFree: false },
-      },
     },
     [
       Autoplay({
@@ -105,7 +103,7 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
   useEffect(() => {
     client
       .fetch<Post[]>(
-        groq`*[_type == "post" && defined(slug.current)] | order(_createdAt desc)[0...7] {
+        groq`*[_type == "post" && defined(slug.current)] | order(_createdAt desc)[0...5] {
           _id,
           title,
           slug,
@@ -131,13 +129,16 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
       .catch((err) => console.error('Blog post fetch failed:', err));
   }, []);
 
+  // Duplicate posts if fewer than 6 to ensure infinite scroll works
+  const visiblePosts = posts.length < 6 ? [...posts, ...posts, ...posts] : posts;
+
   if (posts.length === 0) return null;
 
   return (
-    <Theme variant={theme || "white"}>
-      <div className="flex flex-col gap-8 py-20 lg:pt-40">
-        {/* Section Header */}
-        <div className="w-full mx-auto md:text-center">
+    <div className="w-full">
+      {/* Header Section */}
+      <Theme variant={theme || "white"}>
+        <div className="pt-10 pb-10 w-full mx-auto md:text-center px-4">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
@@ -146,21 +147,23 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
             </Content>
           )}
         </div>
+      </Theme>
 
-        {/* Carousel */}
-        <div className="w-full mx-auto max-w-[640px] sm:max-w-[768px] md:max-w-[1024px] lg:max-w-[1280px] xl:max-w-[1440px] overflow-hidden" ref={emblaRef}>
-          <div className="flex">
-            {posts.map((post) => (
+      {/* Carousel Section */}
+      <Theme variant={theme || "white"} disableContainer className="!text-inherit">
+        <div ref={emblaRef} className="overflow-hidden px-4 pb-10 max-w-[1100px] mx-auto">
+          <div className="flex gap-4 lg:gap-8">
+            {visiblePosts.map((post, i) => (
               <div
-                key={post._id}
-                className="flex-[0_0_100%] sm:flex-[0_0_33.33%] lg:flex-[0_0_25%] pl-3 sm:pl-4 md:pl-5"
+                key={`${post._id}-${i}`}
+                className="basis-[320px] flex-shrink-0 ml-4 lg:first:ml-8"
               >
                 <PostCard post={post} />
               </div>
             ))}
           </div>
         </div>
-      </div>
-    </Theme>
+      </Theme>
+    </div>
   );
 }

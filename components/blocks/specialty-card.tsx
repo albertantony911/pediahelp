@@ -1,10 +1,11 @@
 'use client';
 
-import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
-import { PortableText } from '@portabletext/react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/lib/image';
-import { useState } from 'react';
+import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
+import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
+import PortableTextRenderer from '@/components/portable-text-renderer';
 
 export interface SpecialtyCardProps {
   _type: 'specialty-card';
@@ -58,61 +59,34 @@ export default function SpecialtyCard({
   body,
   cards,
 }: SpecialtyCardProps) {
-  // State to manage touch active state for mobile
   const [isTouched, setIsTouched] = useState<Record<string, boolean>>({});
 
-  // Calculate grid layout based on card count
-  const getGridStyles = (cardCount: number) => {
-    if (cardCount <= 4) {
-      return `grid grid-cols-1 sm:grid-cols-${cardCount} gap-4 justify-items-center`;
-    } else {
-      const rows = Math.ceil(cardCount / 4);
-      const lastRowCount = cardCount % 4 || 4;
-      return `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 justify-items-center auto-rows-fr ${
-        lastRowCount < 4 ? `last-row-col-${lastRowCount}` : ''
-      }`;
-    }
-  };
-
-  // Handle touch start for mobile
   const handleTouchStart = (key: string) => {
     setIsTouched((prev) => ({ ...prev, [key]: true }));
   };
 
-  // Handle touch end with a delay for animation
   const handleTouchEnd = (key: string) => {
     setTimeout(() => {
       setIsTouched((prev) => ({ ...prev, [key]: false }));
-    }, 100); // 100ms delay to show the pressed state
+    }, 100);
   };
 
   return (
-    <Theme variant={theme || 'white'}>
-      <section className="py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          {tagLine && (
-            <p className="text-sm text-muted-foreground mb-2 tracking-wide uppercase">
-              {tagLine}
-            </p>
-          )}
-          {title && (
-            <h2 className="text-3xl md:text-4xl font-semibold mb-6">
-              {title}
-            </h2>
-          )}
+    <Theme variant={theme || 'white'} disableContainer>
+      <section className="py-8 px-4 w-full">
+        <div className="max-w-[1100px] mx-auto text-center">
+          {tagLine && <Subtitle>{tagLine}</Subtitle>}
+          {title && <Title>{title}</Title>}
           {body && (
-            <div className="prose prose-lg mx-auto mb-8 max-w-3xl">
-              <PortableText value={body} />
-            </div>
+            <Content as="div" className="mb-10 max-w-3xl mx-auto">
+              <PortableTextRenderer value={body} />
+            </Content>
           )}
-          {cards && cards.length > 0 && (
-            <div className={getGridStyles(cards.length)}>
-              {cards.map((card, index) => {
-                const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
-                const cardsPerRow = cards.length <= 4 ? cards.length : 4;
-                const isLastRow = Math.floor(index / cardsPerRow) === Math.ceil(cards.length / cardsPerRow) - 1;
-                const lastRowCount = cards.length % 4 || 4;
 
+          {cards && cards.length > 0 && (
+            <div className="flex flex-wrap justify-center lg:gap-16 gap-5 mt-6">
+              {cards.map((card) => {
+                const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
                 if (!card.image?.asset?._id) return null;
 
                 const lqip = card.image.asset.metadata?.lqip || '';
@@ -121,18 +95,13 @@ export default function SpecialtyCard({
                   <a
                     key={card._key}
                     href={href}
-                    className={`block w-full max-w-44 rounded-4xl transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95 active:shadow active:brightness-105 ${
+                    className={`group block w-full max-w-[176px] sm:max-w-[200px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
                       isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
-                    } ${
-                      isLastRow && lastRowCount < 4 ? `last-row-item col-span-1 sm:col-span-1 md:col-span-1` : ''
                     }`}
                     aria-label={card.name || 'Specialty card'}
                     onTouchStart={() => handleTouchStart(card._key)}
                     onTouchEnd={() => handleTouchEnd(card._key)}
                   >
-                    {card.name && (
-                      <h3 className="sr-only">{card.name}</h3>
-                    )}
                     <div className="flex flex-col rounded-4xl items-center w-full overflow-hidden aspect-square">
                       <Image
                         src={urlFor(card.image).url()}
@@ -142,13 +111,8 @@ export default function SpecialtyCard({
                         placeholder={lqip ? 'blur' : undefined}
                         blurDataURL={lqip}
                         quality={100}
-                        className="w-full h-full object-cover rounded-4xl"
+                        className="w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-translate-y-[2px]"
                       />
-                      {card.name && (
-                        <p className="sr-only mt-2 text-center text-sm font-medium px-2 pb-2">
-                          {card.name}
-                        </p>
-                      )}
                     </div>
                   </a>
                 );
@@ -157,24 +121,6 @@ export default function SpecialtyCard({
           )}
         </div>
       </section>
-      <style jsx>{`
-        .last-row-col-1 .last-row-item {
-          grid-column: 2 / 3;
-        }
-        .last-row-col-2 .last-row-item {
-          grid-column: auto;
-        }
-        .last-row-col-3 .last-row-item {
-          grid-column: auto;
-        }
-        @media (max-width: 768px) {
-          .last-row-col-1 .last-row-item,
-          .last-row-col-2 .last-row-item,
-          .last-row-col-3 .last-row-item {
-            grid-column: 1 / -1;
-          }
-        }
-      `}</style>
     </Theme>
   );
 }

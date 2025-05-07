@@ -53,8 +53,8 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 ">
-        {/* Mobile: Image first if isImageLeftMobile is true, else Text first */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-10  ">
+        {/* Mobile: Image first if isImageLeftMobile is true,       else Text first */}
         <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
           {isImageLeftMobile && <ImageBlock image={image} />}
           <div className="flex flex-col justify-center">
@@ -66,7 +66,7 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
               </Content>
             )}
             {buttonLabel && href && (
-              <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+              <div className="mt-4 animate-fade-up [animation-delay:400ms] opacity-0">
                 {isInternal ? (
                   <Button asChild variant={buttonVariant ?? 'default'}>
                     <Link href={href}>{buttonLabel}</Link>
@@ -94,7 +94,7 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
               </Content>
             )}
             {buttonLabel && href && (
-              <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+              <div className="mt-4 animate-fade-up [animation-delay:400ms] opacity-0">
                 {isInternal ? (
                   <Button asChild variant={buttonVariant ?? 'default'}>
                     <Link href={href}>{buttonLabel}</Link>
