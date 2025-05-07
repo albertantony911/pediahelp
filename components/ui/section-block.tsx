@@ -14,7 +14,7 @@ type LayoutOption = 'image-left' | 'image-right' | null
 interface SectionBlockProps {
   theme?: ThemeVariant | null
   layout?: LayoutOption
-  reverseOnMobile: boolean | null // Updated to match expected type
+  reverseOnMobile: boolean | null
   buttonVariant?: VariantProps<typeof buttonVariants>['variant'] | null
   buttonLabel?: string | null
   link?: {
@@ -25,12 +25,14 @@ interface SectionBlockProps {
   title?: string | null
   body?: any[] | null
   image?: any | null
+  topWaveDesktop?: string | null
+  topWaveMobile?: string | null
 }
 
 const SectionBlock: React.FC<SectionBlockProps> = ({
   theme = 'white',
   layout = 'image-right',
-  reverseOnMobile = false, // Default to false, which is compatible with boolean | null
+  reverseOnMobile = false,
   buttonVariant = 'default',
   buttonLabel,
   link,
@@ -38,14 +40,11 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
   title,
   body,
   image,
+  topWaveDesktop,
+  topWaveMobile,
 }) => {
-  // Desktop layout: true if image is on the left
   const isImageLeftDesktop = layout === 'image-left'
-
-  // Mobile layout: reverse the desktop layout if reverseOnMobile is true
   const isImageLeftMobile = reverseOnMobile ? !isImageLeftDesktop : isImageLeftDesktop
-
-  // Determine the href and whether it's internal
   const href = link?.internalLink?.slug?.current
     ? `/${link.internalLink.slug.current}`
     : link?.externalUrl || null
@@ -53,61 +52,82 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20 ">
-        {/* Mobile: Image first if isImageLeftMobile is true, else Text first */}
-        <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
-          {isImageLeftMobile && <ImageBlock image={image} />}
-          <div className="flex flex-col justify-center">
-            {tagLine && <Subtitle>{tagLine}</Subtitle>}
-            {title && <Title>{title}</Title>}
-            {Array.isArray(body) && body.length > 0 && (
-              <Content as="div">
-                <PortableTextRenderer value={body} />
-              </Content>
+      <div className="relative">
+        {/* Wave Section */}
+        {(topWaveDesktop || topWaveMobile) && (
+          <div className="w-full h-[100px] relative">
+            {topWaveDesktop && (
+              <img
+                src={`/waves/${topWaveDesktop}`}
+                alt="Top wave desktop"
+                className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
+              />
             )}
-            {buttonLabel && href && (
-              <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
-                {isInternal ? (
-                  <Button asChild variant={buttonVariant ?? 'default'}>
-                    <Link href={href}>{buttonLabel}</Link>
-                  </Button>
-                ) : (
-                  <Button variant={buttonVariant ?? 'default'} href={href}>
-                    {buttonLabel}
-                  </Button>
-                )}
-              </div>
+            {topWaveMobile && (
+              <img
+                src={`/waves/${topWaveMobile}`}
+                alt="Top wave mobile"
+                className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
+              />
             )}
           </div>
-          {!isImageLeftMobile && <ImageBlock image={image} />}
-        </div>
-
-        {/* Desktop: Use original layout logic */}
-        <div className="hidden lg:contents">
-          {isImageLeftDesktop && <ImageBlock image={image} />}
-          <div className="flex flex-col justify-center">
-            {tagLine && <Subtitle>{tagLine}</Subtitle>}
-            {title && <Title>{title}</Title>}
-            {Array.isArray(body) && body.length > 0 && (
-              <Content as="div">
-                <PortableTextRenderer value={body} />
-              </Content>
-            )}
-            {buttonLabel && href && (
-              <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
-                {isInternal ? (
-                  <Button asChild variant={buttonVariant ?? 'default'}>
-                    <Link href={href}>{buttonLabel}</Link>
-                  </Button>
-                ) : (
-                  <Button variant={buttonVariant ?? 'default'} href={href}>
-                    {buttonLabel}
-                  </Button>
-                )}
-              </div>
-            )}
+        )}
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-20">
+          {/* Mobile Layout */}
+          <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+            {isImageLeftMobile && <ImageBlock image={image} />}
+            <div className="flex flex-col justify-center">
+              {tagLine && <Subtitle>{tagLine}</Subtitle>}
+              {title && <Title>{title}</Title>}
+              {Array.isArray(body) && body.length > 0 && (
+                <Content as="div">
+                  <PortableTextRenderer value={body} />
+                </Content>
+              )}
+              {buttonLabel && href && (
+                <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+                  {isInternal ? (
+                    <Button asChild variant={buttonVariant ?? 'default'}>
+                      <Link href={href}>{buttonLabel}</Link>
+                    </Button>
+                  ) : (
+                    <Button variant={buttonVariant ?? 'default'} href={href}>
+                      {buttonLabel}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            {!isImageLeftMobile && <ImageBlock image={image} />}
           </div>
-          {!isImageLeftDesktop && <ImageBlock image={image} />}
+          {/* Desktop Layout */}
+          <div className="hidden lg:contents">
+            {isImageLeftDesktop && <ImageBlock image={image} />}
+            <div className="flex flex-col justify-center">
+              {tagLine && <Subtitle>{tagLine}</Subtitle>}
+              {title && <Title>{title}</Title>}
+              {Array.isArray(body) && body.length > 0 && (
+                <Content as="div">
+                  <PortableTextRenderer value={body} />
+                </Content>
+              )}
+              {buttonLabel && href && (
+                <div className="mt-8 animate-fade-up [animation-delay:400ms] opacity-0">
+                  {isInternal ? (
+                    <Button asChild variant={buttonVariant ?? 'default'}>
+                      <Link href={href}>{buttonLabel}</Link>
+                    </Button>
+                  ) : (
+                    <Button variant={buttonVariant ?? 'default'} href={href}>
+                      {buttonLabel}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            {!isImageLeftDesktop && <ImageBlock image={image} />}
+          </div>
         </div>
       </div>
     </Theme>

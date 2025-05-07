@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity'
+import SvgSelector from '@/components/SvgSelector'
 
 const sectionBlock = defineType({
   name: 'section-block',
@@ -35,6 +36,24 @@ const sectionBlock = defineType({
       type: 'boolean',
       description: 'If enabled, reverses the image position on mobile devices (below 1024px).',
       initialValue: false,
+    }),
+    defineField({
+      name: 'topWaveDesktop',
+      title: 'Top Wave SVG (Desktop)',
+      type: 'string',
+      description: 'Select an SVG for the top wave on desktop. Should be 100px in height.',
+      components: {
+        input: SvgSelector,
+      },
+    }),
+    defineField({
+      name: 'topWaveMobile',
+      title: 'Top Wave SVG (Mobile)',
+      type: 'string',
+      description: 'Select an SVG for the top wave on mobile. Should be 100px in height.',
+      components: {
+        input: SvgSelector,
+      },
     }),
     defineField({ name: 'tagLine', title: 'Tagline', type: 'string' }),
     defineField({ name: 'title', title: 'Title', type: 'string' }),

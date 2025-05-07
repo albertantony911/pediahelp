@@ -36,6 +36,8 @@ export const sectionBlockQuery = groq`
       },
       externalUrl
     },
-    buttonVariant
+    buttonVariant,
+    topWaveDesktop,
+    topWaveMobile
   }
 `
