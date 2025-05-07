@@ -72,55 +72,59 @@ export default function SpecialtyCard({
   };
 
   return (
-    <Theme variant={theme || 'white'} disableContainer>
-      <section className="py-8 px-4 w-full">
-        <div className="max-w-[1100px] mx-auto text-center">
+    <div className="w-full">
+      {/* Header Section */}
+      <Theme variant={theme || 'white'}>
+        <div className="max-w-[1100px] mx-auto py-10 lg:text-center px-4">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
-            <Content as="div" className="mb-10 max-w-3xl mx-auto">
+            <Content as="div">
               <PortableTextRenderer value={body} />
             </Content>
           )}
-
-          {cards && cards.length > 0 && (
-            <div className="flex flex-wrap justify-center lg:gap-16 gap-5 mt-6">
-              {cards.map((card) => {
-                const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
-                if (!card.image?.asset?._id) return null;
-
-                const lqip = card.image.asset.metadata?.lqip || '';
-
-                return (
-                  <a
-                    key={card._key}
-                    href={href}
-                    className={`group block w-full max-w-[176px] sm:max-w-[200px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
-                      isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
-                    }`}
-                    aria-label={card.name || 'Specialty card'}
-                    onTouchStart={() => handleTouchStart(card._key)}
-                    onTouchEnd={() => handleTouchEnd(card._key)}
-                  >
-                    <div className="flex flex-col rounded-4xl items-center w-full overflow-hidden aspect-square">
-                      <Image
-                        src={urlFor(card.image).url()}
-                        alt={card.image.alt || ''}
-                        width={300}
-                        height={300}
-                        placeholder={lqip ? 'blur' : undefined}
-                        blurDataURL={lqip}
-                        quality={100}
-                        className="w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-translate-y-[2px]"
-                      />
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          )}
         </div>
-      </section>
-    </Theme>
+      </Theme>
+
+      {/* Card Section */}
+      {cards && cards.length > 0 && (
+        <Theme variant={theme || 'white'} disableContainer className="!text-inherit">
+          <div className="flex flex-wrap justify-center lg:gap-16 gap-5 px-4 pb-10 max-w-[1150px] mx-auto">
+            {cards.map((card) => {
+              const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
+              if (!card.image?.asset?._id) return null;
+
+              const lqip = card.image.asset.metadata?.lqip || '';
+
+              return (
+                <a
+                  key={card._key}
+                  href={href}
+                  className={`group block w-full max-w-[176px] sm:max-w-[200px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
+                    isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
+                  }`}
+                  aria-label={card.name || 'Specialty card'}
+                  onTouchStart={() => handleTouchStart(card._key)}
+                  onTouchEnd={() => handleTouchEnd(card._key)}
+                >
+                  <div className="flex flex-col rounded-4xl items-center w-full overflow-hidden aspect-square">
+                    <Image
+                      src={urlFor(card.image).url()}
+                      alt={card.image.alt || ''}
+                      width={300}
+                      height={300}
+                      placeholder={lqip ? 'blur' : undefined}
+                      blurDataURL={lqip}
+                      quality={100}
+                      className="w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-translate-y-[2px]"
+                    />
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </Theme>
+      )}
+    </div>
   );
 }
