@@ -16,7 +16,7 @@ type Hero2Props = Extract<
 export default function Hero2({ theme, tagLine, title, body, buttons }: Hero2Props) {
   return (
     <Theme variant={theme || "dark-shade"}>
-      <div className="dark:bg-background py-20 lg:pt-40 xl:text-center">
+      <div className="dark:bg-background py-10 xl:text-center">
         {tagLine && <Subtitle>{tagLine}</Subtitle>}
         {title && <Title>{title}</Title>}
         {body && (
@@ -25,7 +25,7 @@ export default function Hero2({ theme, tagLine, title, body, buttons }: Hero2Pro
           </Content>
         )}
         {buttons && buttons.length > 0 && (
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-center">
             {buttons.map((button, index) => {
               // Determine the href and whether it's internal
               const href = button?.link?.internalLink?.slug?.current
