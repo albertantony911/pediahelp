@@ -182,7 +182,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="py-16 max-w-lg mx-auto px-4">
+      <div className="py-10 max-w-lg mx-auto px-4">
         {step !== 'success' && (
           <motion.div
             initial={{ opacity: 0 }}
