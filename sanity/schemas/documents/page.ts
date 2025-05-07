@@ -16,7 +16,8 @@ const insertMenuGroups = [
   { name: "forms", title: "Forms", of: ["form-newsletter", "contact-form"] },
   { name: "all-posts", title: "All Posts", of: ["all-posts"] },
   { name: "layout", title: "Layout", of: ["section-block"] },
-  { name: "specialty", title: "Specialty", of: ["specialty-card"] }, // Add Specialty group for specialty-card
+  { name: "specialty", title: "Specialty", of: ["specialty-card"] },
+  { name: "wave-divider", title: "Wave Divider", of: ["waveDivider"] }, // Add Wave Divider group
 ];
 
 // All block types
@@ -36,7 +37,8 @@ const blockTypes = [
   "contact-form",
   "all-posts",
   "section-block",
-  "specialty-card", // Add specialty-card to allowed block types
+  "specialty-card",
+  "waveDivider", // Add waveDivider
 ];
 
 export default defineType({

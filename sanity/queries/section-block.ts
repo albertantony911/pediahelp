@@ -37,7 +37,18 @@ export const sectionBlockQuery = groq`
       externalUrl
     },
     buttonVariant,
-    topWaveDesktop,
-    topWaveMobile
+    wavePair->{
+      label,
+      desktop {
+        asset->{
+          url
+        }
+      },
+      mobile {
+        asset->{
+          url
+        }
+      }
+    }
   }
 `

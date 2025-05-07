@@ -42,8 +42,10 @@ import faqs from "./schemas/blocks/faqs";
 import newsletter from "./schemas/blocks/forms/newsletter";
 import allPosts from "./schemas/blocks/all-posts";
 import sectionBlock from './schemas/blocks/section-block';
-import specialtyCard from "./schemas/blocks/specialty-card"; // Add the new specialty-card block
-import contactForm from './schemas/blocks/forms/contact-form'
+import specialtyCard from "./schemas/blocks/specialty-card";
+import contactForm from './schemas/blocks/forms/contact-form';
+import waveDivider from './schemas/blocks/wave-divider';
+import waveDividerVariant from './schemas/blocks/wave-divider-variant';
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -58,6 +60,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     review,
     comment,
     blogQuestion,
+    waveDividerVariant, // Add waveDividerVariant document
     // shared objects
     blockContent,
     link,
@@ -89,7 +92,8 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     newsletter,
     allPosts,
     sectionBlock,
-    specialtyCard, // Register the specialty-card block
+    specialtyCard,
     contactForm,
+    waveDivider, // Add waveDivider block
   ],
 };

@@ -13,8 +13,9 @@ import FAQs from "@/components/blocks/faqs";
 import FormNewsletter from "@/components/blocks/forms/newsletter";
 import AllPosts from "@/components/blocks/all-posts";
 import SectionBlock from '@/components/ui/section-block';
-import SpecialtyCard from "@/components/blocks/specialty-card"; // Import the SpecialtyCard component
+import SpecialtyCard from "@/components/blocks/specialty-card";
 import ContactForm from "@/components/blocks/forms/ContactForm";
+import WaveDivider from "@/components/blocks/wave-divider"; // Import the WaveDivider component
 
 type Block = NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number];
 
@@ -35,8 +36,9 @@ const componentMap: {
   "form-newsletter": FormNewsletter,
   "all-posts": AllPosts,
   "section-block": SectionBlock,
-  "specialty-card": SpecialtyCard, 
+  "specialty-card": SpecialtyCard,
   "contact-form": ContactForm,
+  "waveDivider": WaveDivider, // Add WaveDivider
 };
 
 export default function Blocks({ blocks }: { blocks: Block[] }) {
