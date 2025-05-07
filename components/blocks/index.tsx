@@ -15,7 +15,7 @@ import AllPosts from "@/components/blocks/all-posts";
 import SectionBlock from '@/components/ui/section-block';
 import SpecialtyCard from "@/components/blocks/specialty-card";
 import ContactForm from "@/components/blocks/forms/ContactForm";
-import WaveDivider from "@/components/blocks/wave-divider"; // Import the WaveDivider component
+import WaveDivider from "@/components/blocks/wave-divider";
 
 type Block = NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number];
 
@@ -38,7 +38,7 @@ const componentMap: {
   "section-block": SectionBlock,
   "specialty-card": SpecialtyCard,
   "contact-form": ContactForm,
-  "waveDivider": WaveDivider, // Add WaveDivider
+  waveDivider: WaveDivider,
 };
 
 export default function Blocks({ blocks }: { blocks: Block[] }) {
@@ -47,12 +47,21 @@ export default function Blocks({ blocks }: { blocks: Block[] }) {
       {blocks?.map((block) => {
         const Component = componentMap[block._type];
         if (!Component) {
-          // Fallback for development/debugging of new component types
           console.warn(
             `No component implemented for block type: ${block._type}`
           );
           return <div data-type={block._type} key={block._key} />;
         }
+
+        // Wrap WaveDivider in a full-width container
+        if (block._type === "waveDivider") {
+          return (
+            <div className="w-screen -mx-[calc(50vw-50%)]" key={block._key}>
+              <Component {...(block as any)} />
+            </div>
+          );
+        }
+
         return <Component {...(block as any)} key={block._key} />;
       })}
     </>
