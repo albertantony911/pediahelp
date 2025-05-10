@@ -22,7 +22,7 @@ export function Title({ className, variant, ...props }: TitleProps) {
   return (
     <h2
       className={cn(
-        "mt-[11px] md:mt-3 font-bold font-sans text-[32px]  md:text-5xl lg:text-5xl leading-[36.4px] md:leading-[0.9]  animate-fade-up [animation-delay:200ms] opacity-0",
+        "mt-[10px] md:mt-2 font-bold font-sans text-[28px] md:text-4xl lg:text-4xl leading-[1.25] md:leading-[1.2] tracking-tight  animate-fade-up [animation-delay:200ms] opacity-0",
         variantClasses[activeVariant],
         className
       )}

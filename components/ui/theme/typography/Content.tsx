@@ -25,7 +25,7 @@ export function Content({ className, variant, as = "p", ...props }: ContentProps
   return (
     <Component
       className={cn(
-        "mt-[4px] md:mt-6 font-normal font-sans text-base md:text-lg leading-relaxed animate-fade-up [animation-delay:400ms] opacity-0",
+        "mt-1  font-normal font-sans text-base md:text-lg leading-6 md:leading-7 tracking-normal animate-fade-up [animation-delay:400ms] opacity-0",
         variantClasses[activeVariant],
         className
       )}
