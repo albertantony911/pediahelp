@@ -89,7 +89,7 @@ export default function SpecialtyCard({
       {/* Card Section */}
       {cards && cards.length > 0 && (
         <Theme variant={theme || 'white'} disableContainer className="!text-inherit">
-          <div className="flex flex-wrap justify-center lg:gap-16 gap-5 px-4 pb-10 max-w-[1150px] mx-auto">
+          <div className="flex flex-wrap justify-center lg:gap-16 gap-5 px-8 pb-10 max-w-[1150px] mx-auto">
             {cards.map((card) => {
               const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
               if (!card.image?.asset?._id) return null;
@@ -100,7 +100,7 @@ export default function SpecialtyCard({
                 <a
                   key={card._key}
                   href={href}
-                  className={`group block w-full max-w-[176px] sm:max-w-[200px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
+                  className={`group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
                     isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
                   }`}
                   aria-label={card.name || 'Specialty card'}

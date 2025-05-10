@@ -94,7 +94,7 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
     },
     [
       Autoplay({
-        delay: 3000,
+        delay: 2000,
         stopOnInteraction: false,
       }),
     ]
@@ -149,21 +149,29 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
         </div>
       </Theme>
 
-      {/* Carousel Section */}
-      <Theme variant={theme || "white"} disableContainer className="!text-inherit">
-        <div ref={emblaRef} className="overflow-hidden px-4 pb-10 max-w-[1100px] mx-auto">
-          <div className="flex gap-4 lg:gap-8">
-            {visiblePosts.map((post, i) => (
-              <div
-                key={`${post._id}-${i}`}
-                className="basis-[320px] flex-shrink-0 ml-4 lg:first:ml-8"
-              >
-                <PostCard post={post} />
-              </div>
-            ))}
+{/* Carousel Section */}
+<Theme variant={theme || "white"} disableContainer className="!text-inherit">
+  {/* Wrap only the carousel in a relative container for fades */}
+  <div className="relative max-w-[1400px] mx-auto">
+    {/* Smooth Left Fade */}
+    <div className="pointer-events-none absolute left-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-r from-[#264E53] via-20%-[#264E53]  to-transparent" />
+    {/* Smooth Right Fade */}
+    <div className="pointer-events-none absolute right-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-l from-[#264E53] via-20%-[#264E53]  to-transparent" />
+
+    <div ref={emblaRef} className="overflow-hidden px-4 pb-10 relative z-0">
+      <div className="flex gap-4 lg:gap-8">
+        {visiblePosts.map((post, i) => (
+          <div
+            key={`${post._id}-${i}`}
+            className="basis-[320px] flex-shrink-0 ml-4 lg:first:ml-8"
+          >
+            <PostCard post={post} />
           </div>
-        </div>
-      </Theme>
+        ))}
+      </div>
+    </div>
+  </div>
+</Theme>
     </div>
   );
 }

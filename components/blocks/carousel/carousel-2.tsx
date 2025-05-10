@@ -91,66 +91,74 @@ export default function Carousel2({
         </div>
       </Theme>
 
-      {/* Carousel Section */}
-      <Theme variant={theme || 'dark-shade'} disableContainer className="!text-inherit">
-        <div ref={emblaRef} className="overflow-hidden px-4 pb-10 max-w-[1150px] mx-auto">
-          <div className="flex gap-5 ">
-            {visibleDoctors.map((doc, i) => (
-              <div
-                key={`${doc._id}-${i}`}
-                className="basis-[210px] flex-shrink-0 first:ml-4 "
-              >
-                <Card className="h-full shadow-md rounded-4xl bg-white transition-all duration-300 border border-transparent hover:border-light-shade">
-                  <CardContent className="p-4 flex flex-col items-center gap-1">
-                    {/* Image */}
-                    <div className="w-full h-36 sm:h-36 rounded-lg overflow-hidden bg-muted">
-                      {doc.photo?.asset?.url ? (
-                        <img
-                          src={urlFor(doc.photo).width(300).height(320).url()}
-                          alt={doc.name}
-                          className="object-cover w-full h-full transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full text-muted-foreground text-lg font-semibold">
-                          {doc.name?.slice(0, 2) || 'Dr'}
-                        </div>
-                      )}
-                    </div>
+{/* Carousel Section */}
+<Theme variant={theme || 'dark-shade'} disableContainer className="!text-inherit">
+  {/* Wrap only the carousel area in a relative container */}
+  <div className="relative max-w-[1400px] mx-auto">
+    {/* Smooth Left Fade */}
+    <div className="pointer-events-none absolute left-0 top-0 h-full lg:w-64 w-28 z-10 bg-gradient-to-r from-[#264E53] to-transparent" />
+    {/* Smooth Right Fade */}
+    <div className="pointer-events-none absolute right-0 top-0 h-full lg:w-64 w-28 z-10 bg-gradient-to-l from-[#264E53]  to-transparent" />
 
-                    {/* Name & Specialty */}
-                    <div className="text-center mt-2">
-                      <h3 className="font-semibold text-sm sm:text-base text-gray-900">
-                        {doc.name}
-                      </h3>
-                      <p className="text-xs text-gray-500">{doc.specialty}</p>
+    <div ref={emblaRef} className="overflow-hidden px-4 pb-10">
+      <div className="flex gap-5">
+        {visibleDoctors.map((doc, i) => (
+          <div
+            key={`${doc._id}-${i}`}
+            className="basis-[210px] flex-shrink-0 first:ml-4"
+          >
+            <Card className="h-full shadow-md rounded-4xl bg-white transition-all duration-300 border border-transparent hover:border-light-shade">
+              <CardContent className="p-4 flex flex-col items-center gap-1">
+                {/* Image */}
+                <div className="w-full h-36 sm:h-36 rounded-lg overflow-hidden bg-muted">
+                  {doc.photo?.asset?.url ? (
+                    <img
+                      src={urlFor(doc.photo).width(300).height(320).url()}
+                      alt={doc.name}
+                      className="object-cover w-full h-full transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-muted-foreground text-lg font-semibold">
+                      {doc.name?.slice(0, 2) || 'Dr'}
                     </div>
+                  )}
+                </div>
 
-                    {/* Buttons */}
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs px-3 py-1"
-                        asChild
-                      >
-                        <Link href={`/consultation/${doc.slug.current}`}>Profile</Link>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="text-xs px-3 py-1"
-                        asChild
-                      >
-                        <Link href={`/consultation/${doc.slug.current}/booking`}>Book</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+                {/* Name & Specialty */}
+                <div className="text-center mt-2">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900">
+                    {doc.name}
+                  </h3>
+                  <p className="text-xs text-gray-500">{doc.specialty}</p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs px-3 py-1"
+                    asChild
+                  >
+                    <Link href={`/consultation/${doc.slug.current}`}>Profile</Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="text-xs px-3 py-1"
+                    asChild
+                  >
+                    <Link href={`/consultation/${doc.slug.current}/booking`}>Book</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </Theme>
+        ))}
+      </div>
+    </div>
+  </div>
+</Theme>
     </div>
   );
 }
