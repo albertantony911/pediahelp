@@ -75,7 +75,7 @@ export default function SpecialtyCard({
     <div className="w-full">
       {/* Header Section */}
       <Theme variant={theme || 'white'}>
-        <div className="max-w-[1100px] mx-auto py-10 lg:text-center px-4">
+        <div className="max-w-[1100px] mx-auto py-10 lg:text-center">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (

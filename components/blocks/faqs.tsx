@@ -29,7 +29,7 @@ export default function FAQs({
 }) {
   return (
     <Theme variant={theme || 'white'}>
-      <div className="py-10 px-4 max-w-5xl mx-auto">
+      <div className="py-10  max-w-4xl mx-auto">
         <div className="text-center mb-10">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}

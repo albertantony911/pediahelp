@@ -73,7 +73,7 @@ export default function Carousel2({
     <div className="w-full">
       {/* Header Section */}
       <Theme variant={theme || 'dark-shade'}>
-        <div className="pt-10 pb-10 w-full mx-auto md:text-center px-4" id="team">
+        <div className="pt-10 pb-10 w-full mx-auto md:text-center " id="team">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
