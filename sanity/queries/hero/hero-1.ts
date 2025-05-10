@@ -42,7 +42,6 @@ export const hero1Query = groq`
       },
       alt
     },
-    links,
     showButton,
     buttonType,
     customButton {

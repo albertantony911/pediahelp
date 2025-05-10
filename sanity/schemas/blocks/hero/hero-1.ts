@@ -45,12 +45,6 @@ export default defineType({
       ],
     }),
     defineField({
-      name: "links",
-      type: "array",
-      of: [{ type: "link" }],
-      validation: (rule) => rule.max(2),
-    }),
-    defineField({
       name: "showButton",
       title: "Show Button",
       type: "boolean",
