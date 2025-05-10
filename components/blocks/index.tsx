@@ -1,4 +1,36 @@
-import { PAGE_QUERYResult } from "@/sanity.types";
+// components/blocks/index.tsx
+
+// 1. Explicit union of _type values to avoid TS2590
+const BLOCK_TYPES = [
+  "hero-1",
+  "hero-2",
+  "section-header",
+  "split-row",
+  "grid-row",
+  "carousel-1",
+  "carousel-2",
+  "timeline-row",
+  "cta-1",
+  "logo-cloud-1",
+  "faqs",
+  "form-newsletter",
+  "all-posts",
+  "section-block",
+  "specialty-card",
+  "contact-form",
+  "waveDivider",
+] as const;
+
+type BlockType = (typeof BLOCK_TYPES)[number];
+
+// 2. Define a generic base for Sanity blocks (you can extend this)
+interface BaseBlock {
+  _type: BlockType;
+  _key: string;
+  [key: string]: any;
+}
+
+// 3. Components
 import Hero1 from "@/components/blocks/hero/hero-1";
 import Hero2 from "@/components/blocks/hero/hero-2";
 import SectionHeader from "@/components/blocks/section-header";
@@ -12,16 +44,13 @@ import LogoCloud1 from "@/components/blocks/logo-cloud/logo-cloud-1";
 import FAQs from "@/components/blocks/faqs";
 import FormNewsletter from "@/components/blocks/forms/newsletter";
 import AllPosts from "@/components/blocks/all-posts";
-import SectionBlock from '@/components/ui/section-block';
+import SectionBlock from "@/components/ui/section-block";
 import SpecialtyCard from "@/components/blocks/specialty-card";
 import ContactForm from "@/components/blocks/forms/ContactForm";
 import WaveDivider from "@/components/blocks/wave-divider";
 
-type Block = NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number];
-
-const componentMap: {
-  [K in Block["_type"]]: React.ComponentType<Extract<Block, { _type: K }>>;
-} = {
+// 4. Component mapping with type-safe keys
+const componentMap: Record<BlockType, React.ComponentType<any>> = {
   "hero-1": Hero1,
   "hero-2": Hero2,
   "section-header": SectionHeader,
@@ -41,29 +70,28 @@ const componentMap: {
   waveDivider: WaveDivider,
 };
 
-export default function Blocks({ blocks }: { blocks: Block[] }) {
+// 5. Final Block Renderer
+export default function Blocks({ blocks }: { blocks: BaseBlock[] }) {
   return (
-    <>
-      {blocks?.map((block) => {
-        const Component = componentMap[block._type];
+    <div className="overflow-x-hidden"> {/* Added wrapper to prevent overflow */}
+      {blocks.map((block) => {
+        const Component = componentMap[block._type as BlockType];
+
         if (!Component) {
-          console.warn(
-            `No component implemented for block type: ${block._type}`
-          );
-          return <div data-type={block._type} key={block._key} />;
+          console.warn(`No component implemented for block type: ${block._type}`);
+          return <div key={block._key} data-type={block._type} />;
         }
 
-        // Wrap WaveDivider in a full-width container
         if (block._type === "waveDivider") {
           return (
             <div className="w-screen -mx-[calc(50vw-50%)]" key={block._key}>
-              <Component {...(block as any)} />
+              <Component {...block} />
             </div>
           );
         }
 
-        return <Component {...(block as any)} key={block._key} />;
+        return <Component {...block} key={block._key} />;
       })}
-    </>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   ChatTeardropText,
   List,
   X,
+  CaretDown,
 } from 'phosphor-react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,9 +34,54 @@ const navItems = [
   { label: 'More', href: '#', icon: List, overflow: true },
 ];
 
+// Scalable drawer menu items
 const overflowItems = [
-  { label: 'Settings', href: '/settings' },
-  { label: 'Profile', href: '/profile' },
+  {
+    label: 'Home',
+    href: '/',
+    type: 'item',
+  },
+  {
+    label: 'Consultation',
+    href: '/booking',
+    type: 'item',
+  },
+  {
+    label: 'Contact',
+    href: '/contact',
+    type: 'item',
+  },
+  {
+    label: 'About',
+    type: 'group',
+    items: [
+      { label: 'Our Story', href: '/about' },
+      { label: 'Our Team', href: '/about#team' },
+    ],
+  },
+  {
+    label: 'Specialities',
+    type: 'group',
+    items: [
+      { label: 'Nephrology', href: '/specialities/nephrology' },
+      { label: 'Gastroenterology', href: '/specialities/gastroenterology' },
+      { label: 'Neonatology', href: '/specialities/neonatology' },
+      { label: 'Neurology', href: '/specialities/neurology' },
+      { label: 'Lactation Support', href: '/specialities/lactation-support' },
+      { label: 'Respiratory & Sleep', href: '/specialities/respiratory-sleep' },
+      { label: 'Endocrinology', href: '/specialities/endocrinology' },
+    ],
+  },
+  {
+    label: 'Resources',
+    type: 'group',
+    items: [
+      { label: 'Blogs', href: '/resources/blogs' },
+      { label: 'Childcare', href: '/resources/childcare' },
+      { label: 'Lactation', href: '/resources/lactation' },
+      { label: 'FAQs', href: '/faq' },
+    ],
+  },
 ];
 
 const isActive = (current: string, href: string) => current === href;
@@ -49,27 +95,30 @@ export default function BottomNav() {
     setDrawerOpen(false);
   }, [pathname]);
 
-  const moreIsActive = overflowItems.some((item) =>
-    isActive(pathname, item.href)
+  const moreIsActive = overflowItems.some((item: any) =>
+    item.type === 'item'
+      ? isActive(pathname, item.href)
+      : item.items?.some((sub: any) => isActive(pathname, sub.href))
   );
 
   return (
-    <nav
-      aria-label="Primary navigation"
-      className={cn(
-        'fixed bottom-0 inset-x-0 z-50 xl:hidden',
-        'bg-white border-t shadow-sm',
-        'flex items-center justify-between h-18 px-4',
-        'pb-[calc(env(safe-area-inset-bottom))]'
-      )}
-    >
+<nav
+  aria-label="Primary navigation"
+  className={cn(
+    'fixed bottom-0 inset-x-0 z-50 xl:hidden',
+    'backdrop-blur-md bg-white/80',
+    'shadow-[0_4px_20px_rgba(0,0,0,0.1)]',
+    'flex items-center justify-between h-20 px-4',
+    'pb-[calc(env(safe-area-inset-bottom))]'
+  )}
+>
       {/* Curved background behind CTA */}
-      <div className="absolute left-1/2 top-0 z-0 -translate-x-1/2 w-24 h-12 rounded-b-full bg-white/70 backdrop-blur-md " />
+      <div className="absolute left-1/2 top-0 z-0 -translate-x-1/2    " />
 
       {navItems.map(({ label, href, icon: Icon, primary, overflow }) => {
         const active = isActive(pathname, href);
 
-        // Overflow menu
+        // Overflow drawer
         if (overflow) {
           return (
             <Drawer key={label} open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -92,66 +141,114 @@ export default function BottomNav() {
                 </button>
               </DrawerTrigger>
 
-              <DrawerContent className="max-h-[75vh] bg-white rounded-t-[20px]">
-                <div className="mx-auto mt-4 mb-6 h-1.5 w-12 rounded-full bg-muted" />
-                <ul className="space-y-3 px-6 pb-10">
-                  {overflowItems.map((item) => (
-                    <li key={item.label}>
-                      <button
-                        onClick={() =>
-                          delayedAction(() => router.push(item.href))
-                        }
-                        className={cn(
-                          'block text-base font-medium w-full text-left transition-colors hover:text-[var(--mid-shade)]',
-                          isActive(pathname, item.href) &&
-                            'text-[var(--mid-shade)] font-semibold'
-                        )}
-                      >
-                        {item.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <DrawerClose asChild>
+<DrawerContent className="max-h-[75vh] bg-white rounded-t-[20px] pt-2 pb-16 px-0 shadow-xl">
+  {/* Pull indicator & text */}
+  <div className="text-[10px] text-muted-foreground mt-1 text-center">Pull down to close</div>
+
+  {/* Scrollable content */}
+  <div className="overflow-y-auto max-h-[calc(75vh-3rem)] px-6 pt-4">
+    <ul className="space-y-4">
+      {
+        (() => {
+          const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+          return overflowItems.map((section: any, idx: number) => {
+            const isOpen = openIndex === idx;
+
+            if (section.type === 'group') {
+              return (
+                <li key={section.label}>
                   <button
-                    aria-label="Close menu"
-                    className="absolute top-4 right-4 p-2 bg-muted/40 rounded-full hover:bg-muted"
+                    className="w-full flex justify-start items-center gap-2 px-4 py-3 text-base font-semibold rounded-xl bg-muted/30 text-[var(--dark-shade)] transition-all hover:bg-muted active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mid-shade)]"
+                    onClick={() => setOpenIndex(isOpen ? null : idx)}
                   >
-                    <X weight="bold" className="h-5 w-5" />
+                    <CaretDown
+                      weight="bold"
+                      className={`size-4 text-muted-foreground transition-transform ${
+                        isOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                    <span>{section.label}</span>
                   </button>
-                </DrawerClose>
-              </DrawerContent>
+
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <ul className="flex flex-col px-7 pb-2 pt-1 space-y-2">
+                      {section.items.map((item: any) => (
+                        <li key={item.label}>
+                          <button
+                            onClick={() => delayedAction(() => router.push(item.href))}
+                            className={cn(
+                              'block w-full text-left px-3 py-3 rounded-md font-medium text-sm transition-all',
+                              'bg-white hover:bg-muted active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mid-shade)]',
+                              isActive(pathname, item.href) &&
+                                'text-[var(--mid-shade)] font-semibold bg-muted'
+                            )}
+                          >
+                            {item.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </li>
+              );
+            }
+
+            return (
+              <li key={section.label}>
+                <button
+                  onClick={() => delayedAction(() => router.push(section.href))}
+                  className={cn(
+                    'block w-full text-left px-4 py-4 text-base font-semibold rounded-xl bg-muted/30 text-[var(--dark-shade)]',
+                    'hover:bg-muted active:scale-[.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mid-shade)]',
+                    isActive(pathname, section.href) &&
+                      'text-[var(--mid-shade)] bg-muted font-semibold'
+                  )}
+                >
+                  {section.label}
+                </button>
+              </li>
+            );
+          });
+        })()
+      }
+    </ul>
+  </div>
+</DrawerContent>
             </Drawer>
           );
         }
 
-        // Primary CTA button
+        // Primary CTA
         if (primary) {
           return (
-            <DoctorSearchDrawer key={label}>
-              <button
-                aria-label={label}
-                onClick={() => delayedAction(() => null)}
-                className="group relative -mt-12 z-10 flex flex-col items-center justify-center animate-pop"
-              >
-                <span
-                  className={cn(
-                    'h-20 w-20 rounded-full flex items-center justify-center',
-                    'bg-[var(--mid-shade)] text-white animate-floatPulse',
-                    'hover:scale-110 active:scale-95 active:shadow-inner',
-                    'transition-all duration-200 ease-out',
-                    'shadow-[0_6px_16px_rgba(0,0,0,0.25)]',
-                    'focus-visible:ring-2 ring-offset-2 ring-[var(--mid-shade)]'
-                  )}
-                >
-                  <Icon
-                    weight="fill"
-                    className="w-10 h-10 drop-shadow-sm transition-transform group-hover:scale-105"
-                  />
-                </span>
-                <span className="text-[11px] mt-1 text-[var(--dark-shade)]"></span>
-              </button>
-            </DoctorSearchDrawer>
+<DoctorSearchDrawer key={label}>
+  <button
+    aria-label={label}
+    onClick={() => delayedAction(() => null)}
+    className="group relative flex flex-col items-center justify-center"
+  >
+    <span
+      className={cn(
+        'w-16 h-16 rounded-full flex items-center justify-center',
+        'bg-[var(--mid-shade)] text-white animate-floatPulse',
+        'hover:scale-100 active:scale-95 active:shadow-inner',
+        'transition-all duration-200 ease-out',
+        'shadow-[0_6px_10px_rgba(0,0,0,0.5)]',
+        'focus-visible:ring-2 ring-offset-2 ring-[var(--mid-shade)]'
+      )}
+    >
+      <Icon
+        weight="fill"
+        className="w-[28px] h-[28px] drop-shadow-sm transition-transform group-hover:scale-105"
+      />
+    </span>
+  </button>
+</DoctorSearchDrawer>
           );
         }
 

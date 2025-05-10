@@ -10,6 +10,7 @@ import doctor from './schemas/documents/doctor';
 import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
+import specialities from './schemas/documents/specialities';
 
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
@@ -61,6 +62,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     comment,
     blogQuestion,
     waveDividerVariant, // Add waveDividerVariant document
+    specialities, 
     // shared objects
     blockContent,
     link,

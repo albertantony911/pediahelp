@@ -1,32 +1,40 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import Cookies from 'js-cookie'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
+import { Button } from '@/components/ui/button';
 
-const COOKIE_CONSENT_KEY = 'pedia_cookie_consent'
+const COOKIE_CONSENT_KEY = 'pedia_cookie_consent';
 
 export function CookieConsent() {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const hasConsent = Cookies.get(COOKIE_CONSENT_KEY)
+    const hasConsent = Cookies.get(COOKIE_CONSENT_KEY);
     if (!hasConsent) {
-      setVisible(true)
+      setVisible(true);
     }
-  }, [])
+
+    // Allow external triggering from window.resetCookieConsent()
+    if (typeof window !== 'undefined') {
+      (window as any).resetCookieConsent = () => {
+        Cookies.remove(COOKIE_CONSENT_KEY);
+        setVisible(true);
+      };
+    }
+  }, []);
 
   const handleAccept = () => {
-    Cookies.set(COOKIE_CONSENT_KEY, 'true', { expires: 365 })
-    setVisible(false)
-  }
+    Cookies.set(COOKIE_CONSENT_KEY, 'true', { expires: 365 });
+    setVisible(false);
+  };
 
   const handleDecline = () => {
-    Cookies.set(COOKIE_CONSENT_KEY, 'false', { expires: 365 })
-    setVisible(false)
-  }
+    Cookies.set(COOKIE_CONSENT_KEY, 'false', { expires: 365 });
+    setVisible(false);
+  };
 
-  if (!visible) return null
+  if (!visible) return null;
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-background border-t border-border p-4 z-50">
@@ -40,5 +48,5 @@ export function CookieConsent() {
         </div>
       </div>
     </div>
-  )
+  );
 }

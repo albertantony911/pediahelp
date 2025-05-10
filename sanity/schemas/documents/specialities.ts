@@ -1,5 +1,5 @@
 import { defineField, defineType } from "sanity";
-import { Files } from "lucide-react";
+import { Tag } from "lucide-react";
 import { orderRankField } from "@sanity/orderable-document-list";
 
 // Organized insert menu groups
@@ -42,10 +42,10 @@ const blockTypes = [
 ];
 
 export default defineType({
-  name: "page",
+  name: "specialities",
   type: "document",
-  title: "Page",
-  icon: Files,
+  title: "Specialities",
+  icon: Tag,
   groups: [
     { name: "content", title: "Content" },
     { name: "seo", title: "SEO" },
@@ -118,7 +118,7 @@ export default defineType({
     }),
 
     // Orderable
-    orderRankField({ type: "page" }),
+    orderRankField({ type: "specialities" }),
   ],
   preview: {
     select: {
@@ -127,7 +127,7 @@ export default defineType({
     prepare({ title }) {
       return {
         title: title,
-        subtitle: 'Page',
+        subtitle: 'Specialities',
       };
     },
   },

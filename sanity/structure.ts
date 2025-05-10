@@ -1,7 +1,8 @@
-import { orderableDocumentListDeskItem } from '@sanity/orderable-document-list'
+import { orderableDocumentListDeskItem } from '@sanity/orderable-document-list';
 import {
   Files,
   BookA,
+  Tag,
   User,
   ListCollapse,
   Quote,
@@ -10,7 +11,7 @@ import {
   FolderKanban,
   MessageCircle,
   Waves,
-} from 'lucide-react'
+} from 'lucide-react';
 
 export const structure = (S: any, context: any) =>
   S.list()
@@ -21,6 +22,15 @@ export const structure = (S: any, context: any) =>
         type: 'page',
         title: 'Pages',
         icon: Files,
+        S,
+        context,
+      }),
+
+      // 🔖 Specialities
+      orderableDocumentListDeskItem({
+        type: 'specialities',
+        title: 'Specialities',
+        icon: Tag,
         S,
         context,
       }),
@@ -97,4 +107,4 @@ export const structure = (S: any, context: any) =>
         .icon(Waves)
         .schemaType('waveDividerVariant')
         .child(S.documentTypeList('waveDividerVariant').title('Wave Divider Variants')),
-    ])
+    ]);

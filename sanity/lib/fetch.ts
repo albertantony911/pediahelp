@@ -8,6 +8,7 @@ import {
   POSTS_SLUGS_QUERY,
 } from "@/sanity/queries/post";
 import { getAllCategoriesQuery } from "@/sanity/queries/category";
+import { SPECIALITIES_PAGE_QUERY, SPECIALITIES_SLUGS_QUERY } from "@/sanity/queries/specialities";
 
 // ---------------- Types ----------------
 import type {
@@ -16,6 +17,8 @@ import type {
   POST_QUERYResult,
   POSTS_QUERYResult,
   POSTS_SLUGS_QUERYResult,
+  SPECIALITIES_PAGE_QUERYResult,
+  SPECIALITIES_SLUGS_QUERYResult,
 } from "@/sanity.types";
 import type { Category } from "@/types";
 
@@ -88,7 +91,7 @@ export const fetchSanityCategories = async (): Promise<Category[]> => {
 };
 
 import { BLOG_PREVIEW_QUERY } from "@/sanity/queries/post";
-import type { BlogPreview } from "@/types"; // you'll create this in a sec
+import type { BlogPreview } from "@/types";
 
 export const fetchSanityBlogPreviews = async (): Promise<BlogPreview[]> => {
   const { data } = await sanityFetch({
@@ -98,3 +101,28 @@ export const fetchSanityBlogPreviews = async (): Promise<BlogPreview[]> => {
 
   return data;
 };
+
+// ---------------- Speciality Queries ----------------
+export const fetchSanitySpecialitiesBySlug = async ({
+  slug,
+}: {
+  slug: string;
+}): Promise<SPECIALITIES_PAGE_QUERYResult> => {
+  const { data } = await sanityFetch({
+    query: SPECIALITIES_PAGE_QUERY,
+    params: { slug },
+  });
+
+  return data;
+};
+
+export const fetchSanitySpecialitiesStaticParams =
+  async (): Promise<SPECIALITIES_SLUGS_QUERYResult> => {
+    const { data } = await sanityFetch({
+      query: SPECIALITIES_SLUGS_QUERY,
+      perspective: "published",
+      stega: false,
+    });
+
+    return data;
+  };
