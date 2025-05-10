@@ -10,7 +10,6 @@ import type { SPECIALITIES_PAGE_QUERYResult } from "@/sanity.types";
 // Static Params
 export async function generateStaticParams() {
   const pages = await fetchSanitySpecialitiesStaticParams();
-
   return pages.map((page) => ({
     slug: page.slug?.current,
   }));
@@ -18,10 +17,11 @@ export async function generateStaticParams() {
 
 // Metadata
 export async function generateMetadata({
-  params,
+  params: paramsPromise,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const params = await paramsPromise; // Await the params Promise
   const page = await fetchSanitySpecialitiesBySlug({ slug: params.slug });
 
   if (!page) {
@@ -33,10 +33,11 @@ export async function generateMetadata({
 
 // Page Component
 export default async function SpecialitiesPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const params = await paramsPromise; // Await the params Promise
   const page = await fetchSanitySpecialitiesBySlug({ slug: params.slug });
 
   if (!page) {
