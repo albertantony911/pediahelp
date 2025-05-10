@@ -6134,6 +6134,13 @@
             }
           },
           "optional": true
+        },
+        "showButton": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "boolean"
+          },
+          "optional": true
         }
       }
     }

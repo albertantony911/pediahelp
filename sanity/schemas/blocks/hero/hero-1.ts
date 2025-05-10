@@ -50,6 +50,13 @@ export default defineType({
       of: [{ type: "link" }],
       validation: (rule) => rule.max(2),
     }),
+    defineField({
+      name: "showButton",
+      title: "Show Book Appointment Button",
+      type: "boolean",
+      description: "Enable to display the Book an Appointment button.",
+      initialValue: true, // Default to showing the button
+    }),
   ],
   preview: {
     select: {

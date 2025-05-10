@@ -18,10 +18,10 @@ type Hero1Props = Extract<
   { _type: 'hero-1' }
 >
 
-export default function Hero1({ theme, tagLine, title, body, image }: Hero1Props) {
+export default function Hero1({ theme, tagLine, title, body, image, showButton }: Hero1Props) {
   return (
     <Theme variant={theme || "dark-shade"}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10  lg:pt-28 pt-20">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-20">
         <div className="flex flex-col justify-center text-left">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
@@ -31,16 +31,18 @@ export default function Hero1({ theme, tagLine, title, body, image }: Hero1Props
             </Content>
           )}
 
-          <div className="mt-4 animate-fade-up [animation-delay:400ms] opacity-0">
-            <DoctorSearchDrawer>
-              <Button variant="secondary">
-                Book an Appointment
-              </Button>
-            </DoctorSearchDrawer>
-          </div>
+          {showButton && (
+            <div className="mt-4 animate-fade-up [animation-delay:400ms] opacity-0">
+              <DoctorSearchDrawer>
+                <Button variant="secondary">
+                  Book an Appointment
+                </Button>
+              </DoctorSearchDrawer>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col justify-center ">
+        <div className="flex flex-col justify-center">
           {image && image.asset?._id && (
             <Image
               className="rounded-xl animate-fade-up [animation-delay:500ms] opacity-0"
