@@ -29,7 +29,7 @@ export default function FAQs({
 }) {
   return (
     <Theme variant={theme || 'white'}>
-      <div className="py-10  max-w-4xl mx-auto">
+      <div className="py-10 max-w-5xl mx-auto">
         <div className="text-center mb-10">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
@@ -41,11 +41,11 @@ export default function FAQs({
         </div>
 
         {faqs && faqs.length > 0 && (
-          <Accordion type="multiple" className="space-y-4">
+          <Accordion type="multiple" className="divide-y-[0.5px] divide-gray-300">
             {faqs.map((faq) => (
-              <AccordionItem className='text-white/80' key={faq._id} value={`item-${faq._id}`}>
-                <AccordionTrigger>{faq.title}</AccordionTrigger>
-                <AccordionContent>
+              <AccordionItem key={faq._id} value={`item-${faq._id}`} className="text-white/90 py-2 ">
+                <AccordionTrigger className="py-2 font-normal">{faq.title}</AccordionTrigger>
+                <AccordionContent className="py-2 ">
                   <PortableTextRenderer value={faq.body || []} />
                 </AccordionContent>
               </AccordionItem>
