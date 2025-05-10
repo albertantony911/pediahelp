@@ -1,5 +1,11 @@
-import { defineField, defineType } from "sanity";
+import { defineField, defineType, ValidationContext } from "sanity";
 import { LayoutTemplate } from "lucide-react";
+
+// Define the expected shape of the parent object (hero-1)
+interface Hero1Parent {
+  showButton?: boolean;
+  buttonType?: string;
+}
 
 export default defineType({
   name: "hero-1",
@@ -19,6 +25,25 @@ export default defineType({
           { title: "White", value: "white" },
         ],
       },
+    }),
+    defineField({
+      name: "layout",
+      title: "Layout",
+      type: "string",
+      options: {
+        list: [
+          { title: "Image Left", value: "image-left" },
+          { title: "Image Right", value: "image-right" },
+        ],
+      },
+      initialValue: "image-right",
+    }),
+    defineField({
+      name: "reverseOnMobile",
+      title: "Reverse Layout on Mobile",
+      type: "boolean",
+      description: "If enabled, reverses the image position on mobile devices (below 1024px).",
+      initialValue: false,
     }),
     defineField({
       name: "tagLine",
@@ -74,13 +99,27 @@ export default defineType({
           name: "label",
           title: "Button Label",
           type: "string",
-          validation: (rule) => rule.required(),
+          validation: (rule) =>
+            rule.custom((value: string | undefined, context: ValidationContext) => {
+              const parent = context.parent as Hero1Parent | undefined;
+              if (parent?.showButton && parent?.buttonType === "custom" && !value) {
+                return "Button Label is required when using a custom button.";
+              }
+              return true;
+            }),
         }),
         defineField({
           name: "link",
           title: "Link",
           type: "string",
-          validation: (rule) => rule.required(),
+          validation: (rule) =>
+            rule.custom((value: string | undefined, context: ValidationContext) => {
+              const parent = context.parent as Hero1Parent | undefined;
+              if (parent?.showButton && parent?.buttonType === "custom" && !value) {
+                return "Link is required when using a custom button.";
+              }
+              return true;
+            }),
         }),
         defineField({
           name: "isExternal",

@@ -6,6 +6,8 @@ export const hero1Query = groq`
     _type,
     _key,
     theme,
+    layout,
+    reverseOnMobile,
     tagLine,
     title,
     body[]{

@@ -5719,6 +5719,30 @@
           },
           "optional": true
         },
+        "layout": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "image-left"
+              },
+              {
+                "type": "string",
+                "value": "image-right"
+              }
+            ]
+          },
+          "optional": true
+        },
+        "reverseOnMobile": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "boolean"
+          },
+          "optional": true
+        },
         "tagLine": {
           "type": "objectAttribute",
           "value": {
