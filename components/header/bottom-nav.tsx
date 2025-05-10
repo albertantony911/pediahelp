@@ -68,7 +68,7 @@ const overflowItems = [
       { label: 'Neonatology', href: '/specialities/neonatology' },
       { label: 'Neurology', href: '/specialities/neurology' },
       { label: 'Lactation Support', href: '/specialities/lactation-support' },
-      { label: 'Respiratory & Sleep', href: '/specialities/respiratory-sleep' },
+      { label: 'Respiratory & Sleep', href: '/specialities/respiratory-and-sleep-medicine' },
       { label: 'Endocrinology', href: '/specialities/endocrinology' },
     ],
   },

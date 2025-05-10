@@ -107,7 +107,7 @@ const specialtiesList = [
   { name: 'Neonatology', href: '/specialities/neonatology' },
   { name: 'Neurology', href: '/specialities/neurology' },
   { name: 'Lactation Support', href: '/specialities/lactation-support' },
-  { name: 'Respiratory & Sleep Medicine', href: '/specialities/respiratory-sleep' },
+  { name: 'Respiratory & Sleep Medicine', href: '/specialities/respiratory-and-sleep-medicine' },
   { name: 'Endocrinology', href: '/specialities/endocrinology' },
 ];
 
