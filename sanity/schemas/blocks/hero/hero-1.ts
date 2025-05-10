@@ -52,10 +52,50 @@ export default defineType({
     }),
     defineField({
       name: "showButton",
-      title: "Show Book Appointment Button",
+      title: "Show Button",
       type: "boolean",
-      description: "Enable to display the Book an Appointment button.",
-      initialValue: true, // Default to showing the button
+      description: "Enable to display a button in the hero section.",
+      initialValue: true,
+    }),
+    defineField({
+      name: "buttonType",
+      title: "Button Type",
+      type: "string",
+      options: {
+        list: [
+          { title: "Primary CTA (Book Appointment)", value: "primaryCTA" },
+          { title: "Custom Button", value: "custom" },
+        ],
+      },
+      hidden: ({ parent }) => !parent?.showButton,
+      initialValue: "primaryCTA",
+    }),
+    defineField({
+      name: "customButton",
+      title: "Custom Button",
+      type: "object",
+      hidden: ({ parent }) => !parent?.showButton || parent?.buttonType !== "custom",
+      fields: [
+        defineField({
+          name: "label",
+          title: "Button Label",
+          type: "string",
+          validation: (rule) => rule.required(),
+        }),
+        defineField({
+          name: "link",
+          title: "Link",
+          type: "string",
+          validation: (rule) => rule.required(),
+        }),
+        defineField({
+          name: "isExternal",
+          title: "External Link",
+          type: "boolean",
+          description: "Enable if the link points to an external website.",
+          initialValue: false,
+        }),
+      ],
     }),
   ],
   preview: {

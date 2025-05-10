@@ -43,6 +43,12 @@ export const hero1Query = groq`
       alt
     },
     links,
-    showButton
+    showButton,
+    buttonType,
+    customButton {
+      label,
+      link,
+      isExternal
+    }
   }
 `;
