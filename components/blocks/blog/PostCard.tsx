@@ -17,6 +17,7 @@ interface Post {
   } | null;
   imageUrl?: string; // Algolia fallback
   imageAlt?: string; // Algolia fallback
+  categoryTitles?: string[]; // For category display (from Algolia or mapped from categoryIds)
 }
 
 interface Props {
@@ -28,6 +29,7 @@ export default function PostCard({ post, className }: Props) {
   const slug = typeof post.slug?.current === 'string' ? post.slug.current : '';
   const imageUrl = post.image?.asset?.url ?? post.imageUrl ?? null;
   const imageAlt = post.image?.alt ?? post.imageAlt ?? post.title ?? 'Blog Post Image';
+  const categories = post.categoryTitles?.length ? post.categoryTitles.join(', ') : 'Uncategorized';
 
   return (
     <Link
@@ -62,9 +64,15 @@ export default function PostCard({ post, className }: Props) {
           </p>
         )}
 
-        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-auto">
-          Read more <ArrowRight className="ml-1 w-4 h-4" />
-        </span>
+        <div className="flex items-center justify-between mt-auto">
+          
+          <span className="inline-block bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full dark:bg-primary/20">
+            {categories}
+          </span>
+          <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
+            Read more <ArrowRight className="mr-1 w-4 h-4" />
+          </span>
+        </div>
       </div>
     </Link>
   );

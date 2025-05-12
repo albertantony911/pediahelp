@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchBox, useInfiniteHits } from 'react-instantsearch';
+import { useSearchBox, useHits } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
@@ -20,7 +20,7 @@ type AlgoliaPost = Post & { objectID?: string; categoryTitles?: string[] };
 
 export default function BlogSearchAlgolia() {
   const { query, refine } = useSearchBox();
-  const { hits } = useInfiniteHits<AlgoliaPost>();
+  const { hits } = useHits<AlgoliaPost>();
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);

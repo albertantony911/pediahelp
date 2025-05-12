@@ -42,11 +42,16 @@ interface Post {
     };
     alt: string | null;
   } | null;
+  categoryTitles?: string[];
 }
 
 const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const slug = post.slug?.current ?? '';
   const imageUrl = post.image?.asset?.url ? urlFor(post.image).url() : null;
+  const categories = post.categoryTitles?.length ? post.categoryTitles.join(', ') : 'Uncategorized';
+
+  // Debug category data
+  console.log(`Carousel PostCard ${post._id}:`, { categoryTitles: post.categoryTitles, categories });
 
   return (
     <Link
@@ -74,9 +79,14 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
             {post.excerpt}
           </p>
         )}
-        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-auto">
-          Read more <ArrowRight className="ml-1 w-4 h-4" />
-        </span>
+        <div className="flex items-center justify-between mt-auto">
+          <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
+            Read more <ArrowRight className="ml-1 w-4 h-4" />
+          </span>
+          <span className="inline-block bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full dark:bg-primary/20">
+            {categories}
+          </span>
+        </div>
       </div>
     </Link>
   );
@@ -111,37 +121,34 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
     client
       .fetch(
         groq`
-          *[_type == "category"]{
+          *[_type == "post" && count(categories) > 0] | order(_createdAt desc)[0...12] {
             _id,
             title,
-            "posts": *[_type == "post" && references(^._id)] | order(_createdAt desc)[0...3] {
-              _id,
-              title,
-              slug,
-              excerpt,
-              image {
-                asset->{
-                  _id,
-                  url,
-                  mimeType,
-                  metadata {
-                    lqip,
-                    dimensions {
-                      width,
-                      height
-                    }
+            slug,
+            excerpt,
+            image {
+              asset->{
+                _id,
+                url,
+                mimeType,
+                metadata {
+                  lqip,
+                  dimensions {
+                    width,
+                    height
                   }
-                },
-                alt
-              }
-            }
+                }
+              },
+              alt
+            },
+            "categoryTitles": categories[]->title
           }
         `
       )
-      .then((categories) => {
-        const allPosts = categories.flatMap((cat: any) => cat.posts || []);
-        const visible = allPosts.slice(0, 12);
-        setPosts(visible);
+      .then((fetchedPosts) => {
+        // Debug fetched posts
+        console.log('Carousel Fetched Posts:', fetchedPosts);
+        setPosts(fetchedPosts || []);
       })
       .catch((err) => console.error('Blog post fetch failed:', err));
   }, []);

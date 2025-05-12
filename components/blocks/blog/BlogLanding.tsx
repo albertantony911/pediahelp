@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import algoliasearch from 'algoliasearch/lite';
-import { InstantSearch, Configure, useInfiniteHits } from 'react-instantsearch';
+import { InstantSearch, Configure, useHits, usePagination } from 'react-instantsearch';
 import { client } from '@/sanity/lib/client';
 import { BLOG_LANDING_QUERY } from '@/sanity/queries/blog-landing';
 import BlogSearchAlgolia from './BlogSearchAlgolia';
 import BlogCategoryFilter from './BlogCategoryFilter';
 import PostCard from './PostCard';
-import PostCardSkeleton from './PostCardSkeleton';
 import { Title } from '@/components/ui/theme/typography';
+import { Button } from '@/components/ui/button';
 
 interface Post {
   _id: string;
@@ -23,6 +23,7 @@ interface Post {
   imageUrl?: string;
   imageAlt?: string;
   categoryIds?: string[];
+  categoryTitles?: string[];
 }
 
 interface Category {
@@ -34,8 +35,6 @@ export default function BlogLanding() {
   const [fallbackPosts, setFallbackPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  const observerRef = useRef<HTMLDivElement | null>(null);
 
   const searchClient = useMemo(
     () =>
@@ -46,46 +45,50 @@ export default function BlogLanding() {
     []
   );
 
+  // Fetch initial posts and categories from Sanity
   useEffect(() => {
     client.fetch(BLOG_LANDING_QUERY).then((data) => {
-      setFallbackPosts(data.posts || []);
+      // Debug categories and posts
+      console.log('Sanity Categories:', data.categories);
+      console.log('Sanity Posts:', data.posts);
+
+      // Map categoryIds to categoryTitles for fallback posts
+      const enrichedPosts = (data.posts || []).map((post: Post) => {
+        const categoryTitles = post.categoryIds
+          ? post.categoryIds
+              .map((id) => {
+                const category = data.categories?.find((cat: Category) => cat._id === id);
+                return category?.title;
+              })
+              .filter(Boolean) as string[]
+          : [];
+        
+        console.log(`Post ${post._id}:`, { categoryIds: post.categoryIds, categoryTitles });
+
+        return {
+          ...post,
+          categoryTitles,
+        };
+      });
+
+      setFallbackPosts(enrichedPosts);
       setCategories(data.categories || []);
     });
   }, []);
 
-  const { hits, isLastPage, showMore, results } = useInfiniteHits<Post>();
+  // Get Algolia hits and pagination info
+  const { hits } = useHits<Post>();
+  const { currentRefinement, nbPages, refine } = usePagination();
 
+  // Debug Algolia hits
   useEffect(() => {
-    if (results && hits.length > 0) {
-      setFilteredPosts(hits);
-    } else {
-      setFilteredPosts([]);
-    }
-  }, [hits, results]);
+    console.log('Algolia Hits:', hits);
+  }, [hits]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLastPage) {
-          showMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
+  // Determine displayed posts (Algolia hits or fallback)
+  const displayedPosts = hits.length > 0 ? hits : fallbackPosts;
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current);
-      }
-    };
-  }, [isLastPage, showMore]);
-
-  const displayedPosts = filteredPosts.length > 0 ? filteredPosts : fallbackPosts;
-
+  // Filter posts by selected category
   const filteredByCategory =
     selectedCategory === 'all'
       ? displayedPosts
@@ -116,20 +119,29 @@ export default function BlogLanding() {
           ) : (
             <p className="text-center text-gray-500 col-span-full">No posts found.</p>
           )}
-
-          {!isLastPage && filteredByCategory.length > 0 && (
-            <>
-              <PostCardSkeleton />
-              <PostCardSkeleton />
-              <PostCardSkeleton />
-            </>
-          )}
         </div>
 
-        <div ref={observerRef} className="h-10" />
-
-        {isLastPage && filteredByCategory.length > 0 && (
-          <p className="text-center text-gray-500 mt-6">No more posts to load.</p>
+        {/* Pagination Controls */}
+        {filteredByCategory.length > 0 && nbPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-8">
+            <Button
+              variant="outline"
+              disabled={currentRefinement === 0}
+              onClick={() => refine(currentRefinement - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-gray-500">
+              Page {currentRefinement + 1} of {nbPages}
+            </span>
+            <Button
+              variant="outline"
+              disabled={currentRefinement >= nbPages - 1}
+              onClick={() => refine(currentRefinement + 1)}
+            >
+              Next
+            </Button>
+          </div>
         )}
       </InstantSearch>
     </section>
