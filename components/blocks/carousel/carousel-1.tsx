@@ -50,13 +50,14 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const imageUrl = post.image?.asset?.url ? urlFor(post.image).url() : null;
   const categories = post.categoryTitles?.length ? post.categoryTitles.join(', ') : 'Uncategorized';
 
-  // Debug category data
-  console.log(`Carousel PostCard ${post._id}:`, { categoryTitles: post.categoryTitles, categories });
-
   return (
     <Link
       href={`/blog/${slug}`}
-      className="group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 max-w-[300px] mx-auto min-h-[350px] flex flex-col shadow-md hover:shadow-xl transition-all transform-gpu hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 z-10"
+      className="group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 max-w-[300px] mx-auto min-h-[350px] flex flex-col shadow-md 
+        transition-all duration-300 ease-out transform-gpu 
+        hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] 
+        active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 
+        motion-safe:touch-manipulation z-10"
       aria-label={`Read blog post: ${post.title || 'Untitled'}`}
     >
       {imageUrl && (
@@ -70,17 +71,20 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
           />
         </div>
       )}
+
       <div className="p-5 flex flex-col flex-1 transition-colors duration-300">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
           {post.title || 'Untitled'}
         </h3>
+
         {post.excerpt && (
           <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3 flex-1">
             {post.excerpt}
           </p>
         )}
+
         <div className="flex items-center justify-between mt-auto">
-          <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
+          <span className="inline-flex items-center text-sm font-medium text-primary hover:underline transition-transform duration-150 group-active:scale-95">
             Read more <ArrowRight className="ml-1 w-4 h-4" />
           </span>
           <span className="inline-block bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full dark:bg-primary/20">

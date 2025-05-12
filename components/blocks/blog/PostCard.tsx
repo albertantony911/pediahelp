@@ -15,9 +15,9 @@ interface Post {
     } | null;
     alt?: string | null;
   } | null;
-  imageUrl?: string; // Algolia fallback
-  imageAlt?: string; // Algolia fallback
-  categoryTitles?: string[]; // For category display (from Algolia or mapped from categoryIds)
+  imageUrl?: string;
+  imageAlt?: string;
+  categoryTitles?: string[];
 }
 
 interface Props {
@@ -34,7 +34,10 @@ export default function PostCard({ post, className }: Props) {
   return (
     <Link
       href={`/blog/${slug}`}
-      className={`group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 w-full min-h-[350px] flex flex-col shadow-md hover:shadow-xl transition-all transform-gpu hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${className || ''}`}
+      className={`group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 w-full min-h-[350px] flex flex-col shadow-md transition-all duration-300 ease-out transform-gpu 
+        hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] 
+        active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 
+        motion-safe:touch-manipulation ${className || ''}`}
       aria-label={`Read blog post: ${post.title || 'Untitled'}`}
     >
       {imageUrl ? (
@@ -65,7 +68,6 @@ export default function PostCard({ post, className }: Props) {
         )}
 
         <div className="flex items-center justify-between mt-auto">
-          
           <span className="inline-block bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full dark:bg-primary/20">
             {categories}
           </span>
