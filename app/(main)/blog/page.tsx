@@ -1,8 +1,5 @@
 import { Metadata } from 'next';
-import { fetchSanityBlogPreviews, fetchSanityCategories } from '@/sanity/lib/fetch';
-import BlogPage from '@/components/blocks/blog/BlogPage';
-import type { BlogPreview, Category } from '@/types';
-
+import BlogLanding from '@/components/blocks/blog/BlogLanding';
 
 export const metadata: Metadata = {
   title: 'Blog | Pediahelp',
@@ -23,11 +20,6 @@ export const metadata: Metadata = {
   robots: 'index, follow',
 };
 
-export default async function BlogSSRPage() {
-  const [fallbackPosts, categories]: [BlogPreview[], Category[]] = await Promise.all([
-    fetchSanityBlogPreviews(),
-    fetchSanityCategories(),
-  ]);
-
-  return <BlogPage fallbackPosts={fallbackPosts} categories={categories} />;
+export default function BlogSSRPage() {
+  return <BlogLanding />;
 }

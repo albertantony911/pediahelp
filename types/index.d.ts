@@ -119,7 +119,10 @@ export type BlogPreview = {
     };
     alt?: string | null;
   };
-  author?: { name?: string | null };
+  doctorAuthor?: {
+    name?: string | null;
+    specialty?: string | null;
+  };
   categories?: Array<{ _id: string; title?: string | null }>;
 };
 

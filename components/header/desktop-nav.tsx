@@ -13,6 +13,17 @@ import {
 } from '@/components/ui/popover';
 import { CaretDown } from 'phosphor-react';
 import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 // ----------------- Dropdown Component -----------------
 
@@ -112,9 +123,9 @@ const specialtiesList = [
 ];
 
 const resourcesList = [
-  { name: 'Blogs', href: '/resources' },
-  { name: 'Childcare', href: '/resources' },
-  { name: 'Lactation', href: '/resources' },
+  { name: 'Blogs', href: '/blog' },
+  { name: 'Childcare', href: '/blog' },
+  { name: 'Lactation', href: '/blog' },
   { name: 'FAQs', href: '/faq' },
 ];
 
@@ -128,7 +139,7 @@ const navItems = [
   { label: 'About', href: '/about', dropdown: true },
   { label: 'Consultation', href: '/consultation' },
   { label: 'Specialities', href: '/specialities', dropdown: true },
-  { label: 'Resources', href: '/resources', dropdown: true },
+  { label: 'Resources', href: '/blog', dropdown: true },
   { label: 'Contact', href: '/contact' },
 ];
 
@@ -162,6 +173,13 @@ export default function DesktopNav() {
   useEffect(() => {
     setActiveDropdown(null);
   }, [pathname]);
+
+  const generateWhatsAppLink = (phone: string, message: string) => {
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${phone}?text=${encodedMessage}`;
+  };
+
+  const whatsappLink = generateWhatsAppLink('+919847611095', 'Hi, I need help!');
 
   const renderNavItem = ({ label, href, dropdown }: typeof navItems[number]) => {
     const isActive = pathname === href;
@@ -222,9 +240,38 @@ export default function DesktopNav() {
         </div>
 
         <div className="flex gap-3">
-          <Button href="/ask-doctor" variant="outline" size="default">
-            Ask Doctor
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="default">
+                Help
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-sm rounded-4xl p-4 shadow-lg text-center bg-white/90 backdrop-blur-lg">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-semibold text-gray-900 text-center">
+                  Redirect to WhatsApp
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm text-gray-600 text-center">
+                  Would you like to be redirected to WhatsApp for help?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-4 mx-auto flex justify-center gap-2 text-center">
+                <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-100">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button
+                    variant="whatsapp"
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Continue
+                  </Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <DoctorSearchDrawer>
             <Button variant="default" size="default">
               Book an Appointment

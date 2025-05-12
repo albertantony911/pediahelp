@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { groq } from 'next-sanity';
@@ -12,15 +12,15 @@ import Autoplay from 'embla-carousel-autoplay';
 import { Theme } from '@/components/ui/theme/Theme';
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
 import PortableTextRenderer from '@/components/portable-text-renderer';
-import { ArrowRight } from "lucide-react";
-import { PAGE_QUERYResult } from "@/sanity.types";
+import { ArrowRight } from 'lucide-react';
+import { PAGE_QUERYResult } from '@/sanity.types';
 
 type Carousel1 = Extract<
-  NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
-  { _type: "carousel-1" }
+  NonNullable<NonNullable<PAGE_QUERYResult>['blocks']>[number],
+  { _type: 'carousel-1' }
 >;
 
-interface Carousel1Props extends Omit<NonNullable<Carousel1>, "_type" | "_key"> {}
+interface Carousel1Props extends Omit<NonNullable<Carousel1>, '_type' | '_key'> {}
 
 interface Post {
   _id: string;
@@ -45,29 +45,29 @@ interface Post {
 }
 
 const PostCard: React.FC<{ post: Post }> = ({ post }) => {
-  const slug = post.slug?.current ?? "";
+  const slug = post.slug?.current ?? '';
   const imageUrl = post.image?.asset?.url ? urlFor(post.image).url() : null;
 
   return (
     <Link
       href={`/blog/${slug}`}
-      className="group relative overflow-hidden rounded-4xl shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-white dark:bg-zinc-900 max-w-[300px] mx-auto min-h-[350px] flex flex-col"
-      aria-label={`Read blog post: ${post.title || "Untitled"}`}
+      className="group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 max-w-[300px] mx-auto min-h-[350px] flex flex-col shadow-md hover:shadow-xl transition-all transform-gpu hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 z-10"
+      aria-label={`Read blog post: ${post.title || 'Untitled'}`}
     >
       {imageUrl && (
-        <div className="relative w-full h-48 overflow-hidden">
+        <div className="relative w-full h-48 overflow-hidden rounded-t-4xl">
           <Image
             src={imageUrl}
-            alt={post.image?.alt || post.title || "Blog Post Image"}
+            alt={post.image?.alt || post.title || 'Blog Post Image'}
             fill
             sizes="(max-width: 640px) 100vw, 300px"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-4xl"
           />
         </div>
       )}
       <div className="p-5 flex flex-col flex-1 transition-colors duration-300">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
-          {post.title || "Untitled"}
+          {post.title || 'Untitled'}
         </h3>
         {post.excerpt && (
           <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3 flex-1">
@@ -85,60 +85,81 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
 export default function Carousel1({ theme, tagLine, title, body }: Carousel1Props) {
   const [posts, setPosts] = useState<Post[]>([]);
 
-  const [emblaRef] = useEmblaCarousel(
+  const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
       align: 'center',
       dragFree: true,
-      slidesToScroll: 1,
+      containScroll: 'trimSnaps',
     },
     [
       Autoplay({
-        delay: 2000,
+        delay: 3000,
         stopOnInteraction: false,
       }),
     ]
   );
 
+  // Snap to nearest card after drag ends
+  const handleSnap = useCallback(() => {
+    if (emblaApi) {
+      emblaApi.scrollTo(emblaApi.selectedScrollSnap());
+    }
+  }, [emblaApi]);
+
   useEffect(() => {
     client
-      .fetch<Post[]>(
-        groq`*[_type == "post" && defined(slug.current)] | order(_createdAt desc)[0...5] {
-          _id,
-          title,
-          slug,
-          excerpt,
-          image {
-            asset->{
+      .fetch(
+        groq`
+          *[_type == "category"]{
+            _id,
+            title,
+            "posts": *[_type == "post" && references(^._id)] | order(_createdAt desc)[0...3] {
               _id,
-              url,
-              mimeType,
-              metadata {
-                lqip,
-                dimensions {
-                  width,
-                  height
-                }
+              title,
+              slug,
+              excerpt,
+              image {
+                asset->{
+                  _id,
+                  url,
+                  mimeType,
+                  metadata {
+                    lqip,
+                    dimensions {
+                      width,
+                      height
+                    }
+                  }
+                },
+                alt
               }
-            },
-            alt
+            }
           }
-        }`
+        `
       )
-      .then(setPosts)
+      .then((categories) => {
+        const allPosts = categories.flatMap((cat: any) => cat.posts || []);
+        const visible = allPosts.slice(0, 12);
+        setPosts(visible);
+      })
       .catch((err) => console.error('Blog post fetch failed:', err));
   }, []);
 
-  // Duplicate posts if fewer than 6 to ensure infinite scroll works
-  const visiblePosts = posts.length < 6 ? [...posts, ...posts, ...posts] : posts;
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('pointerUp', handleSnap);
+  }, [emblaApi, handleSnap]);
 
-  if (posts.length === 0) return null;
+  const visiblePosts = posts;
+
+  if (visiblePosts.length === 0) return null;
 
   return (
     <div className="w-full">
-      {/* Header Section */}
-      <Theme variant={theme || "white"}>
-        <div className="pt-10 pb-10 w-full mx-auto md:text-center ">
+      {/* Header */}
+      <Theme variant={theme || 'white'}>
+        <div className="pt-10 pb-10 w-full mx-auto md:text-center">
           {tagLine && <Subtitle>{tagLine}</Subtitle>}
           {title && <Title>{title}</Title>}
           {body && (
@@ -149,29 +170,28 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
         </div>
       </Theme>
 
-{/* Carousel Section */}
-<Theme variant={theme || "white"} disableContainer className="!text-inherit">
-  {/* Wrap only the carousel in a relative container for fades */}
-  <div className="relative max-w-[1400px] mx-auto">
-    {/* Smooth Left Fade */}
-    <div className="pointer-events-none absolute left-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-r from-[#264E53] via-20%-[#264E53]  to-transparent" />
-    {/* Smooth Right Fade */}
-    <div className="pointer-events-none absolute right-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-l from-[#264E53] via-20%-[#264E53]  to-transparent" />
+      {/* Carousel */}
+      <Theme variant={theme || 'white'} disableContainer className="!text-inherit">
+        <div className="relative max-w-[1400px] mx-auto">
+          {/* Left Fade */}
+          <div className="pointer-events-none absolute left-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-r from-[#264E53] via-20%-[#264E53] to-transparent" />
+          {/* Right Fade */}
+          <div className="pointer-events-none absolute right-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-l from-[#264E53] via-20%-[#264E53] to-transparent" />
 
-    <div ref={emblaRef} className="overflow-hidden px-4 pb-10 relative z-0">
-      <div className="flex gap-4 lg:gap-8">
-        {visiblePosts.map((post, i) => (
-          <div
-            key={`${post._id}-${i}`}
-            className="basis-[320px] flex-shrink-0 ml-4 lg:first:ml-8"
-          >
-            <PostCard post={post} />
+          <div ref={emblaRef} className="overflow-hidden px-4 pb-10 relative z-0">
+            <div className="flex gap-4 lg:gap-8">
+              {visiblePosts.map((post, i) => (
+                <div
+                  key={`${post._id}-${i}`}
+                  className="basis-[320px] flex-shrink-0 ml-4 lg:first:ml-8"
+                >
+                  <PostCard post={post} />
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  </div>
-</Theme>
+        </div>
+      </Theme>
     </div>
   );
 }

@@ -93,10 +93,13 @@ export const fetchSanityCategories = async (): Promise<Category[]> => {
 import { BLOG_PREVIEW_QUERY } from "@/sanity/queries/post";
 import type { BlogPreview } from "@/types";
 
-export const fetchSanityBlogPreviews = async (): Promise<BlogPreview[]> => {
+export const fetchSanityBlogPreviews = async (
+  categoryId: string | null = null
+): Promise<BlogPreview[]> => {
   const { data } = await sanityFetch({
     query: BLOG_PREVIEW_QUERY,
     perspective: "published",
+    params: { categoryId }, // ✅ always provide the param
   });
 
   return data;

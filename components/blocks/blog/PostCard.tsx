@@ -1,57 +1,68 @@
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import Link from "next/link";
-import { urlFor } from "@/sanity/lib/image";
-import { ArrowRight } from "lucide-react";
-import type { PostWithDoctor } from "@/types";
+'use client';
 
-type AlgoliaPost = PostWithDoctor & { objectID?: string };
+import Link from 'next/link';
+import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 
-interface PostCardProps {
-  post: AlgoliaPost;
+interface Post {
+  _id: string;
+  title: string | null;
+  slug: { current?: string } | null;
+  excerpt: string | null;
+  image?: {
+    asset?: {
+      url?: string | null;
+    } | null;
+    alt?: string | null;
+  } | null;
+  imageUrl?: string; // Algolia fallback
+  imageAlt?: string; // Algolia fallback
+}
+
+interface Props {
+  post: Post;
   className?: string;
 }
 
-export default function PostCard({ post, className }: PostCardProps) {
-  const { title, excerpt } = post;
-  const slug = typeof post.slug === "string" ? post.slug : post.slug?.current ?? "";
-
-  // Image URL logic from the working component, adapted for Sanity
-  const imageUrl =
-    post.image && "asset" in post.image
-      ? urlFor(post.image).url() // Use urlFor for Sanity images
-      : (post.image as { url?: string })?.url ?? (post as any).imageUrl;
+export default function PostCard({ post, className }: Props) {
+  const slug = typeof post.slug?.current === 'string' ? post.slug.current : '';
+  const imageUrl = post.image?.asset?.url ?? post.imageUrl ?? null;
+  const imageAlt = post.image?.alt ?? post.imageAlt ?? post.title ?? 'Blog Post Image';
 
   return (
     <Link
       href={`/blog/${slug}`}
-      className={cn(
-        "group relative block overflow-hidden rounded-4xl shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-        className
-      )}
-      aria-label={`Read blog post: ${title || "Untitled"}`}
+      className={`group relative overflow-hidden rounded-4xl bg-white dark:bg-zinc-900 w-full min-h-[350px] flex flex-col shadow-md hover:shadow-xl transition-all transform-gpu hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${className || ''}`}
+      aria-label={`Read blog post: ${post.title || 'Untitled'}`}
     >
-      {imageUrl && (
-        <div className="relative w-full h-48 overflow-hidden">
+      {imageUrl ? (
+        <div className="relative w-full h-48 overflow-hidden rounded-t-4xl">
           <Image
             src={imageUrl}
-            alt={post.image?.alt || title || "Blog Post Image"}
+            alt={imageAlt}
             fill
-            sizes="(min-width: 1024px) 33vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, 300px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-4xl"
           />
         </div>
+      ) : (
+        <div className="w-full h-48 bg-muted flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 rounded-t-4xl">
+          No image available
+        </div>
       )}
-      <div className="p-5 bg-white dark:bg-zinc-900 transition-colors duration-300">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary">
-          {title || "Untitled"}
+
+      <div className="p-5 flex flex-col flex-1 transition-colors duration-300">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug group-hover:text-primary line-clamp-2">
+          {post.title || 'Untitled'}
         </h3>
-        {excerpt && (
-          <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3">
-            {excerpt}
+
+        {post.excerpt && (
+          <p className="text-sm text-muted-foreground dark:text-zinc-400 line-clamp-3 mb-3 flex-1">
+            {post.excerpt}
           </p>
         )}
-        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline">
+
+        <span className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-auto">
           Read more <ArrowRight className="ml-1 w-4 h-4" />
         </span>
       </div>

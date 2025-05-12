@@ -28,6 +28,7 @@ export const hero2Query = groq`
     },
     buttons[]{
       buttonLabel,
+      buttonType,
       link {
         internalLink->{
           slug {
@@ -36,7 +37,9 @@ export const hero2Query = groq`
         },
         externalUrl
       },
-      buttonVariant
+      buttonVariant,
+      whatsappPhone,
+      whatsappMessage
     }
   }
 `;

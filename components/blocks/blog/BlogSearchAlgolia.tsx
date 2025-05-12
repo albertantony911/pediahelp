@@ -5,12 +5,21 @@ import { useSearchBox, useInstantSearch } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
-import { Post } from '@/types';
+
+interface Post {
+  _id: string;
+  title: string | null;
+  slug: { current?: string } | null;
+  excerpt: string | null;
+  imageUrl?: string;
+  imageAlt?: string;
+  categoryIds?: string[];
+}
 
 type AlgoliaPost = Post & { objectID?: string; categoryTitles?: string[] };
 
 interface BlogSearchAlgoliaProps {
-  onFilterChange?: (filteredPosts: AlgoliaPost[]) => void;
+  onFilterChange?: (filteredPosts: Post[]) => void;
 }
 
 export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaProps) {
@@ -38,7 +47,22 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
   useEffect(() => {
     if (results) {
       setIsSearching(false);
-      const hits = results.hits as AlgoliaPost[];
+      const hits = (results.hits as AlgoliaPost[]).map((hit) => ({
+        _id: hit.objectID ?? hit._id,
+        title: hit.title,
+        slug:
+          hit.slug
+            ? typeof hit.slug === 'string'
+              ? { current: hit.slug }
+              : hit.slug.current
+                ? { current: hit.slug.current }
+                : null
+            : null,
+        excerpt: hit.excerpt ?? null,
+        imageUrl: hit.imageUrl,
+        imageAlt: hit.imageAlt ?? hit.title ?? 'Blog Post Image',
+        categoryIds: hit.categoryIds ?? [],
+      }));
       onFilterChange?.(hits);
     }
   }, [results, onFilterChange]);
@@ -107,8 +131,8 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
   };
 
   const handleSuggestionClick = (post: AlgoliaPost) => {
-    refine(post.title);
-    saveToRecentSearches(post.title);
+    refine(post.title ?? '');
+    saveToRecentSearches(post.title ?? '');
     setShowSuggestions(false);
   };
 
@@ -224,13 +248,16 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
                         <div className="bg-gray-200 dark:bg-zinc-700 w-[48px] aspect-[16/9] rounded-md overflow-hidden mr-3 shrink-0">
                           <img
                             src={post.imageUrl}
-                            alt={post.title}
+                            alt={post.imageAlt ?? post.title ?? 'Blog Post Image'}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/fallback-image.jpg';
+                            }}
                           />
                         </div>
                       )}
                       <div className="flex-1 truncate">
-                        <div className="font-medium truncate">{post.title}</div>
+                        <div className="font-medium truncate">{post.title ?? 'Untitled'}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           {post.categoryTitles?.join(', ') || 'No categories'}
                         </div>
@@ -263,7 +290,7 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
 
         {/* Reset Notice */}
         {showResetNotice && (
-          <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-2 text-center text-sm text-gray-500 dark:text_gray-400">
             Search reset due to no matches.
           </div>
         )}

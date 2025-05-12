@@ -1,44 +1,37 @@
 'use client';
 
 import clsx from 'clsx';
-import { useSearchBox } from 'react-instantsearch';
-import { useState } from 'react';
 
-const categories = [
-  'All',
-  'Nephrology',
-  'Gastroenterology',
-  'Parenting Tips',
-  'Neonatology',
-  'Neurology',
-  'Lactation',
-  'Sleep',
-  'Respiratory Medicine',
-];
+interface Category {
+  _id: string;
+  title: string;
+}
 
-export default function BlogCategoryFilter() {
-  const { refine } = useSearchBox();
-  const [selected, setSelected] = useState<string | null>('All');
+interface BlogCategoryFilterProps {
+  categories: Category[];
+  selected: string;
+  onSelect: (categoryId: string) => void;
+}
 
-  const handleSelect = (category: string) => {
-    setSelected(category);
-    refine(category === 'All' ? '' : category);
-  };
-
+export default function BlogCategoryFilter({
+  categories,
+  selected,
+  onSelect,
+}: BlogCategoryFilterProps) {
   return (
-    <div className="flex gap-1.5 flex-wrap my-4 justify-center px-4">
+    <div className="flex gap-1.5 flex-wrap my-6 justify-center px-4">
       {categories.map((cat) => (
         <button
-          key={cat}
+          key={cat._id}
+          onClick={() => onSelect(cat._id)}
           className={clsx(
             'px-3 py-1.5 rounded-full border text-xs font-normal transition-colors duration-200',
-            selected === cat
+            selected === cat._id
               ? 'bg-light-shade text-white border-light-shade hover:bg-light-shade/80 active:bg-light-shade'
               : 'bg-muted text-muted-foreground border-border hover:bg-accent'
           )}
-          onClick={() => handleSelect(cat)}
         >
-          {cat}
+          {cat.title}
         </button>
       ))}
     </div>

@@ -5579,6 +5579,23 @@
                   },
                   "optional": true
                 },
+                "buttonType": {
+                  "type": "objectAttribute",
+                  "value": {
+                    "type": "union",
+                    "of": [
+                      {
+                        "type": "string",
+                        "value": "custom"
+                      },
+                      {
+                        "type": "string",
+                        "value": "whatsapp"
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
                 "link": {
                   "type": "objectAttribute",
                   "value": {
@@ -5653,12 +5670,22 @@
                       {
                         "type": "string",
                         "value": "link"
-                      },
-                      {
-                        "type": "string",
-                        "value": "whatsapp"
                       }
                     ]
+                  },
+                  "optional": true
+                },
+                "whatsappPhone": {
+                  "type": "objectAttribute",
+                  "value": {
+                    "type": "string"
+                  },
+                  "optional": true
+                },
+                "whatsappMessage": {
+                  "type": "objectAttribute",
+                  "value": {
+                    "type": "string"
                   },
                   "optional": true
                 }

@@ -127,20 +127,32 @@ export const POSTS_SLUGS_QUERY = groq`*[_type == "post" && defined(slug.current)
 
 
 export const BLOG_PREVIEW_QUERY = groq`
-*[_type == "post" && defined(slug)] | order(_createdAt desc) {
+*[_type == "category"]{
   _id,
   title,
-  slug,
-  excerpt,
-  image {
-    asset->{
-      _id,
-      url,
-      metadata { lqip, dimensions { width, height } }
-    },
-    alt
-  },
-  author->{ name },
-  categories[]->{ _id, title }
+  "posts": *[
+    _type == "post" &&
+    references(^._id)
+  ] | order(_createdAt desc)[0...3] {
+    _id,
+    title,
+    slug,
+    excerpt,
+    image {
+      asset->{
+        _id,
+        url,
+        mimeType,
+        metadata {
+          lqip,
+          dimensions {
+            width,
+            height
+          }
+        }
+      },
+      alt
+    }
+  }
 }
 `;

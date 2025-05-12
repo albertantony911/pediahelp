@@ -14,6 +14,11 @@ type Hero2Props = Extract<
 >;
 
 export default function Hero2({ theme, tagLine, title, body, buttons }: Hero2Props) {
+  const generateWhatsAppLink = (phone: string, message: string) => {
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${phone}?text=${encodedMessage}`;
+  };
+
   return (
     <Theme variant={theme || "dark-shade"}>
       <div className="dark:bg-background py-10 xl:text-center">
@@ -27,11 +32,16 @@ export default function Hero2({ theme, tagLine, title, body, buttons }: Hero2Pro
         {buttons && buttons.length > 0 && (
           <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-center">
             {buttons.map((button, index) => {
-              // Determine the href and whether it's internal
-              const href = button?.link?.internalLink?.slug?.current
+              // Determine the href and whether it's internal or WhatsApp
+              const isWhatsApp = button?.buttonType === "whatsapp";
+              const href = isWhatsApp
+                ? button?.whatsappPhone && button?.whatsappMessage
+                  ? generateWhatsAppLink(button.whatsappPhone, button.whatsappMessage)
+                  : null
+                : button?.link?.internalLink?.slug?.current
                 ? `/${button.link.internalLink.slug.current}`
                 : button?.link?.externalUrl || null;
-              const isInternal = !!button?.link?.internalLink?.slug?.current;
+              const isInternal = !isWhatsApp && !!button?.link?.internalLink?.slug?.current;
 
               return (
                 button?.buttonLabel && href && (
@@ -44,7 +54,12 @@ export default function Hero2({ theme, tagLine, title, body, buttons }: Hero2Pro
                         <Link href={href}>{button.buttonLabel}</Link>
                       </Button>
                     ) : (
-                      <Button variant={button.buttonVariant ?? "secondary"} href={href}>
+                      <Button
+                        variant={button.buttonVariant ?? "secondary"}
+                        href={href}
+                        target={isWhatsApp ? "_blank" : undefined}
+                        rel={isWhatsApp ? "noopener noreferrer" : undefined}
+                      >
                         {button.buttonLabel}
                       </Button>
                     )}
