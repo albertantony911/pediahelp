@@ -30,7 +30,8 @@ export default function BookingFormPage() {
   const [loading, setLoading] = useState(false);
   const [bookingToken] = useState(() => nanoid());
 
-  const [zcalLink, setZcalLink] = useState<string | null>(null); // ✅ added
+  const [zcalLink, setZcalLink] = useState<string | null>(null); // ✅ unchanged
+  const [isZcalLoading, setIsZcalLoading] = useState(true); // ✅ added for UX
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPhoneValid = /^[0-9]{10}$/.test(phone);
@@ -47,9 +48,13 @@ export default function BookingFormPage() {
           setZcalLink(result.bookingId);
         } else {
           console.warn('No Zcal booking link found for slug:', slug);
+          toast.error('No booking link available for this doctor.');
+          setIsZcalLoading(false);
         }
       } catch (err) {
         console.error('Error fetching Zcal link from Sanity:', err);
+        toast.error('Failed to load booking calendar.');
+        setIsZcalLoading(false);
       }
     };
 
@@ -162,31 +167,85 @@ export default function BookingFormPage() {
   };
 
   const initZCalEmbed = () => {
-    if (!zcalLink) return;
+    if (!zcalLink) {
+      console.warn('Zcal link not available');
+      setIsZcalLoading(false);
+      return;
+    }
 
+    // Check if script is already loaded
+    if (document.querySelector('script[src="https://static.zcal.co/embed/v1/embed.js"]')) {
+      if (typeof (window as any).zcal === 'function') {
+        (window as any).zcal('init', {
+          element: '#zcal-embed',
+          link: zcalLink, // ✅ Use dynamic zcalLink
+          theme: 'light',
+          metadata: { doctorSlug: slug, bookingToken },
+          onEventScheduled: (event: any) => {
+            console.log('Zcal event scheduled:', event); // ✅ Debug log
+            setAppointmentInfo({
+              date: event.startTime ? new Date(event.startTime).toLocaleDateString() : 'N/A',
+              time: event.startTime ? new Date(event.startTime).toLocaleTimeString() : 'N/A',
+            });
+            setStep(2);
+          },
+        });
+        setIsZcalLoading(false);
+      }
+      return;
+    }
+
+    // Load Zcal script
     const script = document.createElement('script');
-    script.src = 'https://embed.zcal.co/js/embed.js';
+    script.src = 'https://static.zcal.co/embed/v1/embed.js'; // ✅ Updated to correct URL
     script.async = true;
+    script.onerror = () => {
+      console.error('Failed to load Zcal script');
+      toast.error('Failed to load booking calendar.');
+      setIsZcalLoading(false);
+    };
     script.onload = () => {
-      (window as any).zcal('init', {
-        element: '#zcal-embed',
-        link: 'https://zcal.co/albert-blackwoodbox/appointment',
-        theme: 'light',
-        metadata: { doctorSlug: slug, bookingToken },
-        onEventScheduled: (event: any) => {
-          setAppointmentInfo({ date: event.date, time: event.time });
-          setStep(2);
-        },
-      });
+      if (typeof (window as any).zcal === 'function') {
+        (window as any).zcal('init', {
+          element: '#zcal-embed',
+          link: zcalLink,
+          theme: 'light',
+          metadata: { doctorSlug: slug, bookingToken },
+          onEventScheduled: (event: any) => {
+            console.log('Zcal event scheduled:', event);
+            setAppointmentInfo({
+              date: event.startTime ? new Date(event.startTime).toLocaleDateString() : 'N/A',
+              time: event.startTime ? new Date(event.startTime).toLocaleTimeString() : 'N/A',
+            });
+            setStep(2);
+          },
+        });
+        setIsZcalLoading(false);
+      } else {
+        console.error('Zcal function not available after script load');
+        toast.error('Failed to initialize booking calendar.');
+        setIsZcalLoading(false);
+      }
     };
     document.body.appendChild(script);
+
+    // Cleanup
     return () => {
-      document.body.removeChild(script);
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      const zcalWidget = document.querySelector('#zcal-embed iframe');
+      if (zcalWidget && zcalWidget.parentNode) {
+        zcalWidget.parentNode.removeChild(zcalWidget);
+      }
     };
   };
 
   useEffect(() => {
-    if (step !== 1 || !zcalLink) return;
+    if (step !== 1 || !zcalLink) {
+      setIsZcalLoading(false);
+      return;
+    }
     return initZCalEmbed();
   }, [step, zcalLink]);
 
@@ -199,7 +258,23 @@ export default function BookingFormPage() {
       transition={{ duration: 0.3 }}
     >
       <h2 className="text-xl font-semibold mb-4">Select an Appointment Time</h2>
-      <div id="zcal-embed" className="mb-6" />
+      {!zcalLink && (
+        <p className="text-red-500">Booking calendar not available. Please try again later.</p>
+      )}
+      {isZcalLoading && zcalLink && <p>Loading booking calendar...</p>}
+      <div
+        id="zcal-embed"
+        className="mb-6"
+        style={{ minHeight: '600px', width: '100%', maxWidth: '800px', margin: '0 auto' }}
+      />
+      {zcalLink && !isZcalLoading && (
+        <p className="text-sm mt-2 text-center">
+          Having trouble?{' '}
+          <a href={zcalLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+            Book directly on Zcal
+          </a>
+        </p>
+      )}
     </motion.div>
   );
 
