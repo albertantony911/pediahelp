@@ -43,7 +43,7 @@ const overflowItems = [
   },
   {
     label: 'Consultation',
-    href: '/booking',
+    href: '/consultation',
     type: 'item',
   },
   {
