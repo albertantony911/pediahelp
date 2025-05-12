@@ -29,7 +29,7 @@ const delayedAction = (callback: () => void, delay = 150) => {
 const navItems = [
   { label: 'Home', href: '/', icon: House },
   { label: 'Resources', href: '/blog', icon: Book },
-  { label: 'Consult', href: '/booking', icon: CalendarPlus, primary: true },
+  { label: 'Consult', href: '/consultation', icon: CalendarPlus, primary: true },
   { label: 'Ask', href: '/ask-doctor', icon: ChatTeardropText },
   { label: 'More', href: '#', icon: List, overflow: true },
 ];

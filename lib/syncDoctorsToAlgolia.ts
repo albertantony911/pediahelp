@@ -32,18 +32,18 @@ export async function syncDoctorsToAlgolia() {
     }
   `);
 
-  const records = doctors.map((doc: any) => ({
-    objectID: doc.slug.current,
-    name: doc.name,
-    slug: doc.slug.current,
-    specialty: doc.specialty,
-    photoUrl: doc.photo?.asset?.url ?? '',
-    appointmentFee: doc.appointmentFee,
-    experienceYears: doc.experienceYears,
-    languages: doc.languages ?? [],
-    expertise: doc.expertise ?? [],
-    searchKeywords: doc.searchKeywords ?? [],
-  }));
+const records = doctors.map((doc: any) => ({
+  objectID: doc._id, 
+  name: doc.name,
+  slug: doc.slug.current,
+  specialty: doc.specialty,
+  photoUrl: doc.photo?.asset?.url ?? '',
+  appointmentFee: doc.appointmentFee,
+  experienceYears: doc.experienceYears,
+  languages: doc.languages ?? [],
+  expertise: doc.expertise ?? [],
+  searchKeywords: doc.searchKeywords ?? [],
+}));
 
   await index.saveObjects(records);
 
