@@ -194,7 +194,7 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
               {visiblePosts.map((post, i) => (
                 <div
                   key={`${post._id}-${i}`}
-                  className="basis-[320px] flex-shrink-0 ml-6 lg:first:ml-8"
+                  className="basis-[320px] flex-shrink-0 ml-6 lg:first:ml-14"
                 >
                   <PostCard post={post} />
                 </div>
