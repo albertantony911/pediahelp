@@ -130,23 +130,43 @@ export default async function PostPage({
 
         {/* Blog Post Body */}
         {post.body && (
-          <article
-              className={cn(
-                'prose prose-lg max-w-none text-black/80 dark:text-gray-200',
-                'prose-headings:text-gray-900 dark:prose-headings:text-white',
-                'prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-2xl prose-h2:font-semibold',
-                'prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-xl prose-h3:font-medium',
-                'prose-p:leading-7 prose-p:mb-5',
-                'prose-img:rounded-lg prose-img:shadow-md prose-img:my-8',
-                'prose-a:text-primary hover:prose-a:underline',
-                'prose-strong:text-gray-900 dark:prose-strong:text-white',
-                'prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:text-muted-foreground',
-                'prose-ul:ml-6 prose-ol:ml-6 prose-li:marker:text-primary',
-                'prose-table:table-auto prose-th:px-4 prose-td:px-4'
-              )}
-            >
-              <PortableTextRenderer value={post.body} />
-            </article>
+<article
+  className={cn(
+    'prose prose-lg max-w-none text-black/80 dark:text-gray-200',
+
+    // Headings: large space above, regular space below
+    'prose-h2:mt-20 prose-h2:mb-5 prose-h2:text-2xl prose-h2:font-semibold',
+    'prose-h3:mt-16 prose-h3:mb-4 prose-h3:text-xl prose-h3:font-medium',
+    'prose-h4:mt-12 prose-h4:mb-3 prose-h4:text-lg prose-h4:font-medium',
+
+    // Paragraphs
+    'prose-p:leading-8 prose-p:mb-6',
+
+    // Images
+    'prose-img:rounded-lg prose-img:shadow-md prose-img:my-10',
+
+    // Links
+    'prose-a:text-primary hover:prose-a:underline',
+
+    // Strong / bold
+    'prose-strong:text-gray-900 dark:prose-strong:text-white',
+
+    // Blockquotes
+    'prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:border-l-4 prose-blockquote:text-muted-foreground',
+
+    // Lists
+    'prose-ul:ml-6 prose-ol:ml-6 prose-li:marker:text-primary prose-li:my-2',
+
+    // Tables
+    'prose-table:table-auto prose-th:px-4 prose-td:px-4 prose-th:text-left',
+
+    // Spacing between blocks
+    '[&>*]:mb-5 last:[&>*]:mb-0'
+  )}
+>
+  <PortableTextRenderer value={post.body} />
+</article>
+
 
         )}
 
