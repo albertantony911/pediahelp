@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchBox, useInstantSearch } from 'react-instantsearch';
+import { useSearchBox, useInfiniteHits } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
@@ -18,13 +18,9 @@ interface Post {
 
 type AlgoliaPost = Post & { objectID?: string; categoryTitles?: string[] };
 
-interface BlogSearchAlgoliaProps {
-  onFilterChange?: (filteredPosts: Post[]) => void;
-}
-
-export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaProps) {
+export default function BlogSearchAlgolia() {
   const { query, refine } = useSearchBox();
-  const { results } = useInstantSearch();
+  const { hits } = useInfiniteHits<AlgoliaPost>();
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -42,30 +38,6 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
       setRecentSearches(JSON.parse(saved).slice(0, 4));
     }
   }, []);
-
-  // Sync hits with parent when results change
-  useEffect(() => {
-    if (results) {
-      setIsSearching(false);
-      const hits = (results.hits as AlgoliaPost[]).map((hit) => ({
-        _id: hit.objectID ?? hit._id,
-        title: hit.title,
-        slug:
-          hit.slug
-            ? typeof hit.slug === 'string'
-              ? { current: hit.slug }
-              : hit.slug.current
-                ? { current: hit.slug.current }
-                : null
-            : null,
-        excerpt: hit.excerpt ?? null,
-        imageUrl: hit.imageUrl,
-        imageAlt: hit.imageAlt ?? hit.title ?? 'Blog Post Image',
-        categoryIds: hit.categoryIds ?? [],
-      }));
-      onFilterChange?.(hits);
-    }
-  }, [results, onFilterChange]);
 
   // Debounced refine with 50ms delay
   const debouncedRefine = useRef(
@@ -103,8 +75,6 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const hits = (results?.hits as AlgoliaPost[]) ?? [];
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -146,7 +116,6 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
       setIsFocused(false);
       setShowSuggestions(false);
 
-      const hits = (results?.hits as AlgoliaPost[]) ?? [];
       if (query.trim() && hits.length === 0) {
         refine('');
         setShowResetNotice(true);
@@ -226,12 +195,12 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
         {showSuggestions && query.trim() && (
           <div className="absolute w-full z-10 bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 border border-gray-200 dark:border-zinc-700">
             <ul id="suggestions-list" role="listbox" className="p-2" ref={suggestionsRef}>
-              {results && (results.hits as AlgoliaPost[]).length === 0 ? (
+              {hits.length === 0 ? (
                 <li className="py-4 text-center text-gray-500 dark:text-gray-400">
                   No matching posts found.
                 </li>
-              ) : results ? (
-                (results.hits as AlgoliaPost[]).slice(0, 5).map((post, index) => {
+              ) : (
+                hits.slice(0, 5).map((post, index) => {
                   const isActive = activeSuggestion === index;
                   return (
                     <li
@@ -265,7 +234,7 @@ export default function BlogSearchAlgolia({ onFilterChange }: BlogSearchAlgoliaP
                     </li>
                   );
                 })
-              ) : null}
+              )}
             </ul>
           </div>
         )}

@@ -1,15 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import algoliasearch from 'algoliasearch/lite';
-import { InstantSearch, Configure } from 'react-instantsearch';
-
+import { InstantSearch, Configure, useInfiniteHits } from 'react-instantsearch';
 import { client } from '@/sanity/lib/client';
 import { BLOG_LANDING_QUERY } from '@/sanity/queries/blog-landing';
-
 import BlogSearchAlgolia from './BlogSearchAlgolia';
 import BlogCategoryFilter from './BlogCategoryFilter';
 import PostCard from './PostCard';
+import PostCardSkeleton from './PostCardSkeleton';
 import { Title } from '@/components/ui/theme/typography';
 
 interface Post {
@@ -33,9 +32,10 @@ interface Category {
 
 export default function BlogLanding() {
   const [fallbackPosts, setFallbackPosts] = useState<Post[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const observerRef = useRef<HTMLDivElement | null>(null);
 
   const searchClient = useMemo(
     () =>
@@ -52,6 +52,37 @@ export default function BlogLanding() {
       setCategories(data.categories || []);
     });
   }, []);
+
+  const { hits, isLastPage, showMore, results } = useInfiniteHits<Post>();
+
+  useEffect(() => {
+    if (results && hits.length > 0) {
+      setFilteredPosts(hits);
+    } else {
+      setFilteredPosts([]);
+    }
+  }, [hits, results]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLastPage) {
+          showMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current);
+      }
+    };
+  }, [isLastPage, showMore]);
 
   const displayedPosts = filteredPosts.length > 0 ? filteredPosts : fallbackPosts;
 
@@ -71,7 +102,7 @@ export default function BlogLanding() {
       >
         <Configure hitsPerPage={12} />
 
-        <BlogSearchAlgolia onFilterChange={setFilteredPosts} />
+        <BlogSearchAlgolia />
 
         <BlogCategoryFilter
           categories={[{ _id: 'all', title: 'All' }, ...categories]}
@@ -85,7 +116,21 @@ export default function BlogLanding() {
           ) : (
             <p className="text-center text-gray-500 col-span-full">No posts found.</p>
           )}
+
+          {!isLastPage && filteredByCategory.length > 0 && (
+            <>
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+            </>
+          )}
         </div>
+
+        <div ref={observerRef} className="h-10" />
+
+        {isLastPage && filteredByCategory.length > 0 && (
+          <p className="text-center text-gray-500 mt-6">No more posts to load.</p>
+        )}
       </InstantSearch>
     </section>
   );
