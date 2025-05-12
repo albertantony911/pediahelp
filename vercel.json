@@ -6,6 +6,13 @@
       "headers": {
         "x-vercel-raw-body": "true"
       }
+    },
+    {
+      "src": "/api/zcal-webhook",
+      "methods": ["POST"],
+      "headers": {
+        "x-vercel-raw-body": "true"
+      }
     }
   ]
 }
