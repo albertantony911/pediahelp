@@ -11,6 +11,7 @@ import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
 import specialities from './schemas/documents/specialities';
+import { booking } from './schemas/documents/booking';
 
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
@@ -63,6 +64,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     blogQuestion,
     waveDividerVariant, // Add waveDividerVariant document
     specialities, 
+    booking,
     // shared objects
     blockContent,
     link,
