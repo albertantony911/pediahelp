@@ -1,4 +1,3 @@
-// @/components/ui/breadcrumbs.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -24,17 +23,18 @@ const BreadcrumbCustomItem = ({
 
   useEffect(() => {
     if (isCurrent && containerRef.current) {
-      // Estimate available width based on parent container
-      const containerWidth = containerRef.current.parentElement?.offsetWidth || window.innerWidth;
-      // Approximate chars based on width (assuming ~10px per char for text-sm)
-      const charLimit = containerWidth <= 640 ? Math.floor(containerWidth / 10) : Math.floor(containerWidth / 8);
-      // Cap at reasonable limits: 30 for mobile, 40 for desktop
+      const containerWidth =
+        containerRef.current.parentElement?.offsetWidth || window.innerWidth;
+
+      const charLimit = containerWidth <= 640
+        ? Math.floor(containerWidth / 10)
+        : Math.floor(containerWidth / 8);
+
       const maxChars = Math.min(charLimit, containerWidth <= 640 ? 50 : 100);
-      
+
       if (label.length > maxChars) {
-        // Truncate at the last full word
         const words = label.slice(0, maxChars - 3).split(' ');
-        words.pop(); // Remove partial word
+        words.pop();
         setTruncatedLabel(words.join(' ') + '...');
       } else {
         setTruncatedLabel(label);
@@ -43,15 +43,16 @@ const BreadcrumbCustomItem = ({
   }, [label, isCurrent]);
 
   return (
-    <BreadcrumbItem ref={containerRef} className="font-bold text-primary">
+    <BreadcrumbItem ref={containerRef} className="font-semibold text-primary whitespace-nowrap">
       {!isCurrent ? (
-        <BreadcrumbLink asChild className="hover:text-primary/70">
+        <BreadcrumbLink asChild className="hover:underline text-gray-700 dark:text-gray-300">
           <Link href={href}>{label}</Link>
         </BreadcrumbLink>
       ) : (
-        <BreadcrumbPage>{truncatedLabel}</BreadcrumbPage>
+        <BreadcrumbPage className="font-bold text-gray-900 dark:text-white">
+          {truncatedLabel}
+        </BreadcrumbPage>
       )}
-      {!isCurrent && <BreadcrumbSeparator className="text-primary" />}
     </BreadcrumbItem>
   );
 };
@@ -65,14 +66,16 @@ export default function Breadcrumbs({
     <Breadcrumb className="mb-3 lg:mb-6">
       <BreadcrumbList
         className={cn(
-          'flex items-center gap-1.5 sm:gap-2.5 text-sm text-muted-foreground'
+          'flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-sm',
+          'text-gray-800 dark:text-gray-100'
         )}
         style={{ whiteSpace: 'nowrap' }}
       >
         {links.map((link, index) => (
           <span key={link.label} className="flex items-center">
             <BreadcrumbCustomItem
-              {...link}
+              label={link.label}
+              href={link.href}
               isCurrent={index === links.length - 1}
             />
             {index < links.length - 1 && (
