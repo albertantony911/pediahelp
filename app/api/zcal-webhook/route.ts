@@ -8,28 +8,30 @@ export async function POST(req: Request) {
   const signature = req.headers.get('x-zcal-signature') || '';
   const rawBody = await req.text();
 
-  // ✅ Step 1: Verify HMAC Signature
+  // Step 1: Verify HMAC Signature
   const expectedSignature = crypto
     .createHmac('sha256', secret)
     .update(rawBody)
     .digest('hex');
 
   if (signature !== expectedSignature) {
-    console.error('[❌ Invalid Zcal Signature]');
+    console.error('[❌ Invalid Zcal Signature]', { signature, expectedSignature });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  // ✅ Step 2: Safely parse raw body
+  // Step 2: Safely parse raw body
   let payload;
   try {
     payload = JSON.parse(rawBody);
+    console.log('[Zcal Webhook Payload]', payload); // Debug log
   } catch (err) {
     console.error('[❌ Invalid JSON]', err);
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // ✅ Step 3: Validate essential data
+  // Step 3: Validate essential data
   if (!payload?.event || !payload?.invitee) {
+    console.error('[❌ Invalid Webhook Payload]', payload);
     return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 });
   }
 
@@ -42,12 +44,24 @@ export async function POST(req: Request) {
 
   const bookingToken = nanoid();
 
+  // Step 4: Map Zcal bookingLinkId to doctorSlug
+  const zcalBookingLinkId = payload.bookingLinkId || '';
+  const doctor = await sanityClient.fetch(
+    `*[_type == "doctor" && zcalBookingLinkId == $zcalBookingLinkId][0]{ "slug": slug.current }`,
+    { zcalBookingLinkId }
+  );
+  const doctorSlug = doctor?.slug || '';
+  if (!doctorSlug) {
+    console.error('[❌ Doctor not found for zcalBookingLinkId]', zcalBookingLinkId);
+    return NextResponse.json({ error: 'Doctor not found' }, { status: 400 });
+  }
+
   const newBooking = {
     _id: `booking-${bookingToken}`,
     _type: 'booking',
     status: 'awaiting_verification',
     bookingToken,
-    doctorSlug: payload.bookingLinkId || '',
+    doctorSlug,
     parentName: getAnswer('Parent Name'),
     patientName: getAnswer('Patient Name'),
     email: invitee.email || '',
@@ -60,6 +74,7 @@ export async function POST(req: Request) {
 
   try {
     await sanityClient.createIfNotExists(newBooking);
+    console.log('[✅ Booking Saved]', newBooking);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('[❌ Failed to save booking]', err);
