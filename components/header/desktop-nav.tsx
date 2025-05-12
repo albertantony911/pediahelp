@@ -179,7 +179,7 @@ export default function DesktopNav() {
     return `https://wa.me/${phone}?text=${encodedMessage}`;
   };
 
-  const whatsappLink = generateWhatsAppLink('+919847611095', 'Hi, I need help!');
+  const whatsappLink = generateWhatsAppLink('+919970450260', 'Hi, I need help!');
 
   const renderNavItem = ({ label, href, dropdown }: typeof navItems[number]) => {
     const isActive = pathname === href;
