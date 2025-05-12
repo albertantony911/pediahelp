@@ -129,14 +129,10 @@ const resourcesList = [
   { name: 'FAQs', href: '/faq' },
 ];
 
-const aboutList = [
-  { name: 'Our Story', href: '/about' },
-  { name: 'Our Team', href: '/about#team' },
-];
 
 const navItems = [
   { label: 'Home', href: '/' },
-  { label: 'About', href: '/about', dropdown: true },
+  { label: 'About', href: '/about' },
   { label: 'Consultation', href: '/consultation' },
   { label: 'Specialities', href: '/specialities', dropdown: true },
   { label: 'Resources', href: '/blog', dropdown: true },
@@ -144,7 +140,6 @@ const navItems = [
 ];
 
 const dropdownItemsMap: Record<string, DropdownItem[]> = {
-  about: aboutList,
   specialities: specialtiesList,
   resources: resourcesList,
 };
