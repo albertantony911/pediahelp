@@ -205,27 +205,37 @@ export default function BookingFormPage() {
       setIsZcalLoading(false);
     };
     script.onload = () => {
-      if (typeof (window as any).zcal === 'function') {
-        (window as any).zcal('init', {
-          element: '#zcal-embed',
-          link: zcalLink,
-          theme: 'light',
-          metadata: { doctorSlug: slug, bookingToken },
-          onEventScheduled: (event: any) => {
-            console.log('Zcal event scheduled:', event);
-            setAppointmentInfo({
-              date: event.startTime ? new Date(event.startTime).toLocaleDateString() : 'N/A',
-              time: event.startTime ? new Date(event.startTime).toLocaleTimeString() : 'N/A',
-            });
-            setStep(2);
-          },
-        });
-        setIsZcalLoading(false);
-      } else {
-        console.error('Zcal function not available after script load');
-        toast.error('Failed to initialize booking calendar.');
-        setIsZcalLoading(false);
-      }
+      const maxRetries = 10;
+      let attempts = 0;
+
+      const tryInitZcal = () => {
+        if (typeof (window as any).zcal === 'function') {
+          (window as any).zcal('init', {
+            element: '#zcal-embed',
+            link: zcalLink,
+            theme: 'light',
+            metadata: { doctorSlug: slug, bookingToken },
+            onEventScheduled: (event: any) => {
+              console.log('Zcal event scheduled:', event);
+              setAppointmentInfo({
+                date: event.startTime ? new Date(event.startTime).toLocaleDateString() : 'N/A',
+                time: event.startTime ? new Date(event.startTime).toLocaleTimeString() : 'N/A',
+              });
+              setStep(2);
+            },
+          });
+          setIsZcalLoading(false);
+        } else if (attempts < maxRetries) {
+          attempts += 1;
+          setTimeout(tryInitZcal, 100); // retry after 100ms
+        } else {
+          console.error('Zcal function not available after retries');
+          toast.error('Failed to initialize booking calendar.');
+          setIsZcalLoading(false);
+        }
+      };
+
+      tryInitZcal();
     };
     document.body.appendChild(script);
 
