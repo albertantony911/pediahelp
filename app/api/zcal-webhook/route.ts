@@ -1,83 +1,96 @@
+// app/api/zcal-webhook/route.ts
+
 import { NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { client as sanityClient } from '@/sanity/lib/client';
-import crypto from 'crypto';
 import { nanoid } from 'nanoid';
+
+export const runtime = 'nodejs';  // ensure Node APIs are available
 
 export async function POST(req: Request) {
   const secret = process.env.ZCAL_WEBHOOK_SECRET!;
   const signature = req.headers.get('x-zcal-signature') || '';
   const rawBody = await req.text();
 
-  // Step 1: Verify HMAC Signature
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
+  // 1) verify signature (hex-encoded)
+  const expectedSig = createHmac('sha256', secret)
     .update(rawBody)
     .digest('hex');
 
-  if (signature !== expectedSignature) {
-    console.error('[❌ Invalid Zcal Signature]', { signature, expectedSignature });
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  // timingSafeEqual wants Buffers of equal length
+  const sigBuf = Buffer.from(signature, 'hex');
+  const expectedBuf = Buffer.from(expectedSig, 'hex');
+  if (
+    sigBuf.length !== expectedBuf.length ||
+    !timingSafeEqual(sigBuf, expectedBuf)
+  ) {
+    console.error('[❌] Invalid signature:', signature, expectedSig);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  // Step 2: Safely parse raw body
-  let payload;
+  // 2) parse JSON
+  let payload: any;
   try {
     payload = JSON.parse(rawBody);
-    console.log('[Zcal Webhook Payload]', payload); // Debug log
   } catch (err) {
-    console.error('[❌ Invalid JSON]', err);
+    console.error('[❌] JSON parse error', err);
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Step 3: Validate essential data
-  if (!payload?.event || !payload?.invitee) {
-    console.error('[❌ Invalid Webhook Payload]', payload);
-    return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 });
+  // 3) destructure the real Zcal envelope
+  const { data } = payload;  
+  const event = data?.event;
+  const invitee = data?.invitee;
+  const bookingLink = data?.bookingLink;
+
+  if (!event || !invitee || !bookingLink?.id) {
+    console.error('[❌] Missing event/invitee/bookingLink in payload', payload);
+    return NextResponse.json({ error: 'Malformed payload' }, { status: 400 });
   }
 
-  const event = payload.event;
-  const invitee = payload.invitee;
-  const responses = invitee?.questions || [];
-
+  // helper to pull answers
+  const responses: any[] = invitee.questions || [];
   const getAnswer = (label: string) =>
-    responses.find((q: any) => q.label.toLowerCase() === label.toLowerCase())?.answer || '';
+    responses.find(q => q.label.toLowerCase() === label.toLowerCase())?.answer || '';
 
-  const bookingToken = nanoid();
-
-  // Step 4: Map Zcal bookingLinkId to doctorSlug
-  const zcalBookingLinkId = payload.bookingLinkId || '';
+  // map Zcal link → doctor
+  const linkId = bookingLink.id;
   const doctor = await sanityClient.fetch(
-    `*[_type == "doctor" && zcalBookingLinkId == $zcalBookingLinkId][0]{ "slug": slug.current }`,
-    { zcalBookingLinkId }
+    `*[_type=="doctor" && zcalBookingLinkId == $linkId][0]{ slug }`,
+    { linkId }
   );
-  const doctorSlug = doctor?.slug || '';
-  if (!doctorSlug) {
-    console.error('[❌ Doctor not found for zcalBookingLinkId]', zcalBookingLinkId);
-    return NextResponse.json({ error: 'Doctor not found' }, { status: 400 });
+
+  if (!doctor?.slug) {
+    console.error('[❌] No doctor with linkId', linkId);
+    return NextResponse.json({ error: 'Doctor not found' }, { status: 404 });
   }
 
+  // build booking doc
+  const idToken = nanoid();
+  const start = new Date(event.startTime);
   const newBooking = {
-    _id: `booking-${bookingToken}`,
+    _id: `booking-${idToken}`,
     _type: 'booking',
-    status: 'awaiting_verification',
-    bookingToken,
-    doctorSlug,
+    status: 'pending',
+    bookingToken: idToken,
+    doctorSlug: doctor.slug,
     parentName: getAnswer('Parent Name'),
     patientName: getAnswer('Patient Name'),
-    email: invitee.email || '',
+    email: invitee.email,
     phone: getAnswer('Phone Number'),
-    date: event.startTime.split('T')[0],
-    time: new Date(event.startTime).toLocaleTimeString(),
+    date: start.toISOString().split('T')[0],
+    time: start.toLocaleTimeString('en-US', { hour12: false }),
     zcalEventId: event.id,
     createdAt: new Date().toISOString(),
   };
 
+  // 4) save to Sanity
   try {
     await sanityClient.createIfNotExists(newBooking);
-    console.log('[✅ Booking Saved]', newBooking);
+    console.log('[✅] Booking saved', newBooking);
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[❌ Failed to save booking]', err);
-    return NextResponse.json({ error: 'Sanity write error' }, { status: 500 });
+    console.error('[❌] Sanity write error', err);
+    return NextResponse.json({ error: 'DB write failed' }, { status: 500 });
   }
 }
