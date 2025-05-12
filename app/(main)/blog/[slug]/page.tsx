@@ -113,7 +113,7 @@ export default async function PostPage({
       )}
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-8 md:px-6 py-10">
+      <div className="max-w-6xl mx-auto px-8 md:px-6 py-10">
         {/* Breadcrumb Navigation */}
         <div className="mb-4 opacity-80">
           <Breadcrumbs links={breadcrumbs} />
@@ -131,22 +131,22 @@ export default async function PostPage({
         {/* Blog Post Body */}
         {post.body && (
           <article
-  className={cn(
-    'prose prose-lg max-w-none text-black/80 dark:text-gray-200',
-    'prose-headings:text-gray-900 dark:prose-headings:text-white',
-    'prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-2xl prose-h2:font-semibold',
-    'prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-xl prose-h3:font-medium',
-    'prose-p:leading-7 prose-p:mb-5',
-    'prose-img:rounded-lg prose-img:shadow-md prose-img:my-8',
-    'prose-a:text-primary hover:prose-a:underline',
-    'prose-strong:text-gray-900 dark:prose-strong:text-white',
-    'prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:text-muted-foreground',
-    'prose-ul:ml-6 prose-ol:ml-6 prose-li:marker:text-primary',
-    'prose-table:table-auto prose-th:px-4 prose-td:px-4'
-  )}
->
-  <PortableTextRenderer value={post.body} />
-</article>
+              className={cn(
+                'prose prose-lg max-w-none text-black/80 dark:text-gray-200',
+                'prose-headings:text-gray-900 dark:prose-headings:text-white',
+                'prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-2xl prose-h2:font-semibold',
+                'prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-xl prose-h3:font-medium',
+                'prose-p:leading-7 prose-p:mb-5',
+                'prose-img:rounded-lg prose-img:shadow-md prose-img:my-8',
+                'prose-a:text-primary hover:prose-a:underline',
+                'prose-strong:text-gray-900 dark:prose-strong:text-white',
+                'prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:text-muted-foreground',
+                'prose-ul:ml-6 prose-ol:ml-6 prose-li:marker:text-primary',
+                'prose-table:table-auto prose-th:px-4 prose-td:px-4'
+              )}
+            >
+              <PortableTextRenderer value={post.body} />
+            </article>
 
         )}
 
