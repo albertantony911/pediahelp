@@ -1,0 +1,11 @@
+{
+  "routes": [
+    {
+      "src": "/api/payment/razorpay-webhook",
+      "methods": ["POST"],
+      "headers": {
+        "x-vercel-raw-body": "true"
+      }
+    }
+  ]
+}

@@ -4,9 +4,8 @@ import { DisableDraftMode } from "@/components/disable-draft-mode";
 import { VisualEditing } from "next-sanity";
 import { draftMode } from "next/headers";
 import { SanityLive } from "@/sanity/lib/live";
-import { CookieConsent } from '@/components/blocks/CookieConsent'
-
-
+import { CookieConsent } from '@/components/blocks/CookieConsent';
+import Head from "next/head";
 
 export default async function MainLayout({
   children,
@@ -15,6 +14,10 @@ export default async function MainLayout({
 }) {
   return (
     <>
+      <Head>
+        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+      </Head>
+
       <Header />
       <main>{children}</main>
       <SanityLive />
