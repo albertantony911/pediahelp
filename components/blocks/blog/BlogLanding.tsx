@@ -94,56 +94,60 @@ export default function BlogLanding() {
       ? displayedPosts
       : displayedPosts.filter((post) => post.categoryIds?.includes(selectedCategory));
 
-  return (
-    <section className="max-w-6xl mx-auto px-4 py-12 bg-dark-shade">
-      <Title className="mb-6 text-center">Latest from the Blog</Title>
+    return (
+      
+        <div className='w-full '>
+            <section className=" mx-auto px-4 py-12 lg:pt-48 bg-dark-shade">
 
-      <InstantSearch
-        searchClient={searchClient}
-        indexName="blog_posts_index"
-        future={{ preserveSharedStateOnUnmount: true }}
-      >
-        <Configure hitsPerPage={12} />
+                <InstantSearch
+                    searchClient={searchClient}
+                    indexName="blog_posts_index"
+                    future={{ preserveSharedStateOnUnmount: true }}
+                >
+                    <Configure hitsPerPage={12} />
 
-        <BlogSearchAlgolia />
+                    <BlogSearchAlgolia />
 
-        <BlogCategoryFilter
-          categories={[{ _id: 'all', title: 'All' }, ...categories]}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+                    <BlogCategoryFilter
+                    categories={[{ _id: 'all', title: 'All' }, ...categories]}
+                    selected={selectedCategory}
+                    onSelect={setSelectedCategory}
+                    />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {filteredByCategory.length > 0 ? (
-            filteredByCategory.map((post) => <PostCard key={post._id} post={post} />)
-          ) : (
-            <p className="text-center text-gray-500 col-span-full">No posts found.</p>
-          )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-6 lg:mt-24 max-w-6xl mx-auto">
+                    {filteredByCategory.length > 0 ? (
+                        filteredByCategory.map((post) => <PostCard key={post._id} post={post} />)
+                    ) : (
+                        <p className="text-center text-gray-500 col-span-full">No posts found.</p>
+                    )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {filteredByCategory.length > 0 && nbPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-8 max-w-5xl ">
+                        <Button
+                        variant="outline"
+                        disabled={currentRefinement === 0}
+                        onClick={() => refine(currentRefinement - 1)}
+                        >
+                        Previous
+                        </Button>
+                        <span className="text-gray-500">
+                        Page {currentRefinement + 1} of {nbPages}
+                        </span>
+                        <Button
+                        variant="outline"
+                        disabled={currentRefinement >= nbPages - 1}
+                        onClick={() => refine(currentRefinement + 1)}
+                        >
+                        Next
+                        </Button>
+                    </div>
+                    )}
+                </InstantSearch>
+            </section>
         </div>
-
-        {/* Pagination Controls */}
-        {filteredByCategory.length > 0 && nbPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-8">
-            <Button
-              variant="outline"
-              disabled={currentRefinement === 0}
-              onClick={() => refine(currentRefinement - 1)}
-            >
-              Previous
-            </Button>
-            <span className="text-gray-500">
-              Page {currentRefinement + 1} of {nbPages}
-            </span>
-            <Button
-              variant="outline"
-              disabled={currentRefinement >= nbPages - 1}
-              onClick={() => refine(currentRefinement + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        )}
-      </InstantSearch>
-    </section>
+    
+    
   );
 }
