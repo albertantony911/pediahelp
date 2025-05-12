@@ -189,7 +189,7 @@ export default function Carousel1({ theme, tagLine, title, body }: Carousel1Prop
           {/* Right Fade */}
           <div className="pointer-events-none absolute right-0 top-0 h-full lg:w-64 w-10 z-10 bg-gradient-to-l from-[#264E53] via-20%-[#264E53] to-transparent" />
 
-          <div ref={emblaRef} className="overflow-hidden px-4 pb-10 relative z-0 mx-auto">
+          <div ref={emblaRef} className="overflow-hidden px-4 pb-10 pt-2 relative z-0 mx-auto">
             <div className="flex gap-4 lg:gap-8">
               {visiblePosts.map((post, i) => (
                 <div
