@@ -40,7 +40,7 @@ export default function DoctorList({
   );
 
   return (
-    <div className="space-y-6 mt-7">
+    <div className="space-y-6 mt-7 ">
       
 
       {loading ? (

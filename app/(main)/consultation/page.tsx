@@ -119,7 +119,7 @@ export default function ConsultationPageWrapper() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8">
+    <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8 lg:pt-50">
       <InstantSearch searchClient={searchClient} indexName="doctors_index">
         <Configure
           filters={selectedSpecialty ? `keywords:${selectedSpecialty.toLowerCase()}` : ''}
