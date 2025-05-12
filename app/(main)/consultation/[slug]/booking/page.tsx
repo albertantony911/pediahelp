@@ -170,7 +170,7 @@ export default function BookingFormPage() {
     script.onload = () => {
       (window as any).zcal('init', {
         element: '#zcal-embed',
-        link: zcalLink,
+        link: 'https://zcal.co/albert-blackwoodbox/appointment',
         theme: 'light',
         metadata: { doctorSlug: slug, bookingToken },
         onEventScheduled: (event: any) => {
