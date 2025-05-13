@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@sanity/client";
 
+// Initialize Sanity client
+const sanityClient = createClient({
+  projectId: process.env.SANITY_PROJECT_ID,
+  dataset: process.env.SANITY_DATASET,
+  apiVersion: "2025-05-13",
+  useCdn: false,
+  token: process.env.SANITY_WRITE_TOKEN,
+});
+
 function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
   console.log("Raw payload for signature:", Buffer.from(payload).toString("hex"));
   console.log("Received signature:", signature);
@@ -29,19 +38,13 @@ function verifyWebhookSignature(payload: string, signature: string, secret: stri
   );
 }
 
-// Initialize Sanity client
-const sanityClient = createClient({
-  projectId: process.env.SANITY_PROJECT_ID,
-  dataset: process.env.SANITY_DATASET,
-  apiVersion: "2025-05-13",
-  useCdn: false,
-  token: process.env.SANITY_WRITE_TOKEN,
-});
-
 export async function POST(req: NextRequest) {
   try {
     // Get the raw body as text
     const rawBody = await req.text();
+
+    // Log all headers for debugging
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
 
     // Log the secret for debugging (remove in production)
     const webhookSecret = process.env.ZCAL_WEBHOOK_SECRET;
@@ -73,24 +76,21 @@ export async function POST(req: NextRequest) {
     switch (webhookData.type) {
       case "event.created":
         console.log("New event created:", webhookData.data);
-        // Map Zcal payload to Sanity booking schema
         const eventData = webhookData.data;
         const attendee = eventData.attendees.find((a: any) => a.type === "invitee") || eventData.attendees[0];
         const host = eventData.hosts[0];
 
-        // Extract date and time from startDate
         const startDate = new Date(eventData.startDate);
-        const date = startDate.toISOString().split("T")[0]; // e.g., "2025-05-14"
-        const time = startDate.toTimeString().split(" ")[0]; // e.g., "09:52:57"
+        const date = startDate.toISOString().split("T")[0];
+        const time = startDate.toTimeString().split(" ")[0];
 
-        // Create booking document in Sanity
         const booking = {
           _type: "booking",
           bookingToken: crypto.randomUUID(),
           status: "awaiting_verification",
           doctorSlug: host?.email.split("@")[0] || "unknown-doctor",
           parentName: attendee?.name || "Unknown Parent",
-          patientName: "", // Not provided; can be updated later
+          patientName: "",
           email: attendee?.email || "",
           phone: attendee?.phoneNumber || "",
           date: date,
@@ -99,7 +99,6 @@ export async function POST(req: NextRequest) {
           createdAt: new Date().toISOString(),
         };
 
-        // Log the booking object for debugging
         console.log("Attempting to create booking in Sanity:", booking);
 
         const result = await sanityClient.create(booking);
@@ -118,7 +117,6 @@ export async function POST(req: NextRequest) {
         console.log("Unhandled event type:", webhookData.type);
     }
 
-    // Acknowledge receipt
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
     console.error("Webhook error:", error);
