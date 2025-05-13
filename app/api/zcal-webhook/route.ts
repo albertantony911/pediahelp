@@ -80,25 +80,30 @@ export async function POST(req: NextRequest) {
 
         // Extract date and time from startDate
         const startDate = new Date(eventData.startDate);
-        const date = startDate.toISOString().split("T")[0]; // e.g., "2025-02-12"
-        const time = startDate.toTimeString().split(" ")[0]; // e.g., "20:30:00"
+        const date = startDate.toISOString().split("T")[0]; // e.g., "2025-05-14"
+        const time = startDate.toTimeString().split(" ")[0]; // e.g., "09:52:57"
 
         // Create booking document in Sanity
-        await sanityClient.create({
+        const booking = {
           _type: "booking",
-          bookingToken: crypto.randomUUID(), // Unique token for the booking
+          bookingToken: crypto.randomUUID(),
           status: "awaiting_verification",
-          doctorSlug: host?.email.split("@")[0] || "unknown-doctor", // e.g., "john.smith"
+          doctorSlug: host?.email.split("@")[0] || "unknown-doctor",
           parentName: attendee?.name || "Unknown Parent",
-          patientName: "", // Not provided in Zcal payload; can be added later
+          patientName: "", // Not provided; can be updated later
           email: attendee?.email || "",
-          phone: "", // Not provided in Zcal payload; can be added later
+          phone: attendee?.phoneNumber || "",
           date: date,
           time: time,
           zcalEventId: eventData.id,
           createdAt: new Date().toISOString(),
-        });
-        console.log("Booking saved to Sanity:", eventData.id);
+        };
+
+        // Log the booking object for debugging
+        console.log("Attempting to create booking in Sanity:", booking);
+
+        const result = await sanityClient.create(booking);
+        console.log("Booking saved to Sanity:", result._id);
         break;
 
       case "event.updated":
