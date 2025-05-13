@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@sanity/client";
 
-// Initialize Sanity client
 const sanityClient = createClient({
   projectId: process.env.SANITY_PROJECT_ID,
   dataset: process.env.SANITY_DATASET,
@@ -50,20 +49,21 @@ export async function POST(req: NextRequest) {
     const webhookSecret = process.env.ZCAL_WEBHOOK_SECRET;
     console.log("Webhook secret:", webhookSecret);
 
-    // Get the Zcal-Signature header
-    const signature = req.headers.get("zcal-signature");
-    if (signature) {
-      if (!webhookSecret) {
-        console.error("ZCAL_WEBHOOK_SECRET is not set");
-        return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-      }
+    // Get the Zcal webhook signature header
+    const signature = req.headers.get("x-zcal-webhook-signature");
+    if (!signature) {
+      console.log("x-zcal-webhook-signature header missing");
+      return NextResponse.json({ error: "Missing x-zcal-webhook-signature header" }, { status: 400 });
+    }
 
-      if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-        console.log("Signature verification failed");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-      }
-    } else {
-      console.log("ZCal-Signature header missing, proceeding without verification");
+    if (!webhookSecret) {
+      console.error("ZCAL_WEBHOOK_SECRET is not set");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
+    if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+      console.log("Signature verification failed");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     // Parse the payload
