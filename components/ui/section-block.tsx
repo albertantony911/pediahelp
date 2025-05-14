@@ -8,13 +8,14 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme'
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography'
 import { VariantProps } from 'class-variance-authority'
+import { cn } from '@/lib/utils'
 
 type LayoutOption = 'image-left' | 'image-right' | null
 
 interface SectionBlockProps {
   theme?: ThemeVariant | null
   layout?: LayoutOption
-  reverseOnMobile: boolean | null // Updated to match expected type
+  reverseOnMobile?: boolean | null
   buttonVariant?: VariantProps<typeof buttonVariants>['variant'] | null
   buttonLabel?: string | null
   link?: {
@@ -30,7 +31,7 @@ interface SectionBlockProps {
 const SectionBlock: React.FC<SectionBlockProps> = ({
   theme = 'white',
   layout = 'image-right',
-  reverseOnMobile = false, // Default to false, which is compatible with boolean | null
+  reverseOnMobile = false,
   buttonVariant = 'default',
   buttonLabel,
   link,
@@ -39,13 +40,9 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
   body,
   image,
 }) => {
-  // Desktop layout: true if image is on the left
   const isImageLeftDesktop = layout === 'image-left'
-
-  // Mobile layout: reverse the desktop layout if reverseOnMobile is true
   const isImageLeftMobile = reverseOnMobile ? !isImageLeftDesktop : isImageLeftDesktop
 
-  // Determine the href and whether it's internal
   const href = link?.internalLink?.slug?.current
     ? `/${link.internalLink.slug.current}`
     : link?.externalUrl || null
@@ -53,9 +50,9 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-10  ">
-        {/* Mobile: Image first if isImageLeftMobile is true,       else Text first */}
-        <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 ">
+        {/* Mobile */}
+        <div className={cn('contents lg:hidden', isImageLeftMobile ? 'order-first' : 'order-last')}>
           {isImageLeftMobile && <ImageBlock image={image} />}
           <div className="flex flex-col justify-center">
             {tagLine && <Subtitle>{tagLine}</Subtitle>}
@@ -82,7 +79,7 @@ const SectionBlock: React.FC<SectionBlockProps> = ({
           {!isImageLeftMobile && <ImageBlock image={image} />}
         </div>
 
-        {/* Desktop: Use original layout logic */}
+        {/* Desktop */}
         <div className="hidden lg:contents">
           {isImageLeftDesktop && <ImageBlock image={image} />}
           <div className="flex flex-col justify-center">
@@ -121,13 +118,13 @@ const ImageBlock: React.FC<{ image: any | null }> = ({ image }) => {
   const lqip = image.asset?.metadata?.lqip || ''
 
   return (
-    <div className="flex flex-col justify-center">
+    <div className="flex flex-col justify-center w-full max-sm:-mx-10 max-sm:w-[calc(100%+5rem)]">
       <Image
-        className="rounded-xl animate-fade-up [animation-delay:500ms] opacity-0"
+        className="rounded-xl animate-fade-up [animation-delay:500ms] opacity-0 "
         src={urlFor(image).url()}
         alt={image.alt || ''}
-        width={dimensions.width || 800}
-        height={dimensions.height || 800}
+        width={dimensions.width || 1000}
+        height={dimensions.height || 1000}
         placeholder={lqip ? 'blur' : undefined}
         blurDataURL={lqip}
         quality={100}
