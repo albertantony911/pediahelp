@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { urlFor } from '@/sanity/lib/image';
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
@@ -42,12 +43,13 @@ export interface SpecialtyCardProps {
       } | null;
     } | null;
     link?: {
-      _type?: string | null;
-      _key?: string | null;
-      externalUrl?: string | null;
+      linkType?: 'internal' | 'external' | null;
       internalLink?: {
-        href?: string | null;
+        slug?: {
+          current?: string | null;
+        } | null;
       } | null;
+      externalUrl?: string | null;
     } | null;
   }> | null;
 }
@@ -91,15 +93,28 @@ export default function SpecialtyCard({
         <Theme variant={theme || 'white'} disableContainer className="!text-inherit">
           <div className="flex flex-wrap justify-center lg:gap-16 gap-5 px-8 pb-10 max-w-[1150px] mx-auto">
             {cards.map((card) => {
-              const href = card.link?.externalUrl || card.link?.internalLink?.href || '#';
               if (!card.image?.asset?._id) return null;
 
               const lqip = card.image.asset.metadata?.lqip || '';
+              const isInternal = card.link?.linkType === 'internal' && card.link?.internalLink?.slug?.current;
+              const href = isInternal
+                ? `/${card.link?.internalLink?.slug?.current}`
+                : card.link?.externalUrl || '#';
+              const LinkComponent = isInternal ? Link : 'a';
+              const linkProps = {
+                href,
+                ...(isInternal
+                  ? {}
+                  : {
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                    }),
+              };
 
               return (
-                <a
+                <LinkComponent
                   key={card._key}
-                  href={href}
+                  {...linkProps}
                   className={`group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
                     isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
                   }`}
@@ -119,7 +134,7 @@ export default function SpecialtyCard({
                       className="w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-translate-y-[2px]"
                     />
                   </div>
-                </a>
+                </LinkComponent>
               );
             })}
           </div>

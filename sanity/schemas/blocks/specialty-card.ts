@@ -101,17 +101,63 @@ const specialtyCard = defineType({
               type: 'object',
               fields: [
                 defineField({
-                  name: 'href',
-                  title: 'Link URL',
+                  name: 'linkType',
+                  title: 'Link Type',
+                  type: 'string',
+                  options: {
+                    list: [
+                      { title: 'Internal', value: 'internal' },
+                      { title: 'External', value: 'external' },
+                    ],
+                    layout: 'radio',
+                    direction: 'horizontal',
+                  },
+                  initialValue: 'internal',
+                }),
+                defineField({
+                  name: 'internalLink',
+                  title: 'Internal Link',
+                  type: 'reference',
+                  to: [{ type: 'page' }],
+                  description: 'Select an internal page for the link.',
+                  hidden: ({ parent }) => parent?.linkType !== 'internal',
+                  validation: (Rule) =>
+                    Rule.custom((value, context) => {
+                      const parent = context.parent as { linkType?: string } | undefined;
+                      if (parent?.linkType === 'internal' && !value) {
+                        return 'Internal link is required for internal link type.';
+                      }
+                      return true;
+                    }),
+                }),
+                defineField({
+                  name: 'externalUrl',
+                  title: 'External URL',
                   type: 'url',
-                  description: 'Provide a URL (e.g., https://example.com or /internal-page).',
+                  description: 'Provide an external URL (e.g., https://example.com).',
+                  hidden: ({ parent }) => parent?.linkType !== 'external',
                   validation: (Rule) =>
                     Rule.uri({
-                      scheme: ['http', 'https', '/'],
-                      allowRelative: true,
+                      scheme: ['http', 'https'],
+                    }).custom((value, context) => {
+                      const parent = context.parent as { linkType?: string } | undefined;
+                      if (parent?.linkType === 'external' && !value) {
+                        return 'External URL is required for external link type.';
+                      }
+                      return true;
                     }),
                 }),
               ],
+              validation: (Rule) =>
+                Rule.custom((fields) => {
+                  if (!fields?.linkType) {
+                    return 'Link type is required.';
+                  }
+                  if (fields?.internalLink && fields?.externalUrl) {
+                    return 'Choose either an internal link or an external URL, not both.';
+                  }
+                  return true;
+                }),
             }),
           ],
         },
