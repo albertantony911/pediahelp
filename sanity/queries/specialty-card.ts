@@ -28,6 +28,7 @@ export const specialtyCardQuery = groq`
         alt
       },
       link {
+        hasLink,
         linkType,
         internalLink->{
           _type,

@@ -101,6 +101,13 @@ const specialtyCard = defineType({
               type: 'object',
               fields: [
                 defineField({
+                  name: 'hasLink',
+                  title: 'Add Link',
+                  type: 'boolean',
+                  initialValue: false,
+                  description: 'Enable this to add a link to the card. Note: Switching the Link Type will not automatically clear the other field (Internal Link or External URL). Please ensure the unused field is cleared to avoid validation errors.',
+                }),
+                defineField({
                   name: 'linkType',
                   title: 'Link Type',
                   type: 'string',
@@ -113,18 +120,27 @@ const specialtyCard = defineType({
                     direction: 'horizontal',
                   },
                   initialValue: 'internal',
+                  hidden: ({ parent }) => !parent?.hasLink,
+                  validation: (Rule) =>
+                    Rule.custom((value, context) => {
+                      const parent = context.parent as { hasLink?: boolean } | undefined;
+                      if (parent?.hasLink && !value) {
+                        return 'Link type is required when a link is added.';
+                      }
+                      return true;
+                    }),
                 }),
                 defineField({
                   name: 'internalLink',
                   title: 'Internal Link',
                   type: 'reference',
-                  to: [{ type: 'page' }, { type: 'specialities' }], // Changed to 'specialities'
+                  to: [{ type: 'page' }, { type: 'specialities' }],
                   description: 'Select an internal page or speciality for the link.',
-                  hidden: ({ parent }) => parent?.linkType !== 'internal',
+                  hidden: ({ parent }) => !parent?.hasLink || parent?.linkType !== 'internal',
                   validation: (Rule) =>
                     Rule.custom((value, context) => {
-                      const parent = context.parent as { linkType?: string } | undefined;
-                      if (parent?.linkType === 'internal' && !value) {
+                      const parent = context.parent as { hasLink?: boolean; linkType?: string } | undefined;
+                      if (parent?.hasLink && parent?.linkType === 'internal' && !value) {
                         return 'Internal link is required for internal link type.';
                       }
                       return true;
@@ -135,14 +151,14 @@ const specialtyCard = defineType({
                   title: 'External URL',
                   type: 'url',
                   description: 'Provide an external URL (e.g., https://example.com) or a relative path (e.g., /specialities/nephrology).',
-                  hidden: ({ parent }) => parent?.linkType !== 'external',
+                  hidden: ({ parent }) => !parent?.hasLink || parent?.linkType !== 'external',
                   validation: (Rule) =>
                     Rule.uri({
                       scheme: ['http', 'https', '/'],
                       allowRelative: true,
                     }).custom((value, context) => {
-                      const parent = context.parent as { linkType?: string } | undefined;
-                      if (parent?.linkType === 'external' && !value) {
+                      const parent = context.parent as { hasLink?: boolean; linkType?: string } | undefined;
+                      if (parent?.hasLink && parent?.linkType === 'external' && !value) {
                         return 'External URL is required for external link type.';
                       }
                       return true;
@@ -151,10 +167,10 @@ const specialtyCard = defineType({
               ],
               validation: (Rule) =>
                 Rule.custom((fields) => {
-                  if (!fields?.linkType) {
-                    return 'Link type is required.';
+                  if (fields?.hasLink && !fields?.linkType) {
+                    return 'Link type is required when a link is added.';
                   }
-                  if (fields?.internalLink && fields?.externalUrl) {
+                  if (fields?.hasLink && fields?.internalLink && fields?.externalUrl) {
                     return 'Choose either an internal link or an external URL, not both.';
                   }
                   return true;

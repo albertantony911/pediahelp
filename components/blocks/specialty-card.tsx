@@ -43,9 +43,10 @@ export interface SpecialtyCardProps {
       } | null;
     } | null;
     link?: {
+      hasLink?: boolean | null;
       linkType?: 'internal' | 'external' | null;
       internalLink?: {
-        _type?: 'page' | 'specialities' | null; // Updated to 'specialities'
+        _type?: 'page' | 'specialities' | null;
         slug?: {
           current?: string | null;
         } | null;
@@ -97,15 +98,51 @@ export default function SpecialtyCard({
               if (!card.image?.asset?._id) return null;
 
               const lqip = card.image.asset.metadata?.lqip || '';
-              const isInternal = card.link?.linkType === 'internal' && card.link?.internalLink?.slug?.current;
+              const hasLink = card.link?.hasLink === true;
+              const isInternal = hasLink && card.link?.linkType === 'internal' && card.link?.internalLink?.slug?.current;
+
+              const commonProps = {
+                key: card._key,
+                className: `group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl transition-all duration-300 focus:outline-none ${
+                  hasLink
+                    ? 'focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02]'
+                    : ''
+                } ${isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''}`,
+                'aria-label': card.name || 'Specialty card',
+                onTouchStart: () => handleTouchStart(card._key),
+                onTouchEnd: () => handleTouchEnd(card._key),
+              };
+
+              const image = (
+                <div className="flex flex-col rounded-4xl items-center w-full overflow-hidden aspect-square">
+                  <Image
+                    src={urlFor(card.image).url()}
+                    alt={card.image.alt || ''}
+                    width={300}
+                    height={300}
+                    placeholder={lqip ? 'blur' : undefined}
+                    blurDataURL={lqip}
+                    quality={100}
+                    className={`w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out ${
+                      hasLink ? 'group-hover:scale-105 group-hover:-translate-y-[2px]' : ''
+                    }`}
+                  />
+                </div>
+              );
+
+              if (!hasLink) {
+                return <div {...commonProps}>{image}</div>;
+              }
+
+              // Compute href inside the hasLink block to ensure it's a string
               const href = isInternal
                 ? card.link?.internalLink?._type === 'specialities'
-                  ? `/specialities/${card.link?.internalLink?.slug?.current}` // Route for specialities
-                  : `/${card.link?.internalLink?.slug?.current}` // Route for pages
+                  ? `/specialities/${card.link?.internalLink?.slug?.current}`
+                  : `/${card.link?.internalLink?.slug?.current}`
                 : card.link?.externalUrl || '#';
-              const LinkComponent = isInternal ? Link : 'a';
+
               const linkProps = {
-                href,
+                href, // Now guaranteed to be a string
                 ...(isInternal
                   ? {}
                   : {
@@ -114,30 +151,14 @@ export default function SpecialtyCard({
                     }),
               };
 
-              return (
-                <LinkComponent
-                  key={card._key}
-                  {...linkProps}
-                  className={`group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02] ${
-                    isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''
-                  }`}
-                  aria-label={card.name || 'Specialty card'}
-                  onTouchStart={() => handleTouchStart(card._key)}
-                  onTouchEnd={() => handleTouchEnd(card._key)}
-                >
-                  <div className="flex flex-col rounded-4xl items-center w-full overflow-hidden aspect-square">
-                    <Image
-                      src={urlFor(card.image).url()}
-                      alt={card.image.alt || ''}
-                      width={300}
-                      height={300}
-                      placeholder={lqip ? 'blur' : undefined}
-                      blurDataURL={lqip}
-                      quality={100}
-                      className="w-full h-full object-cover rounded-4xl transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-translate-y-[2px]"
-                    />
-                  </div>
-                </LinkComponent>
+              return isInternal ? (
+                <Link {...commonProps} {...linkProps}>
+                  {image}
+                </Link>
+              ) : (
+                <a {...commonProps} {...linkProps}>
+                  {image}
+                </a>
               );
             })}
           </div>
