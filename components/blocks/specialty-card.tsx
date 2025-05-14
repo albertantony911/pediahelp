@@ -103,11 +103,11 @@ export default function SpecialtyCard({
 
               const commonProps = {
                 key: card._key,
-                className: `group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl transition-all duration-300 focus:outline-none ${
+                className: `group block w-full max-w-[150px] sm:max-w-[170px] rounded-4xl shadow-md transition-all duration-300 focus:outline-none ${
                   hasLink
-                    ? 'focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02]'
+                    ? 'focus:ring-2 focus:ring-dark-shade focus:ring-offset-2 hover:shadow-lg hover:scale-[1.02]'
                     : ''
-                } ${isTouched[card._key] ? 'scale-95 shadow brightness-105' : ''}`,
+                } ${isTouched[card._key] ? 'scale-95 shadow-xl brightness-105' : ''}`,
                 'aria-label': card.name || 'Specialty card',
                 onTouchStart: () => handleTouchStart(card._key),
                 onTouchEnd: () => handleTouchEnd(card._key),
