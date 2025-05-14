@@ -45,6 +45,7 @@ export interface SpecialtyCardProps {
     link?: {
       linkType?: 'internal' | 'external' | null;
       internalLink?: {
+        _type?: 'page' | 'specialities' | null; // Updated to 'specialities'
         slug?: {
           current?: string | null;
         } | null;
@@ -98,7 +99,9 @@ export default function SpecialtyCard({
               const lqip = card.image.asset.metadata?.lqip || '';
               const isInternal = card.link?.linkType === 'internal' && card.link?.internalLink?.slug?.current;
               const href = isInternal
-                ? `/${card.link?.internalLink?.slug?.current}`
+                ? card.link?.internalLink?._type === 'specialities'
+                  ? `/specialities/${card.link?.internalLink?.slug?.current}` // Route for specialities
+                  : `/${card.link?.internalLink?.slug?.current}` // Route for pages
                 : card.link?.externalUrl || '#';
               const LinkComponent = isInternal ? Link : 'a';
               const linkProps = {

@@ -30,6 +30,7 @@ export const specialtyCardQuery = groq`
       link {
         linkType,
         internalLink->{
+          _type,
           slug {
             current
           }

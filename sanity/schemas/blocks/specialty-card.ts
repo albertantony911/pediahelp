@@ -118,8 +118,8 @@ const specialtyCard = defineType({
                   name: 'internalLink',
                   title: 'Internal Link',
                   type: 'reference',
-                  to: [{ type: 'page' }],
-                  description: 'Select an internal page for the link.',
+                  to: [{ type: 'page' }, { type: 'specialities' }], // Changed to 'specialities'
+                  description: 'Select an internal page or speciality for the link.',
                   hidden: ({ parent }) => parent?.linkType !== 'internal',
                   validation: (Rule) =>
                     Rule.custom((value, context) => {
@@ -134,11 +134,12 @@ const specialtyCard = defineType({
                   name: 'externalUrl',
                   title: 'External URL',
                   type: 'url',
-                  description: 'Provide an external URL (e.g., https://example.com).',
+                  description: 'Provide an external URL (e.g., https://example.com) or a relative path (e.g., /specialities/nephrology).',
                   hidden: ({ parent }) => parent?.linkType !== 'external',
                   validation: (Rule) =>
                     Rule.uri({
-                      scheme: ['http', 'https'],
+                      scheme: ['http', 'https', '/'],
+                      allowRelative: true,
                     }).custom((value, context) => {
                       const parent = context.parent as { linkType?: string } | undefined;
                       if (parent?.linkType === 'external' && !value) {
