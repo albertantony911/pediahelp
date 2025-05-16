@@ -307,3 +307,13 @@
     @apply opacity-0;
     animation: fadeIn 0.2s ease forwards;
   }
+
+
+  @keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
