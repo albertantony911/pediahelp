@@ -29,6 +29,7 @@ interface Doctor {
 export async function getDoctorBySlug(slug: string): Promise<any | null> {
   return await client.fetch(
     groq`*[_type == "doctor" && slug.current == $slug][0]{
+      _id,
       name,
       slug,
       photo {

@@ -21,7 +21,12 @@ export default async function MainLayout({
       </Head>
 
       <Header />
-      <main>{children}<Toaster richColors position="top-center" /></main>
+      <main>{children}<Toaster richColors position="top-center" />
+      <script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        async
+      ></script>
+      </main>
       <SanityLive />
       {(await draftMode()).isEnabled && (
         <>

@@ -5,15 +5,18 @@ import otpGenerator from 'otp-generator';
 export async function POST(req: NextRequest) {
     console.log('[API] /book hit');
   const body = await req.json();
-
+    console.log("Incoming Booking Payload:", JSON.stringify(body, null, 2));
   const { doctorId, slot, patient } = body;
-
   if (!doctorId || !slot || !patient?.parentName || !patient?.childName || !patient?.phone || !patient?.email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   // Generate OTP
-  const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false });
+  const otp = otpGenerator.generate(6, {
+  upperCaseAlphabets: false,
+  specialChars: false,
+  digits: true,
+});
 
   // Check if the slot is already booked
   const alreadyBooked = await client.fetch(
