@@ -25,17 +25,18 @@ interface Doctor {
   externalApiId?: string;
 }
 
-export async function getDoctorBySlug(slug: string): Promise<Doctor | null> {
+
+export async function getDoctorBySlug(slug: string): Promise<any | null> {
   return await client.fetch(
     groq`*[_type == "doctor" && slug.current == $slug][0]{
       name,
       slug,
       photo {
         asset -> {
-                _id,
-                url
-            }
-        },
+          _id,
+          url
+        }
+      },
       specialty,
       designation,
       location,
@@ -50,7 +51,17 @@ export async function getDoctorBySlug(slug: string): Promise<Doctor | null> {
         slug
       },
       bookingId,
-      externalApiId
+      externalApiId,
+      // 👇 Weekly Availability linked via reverse lookup
+      "availability": *[_type == "availability" && references(^._id)][0]{
+        monday,
+        tuesday,
+        wednesday,
+        thursday,
+        friday,
+        saturday,
+        sunday
+      }
     }`,
     { slug }
   );

@@ -1,9 +1,11 @@
-import { defineType, defineField } from 'sanity';
+import { defineField, defineType } from 'sanity';
+import { Clock3 } from 'lucide-react';
 
-export const availability = defineType({
+export default defineType({
   name: 'availability',
   title: 'Weekly Availability',
   type: 'document',
+  icon: Clock3,
   fields: [
     defineField({
       name: 'doctor',
@@ -12,23 +14,77 @@ export const availability = defineType({
       to: [{ type: 'doctor' }],
       validation: Rule => Rule.required(),
     }),
-    ...['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day =>
-      defineField({
-        name: day,
-        title: day.charAt(0).toUpperCase() + day.slice(1),
-        type: 'array',
-        of: [{ type: 'string' }],
-        description: 'List of available 1-hour slots in 24h format (e.g. 10:00, 15:00)',
-      })
-    ),
+    defineField({
+      name: 'monday',
+      title: 'Monday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'tuesday',
+      title: 'Tuesday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'wednesday',
+      title: 'Wednesday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'thursday',
+      title: 'Thursday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'friday',
+      title: 'Friday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'saturday',
+      title: 'Saturday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'sunday',
+      title: 'Sunday',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags',
+      },
+    }),
   ],
   preview: {
     select: {
       title: 'doctor.name',
     },
-    prepare({ title }) {
+    prepare(selection) {
       return {
-        title: `Weekly Slots for ${title}`,
+        title: `Availability — ${selection.title}`,
       };
     },
   },

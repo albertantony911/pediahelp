@@ -6,6 +6,8 @@ import { draftMode } from "next/headers";
 import { SanityLive } from "@/sanity/lib/live";
 import { CookieConsent } from '@/components/blocks/CookieConsent';
 import Head from "next/head";
+import { Toaster } from 'sonner';
+
 
 export default async function MainLayout({
   children,
@@ -19,7 +21,7 @@ export default async function MainLayout({
       </Head>
 
       <Header />
-      <main>{children}</main>
+      <main>{children}<Toaster richColors position="top-center" /></main>
       <SanityLive />
       {(await draftMode()).isEnabled && (
         <>

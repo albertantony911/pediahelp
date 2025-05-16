@@ -1,4 +1,5 @@
 import { type SchemaTypeDefinition } from "sanity";
+
 // documents
 import page from "./schemas/documents/page";
 import post from "./schemas/documents/post";
@@ -12,8 +13,8 @@ import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
 import specialities from './schemas/documents/specialities';
 import { booking } from './schemas/documents/booking';
-import { availability } from './schemas/documents/availability';
-import { leave } from './schemas/documents/leave';
+import availability from './schemas/documents/availability';
+import  leave  from './schemas/documents/leave';
 
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
@@ -21,6 +22,7 @@ import link from "./schemas/blocks/shared/link";
 import { colorVariant } from "./schemas/blocks/shared/color-variant";
 import { buttonVariant } from "./schemas/blocks/shared/button-variant";
 import sectionPadding from "./schemas/blocks/shared/section-padding";
+
 // Schema UI objects
 import hero1 from "./schemas/blocks/hero/hero-1";
 import hero2 from "./schemas/blocks/hero/hero-2";
@@ -64,16 +66,19 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     review,
     comment,
     blogQuestion,
-    waveDividerVariant, // Add waveDividerVariant document
-    specialities, 
+    waveDividerVariant,
+    specialities,
+    booking,
     availability,
     leave,
+    
     // shared objects
     blockContent,
     link,
     colorVariant,
     buttonVariant,
     sectionPadding,
+    
     // blocks
     hero1,
     hero2,
@@ -101,6 +106,6 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     sectionBlock,
     specialtyCard,
     contactForm,
-    waveDivider, // Add waveDivider block
+    waveDivider,
   ],
 };

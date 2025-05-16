@@ -1,6 +1,7 @@
 import { defineType, defineField } from 'sanity';
 
-export const leave = defineType({
+// Change export style to match your other schema files
+const leave = defineType({
   name: 'leave',
   title: 'Doctor Leave',
   type: 'document',
@@ -29,7 +30,8 @@ export const leave = defineType({
       title: 'Unavailable Time Slots (if partial)',
       type: 'array',
       of: [{ type: 'string' }],
-      hidden: ({ parent }) => parent?.isFullDay === true,
+      // 🔥 Comment this out temporarily
+      // hidden: ({ parent }) => parent?.isFullDay === true,
     }),
   ],
   preview: {
@@ -45,3 +47,6 @@ export const leave = defineType({
     },
   },
 });
+
+// Export as default to match the import pattern used in schema.ts
+export default leave;

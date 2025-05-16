@@ -1,9 +1,12 @@
 import { defineField, defineType } from 'sanity';
+import { CalendarCheck2 } from 'lucide-react';
 
 export const booking = defineType({
   name: 'booking',
-  title: 'Booking',
+  title: 'Bookings',
   type: 'document',
+  icon: CalendarCheck2,
+
   fields: [
     defineField({
       name: 'doctor',
@@ -14,19 +17,19 @@ export const booking = defineType({
     }),
     defineField({
       name: 'slot',
-      title: 'Slot Time',
+      title: 'Booked Slot (ISO)',
       type: 'datetime',
       validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'patientName',
-      title: 'Parent Name',
+      title: "Parent's Name",
       type: 'string',
       validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'childName',
-      title: 'Child Name',
+      title: "Child's Name",
       type: 'string',
       validation: Rule => Rule.required(),
     }),
@@ -35,48 +38,68 @@ export const booking = defineType({
       title: 'Phone Number',
       type: 'string',
       validation: Rule =>
-        Rule.regex(/^\+91\d{10}$/).error('Must start with +91 and be 10 digits'),
+        Rule.regex(/^\+91[0-9]{10}$/).error('Must start with +91 and contain exactly 10 digits'),
     }),
     defineField({
       name: 'email',
-      title: 'Email',
+      title: 'Email Address',
       type: 'string',
-      validation: Rule => Rule.email().required(),
+      validation: Rule => Rule.email(),
+    }),
+    defineField({
+      name: 'otp',
+      title: 'OTP (Internal)',
+      type: 'string',
+      hidden: true,
     }),
     defineField({
       name: 'status',
       title: 'Booking Status',
       type: 'string',
       options: {
-        list: ['pending', 'paid', 'cancelled'],
-        layout: 'radio',
+        list: ['pending', 'verified', 'paid', 'cancelled'],
+        layout: 'dropdown',
       },
       initialValue: 'pending',
+      validation: Rule => Rule.required(),
     }),
     defineField({
-      name: 'paymentId',
-      title: 'Razorpay Payment ID',
+      name: 'razorpayOrderId',
+      title: 'Razorpay Order ID',
       type: 'string',
     }),
     defineField({
-      name: 'createdAt',
-      title: 'Created At',
+      name: 'confirmedAt',
+      title: 'Confirmed At',
       type: 'datetime',
-      readOnly: true,
-      initialValue: () => new Date().toISOString(),
+    }),
+    defineField({
+      name: 'cancelReason',
+      title: 'Cancel Reason (optional)',
+      type: 'string',
+    }),
+    defineField({
+      name: 'notes',
+      title: 'Internal Notes (optional)',
+      type: 'text',
     }),
   ],
 
   preview: {
     select: {
-      title: 'childName',
+      title: 'patientName',
       subtitle: 'slot',
-      media: 'doctor.photo',
+      doctor: 'doctor.name',
     },
-    prepare({ title, subtitle }) {
+    prepare({ title, subtitle, doctor }) {
+      const formattedDate = new Date(subtitle).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
       return {
-        title: `Booking for ${title}`,
-        subtitle: new Date(subtitle).toLocaleString(),
+        title: `${title} (${doctor})`,
+        subtitle: `Slot: ${formattedDate}`,
       };
     },
   },

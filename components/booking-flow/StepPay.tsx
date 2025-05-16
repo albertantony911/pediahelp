@@ -12,7 +12,7 @@ export default function StepPay() {
       <button
         onClick={() => {
           // simulate payment
-          setStep(4);
+          setStep(3);
         }}
         className="btn"
       >

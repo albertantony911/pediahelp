@@ -4,6 +4,9 @@ import {
   BookA,
   Tag,
   User,
+  Clock3,
+  CalendarX2,
+  CalendarCheck2,
   ListCollapse,
   Quote,
   Stethoscope,
@@ -72,6 +75,33 @@ export const structure = (S: any, context: any) =>
         S,
         context,
       }),
+      // 🗓 Doctor Dashboard
+      S.listItem()
+      .title('Doctor Dashboard')
+      .icon(Stethoscope) // or another icon you prefer
+      .child(
+        S.list()
+          .title('Doctor Dashboard')
+          .items([
+            S.listItem()
+              .title('Weekly Availability')
+              .icon(Clock3)
+              .schemaType('availability')
+              .child(S.documentTypeList('availability').title('Weekly Availability')),
+
+            S.listItem()
+              .title('Leave Dates')
+              .icon(CalendarX2)
+              .schemaType('leave')
+              .child(S.documentTypeList('leave').title('Doctor Leave Dates')),
+
+            S.listItem()
+              .title('Bookings')
+              .icon(CalendarCheck2)
+              .schemaType('booking')
+              .child(S.documentTypeList('booking').title('All Bookings')),
+          ])
+      ),
 
       // 💬 Reviews
       orderableDocumentListDeskItem({

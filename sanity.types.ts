@@ -920,6 +920,31 @@ export type Availability = {
   sunday?: Array<string>;
 };
 
+export type Booking = {
+  _id: string;
+  _type: "booking";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  doctor?: {
+    _ref: string;
+    _type: "reference";
+    _weak?: boolean;
+    [internalGroqTypeReferenceTo]?: "doctor";
+  };
+  slot?: string;
+  patientName?: string;
+  childName?: string;
+  phone?: string;
+  email?: string;
+  otp?: string;
+  status?: "pending" | "verified" | "paid" | "cancelled";
+  razorpayOrderId?: string;
+  confirmedAt?: string;
+  cancelReason?: string;
+  notes?: string;
+};
+
 export type WaveDividerVariant = {
   _id: string;
   _type: "waveDividerVariant";
@@ -1384,7 +1409,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | WaveDivider | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | Specialities | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | WaveDivider | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | Specialities | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery
