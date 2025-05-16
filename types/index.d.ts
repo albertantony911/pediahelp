@@ -126,3 +126,9 @@ export type BlogPreview = {
   categories?: Array<{ _id: string; title?: string | null }>;
 };
 
+
+export type SomeType = string; // Existing content (if any)
+
+declare global {
+  var tempOtps: Record<string, string> | undefined;
+}

@@ -6,69 +6,78 @@ export const booking = defineType({
   type: 'document',
   fields: [
     defineField({
-      name: 'bookingToken',
-      title: 'Booking Token',
-      type: 'string',
-      readOnly: true,
+      name: 'doctor',
+      title: 'Doctor',
+      type: 'reference',
+      to: [{ type: 'doctor' }],
+      validation: Rule => Rule.required(),
     }),
     defineField({
-      name: 'status',
-      title: 'Status',
-      type: 'string',
-      options: {
-        list: [
-          { title: 'Awaiting Verification', value: 'awaiting_verification' },
-          { title: 'Confirmed', value: 'confirmed' },
-          { title: 'Cancelled', value: 'cancelled' },
-          { title: 'Expired', value: 'expired' },
-        ],
-      },
-      initialValue: 'awaiting_verification',
-    }),
-    defineField({
-      name: 'doctorSlug',
-      title: 'Doctor Slug',
-      type: 'string',
-    }),
-    defineField({
-      name: 'parentName',
-      title: "Parent's Name",
-      type: 'string',
+      name: 'slot',
+      title: 'Slot Time',
+      type: 'datetime',
+      validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'patientName',
-      title: "Child's Name",
+      title: 'Parent Name',
       type: 'string',
+      validation: Rule => Rule.required(),
     }),
     defineField({
-      name: 'email',
-      title: 'Email',
+      name: 'childName',
+      title: 'Child Name',
       type: 'string',
+      validation: Rule => Rule.required(),
     }),
     defineField({
       name: 'phone',
       title: 'Phone Number',
       type: 'string',
+      validation: Rule =>
+        Rule.regex(/^\+91\d{10}$/).error('Must start with +91 and be 10 digits'),
     }),
     defineField({
-      name: 'date',
-      title: 'Appointment Date',
+      name: 'email',
+      title: 'Email',
       type: 'string',
+      validation: Rule => Rule.email().required(),
     }),
     defineField({
-      name: 'time',
-      title: 'Appointment Time',
+      name: 'status',
+      title: 'Booking Status',
       type: 'string',
+      options: {
+        list: ['pending', 'paid', 'cancelled'],
+        layout: 'radio',
+      },
+      initialValue: 'pending',
     }),
     defineField({
-      name: 'zcalEventId',
-      title: 'Zcal Event ID',
+      name: 'paymentId',
+      title: 'Razorpay Payment ID',
       type: 'string',
     }),
     defineField({
       name: 'createdAt',
       title: 'Created At',
       type: 'datetime',
+      readOnly: true,
+      initialValue: () => new Date().toISOString(),
     }),
   ],
+
+  preview: {
+    select: {
+      title: 'childName',
+      subtitle: 'slot',
+      media: 'doctor.photo',
+    },
+    prepare({ title, subtitle }) {
+      return {
+        title: `Booking for ${title}`,
+        subtitle: new Date(subtitle).toLocaleString(),
+      };
+    },
+  },
 });

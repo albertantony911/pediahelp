@@ -158,6 +158,21 @@ export default defineType({
       title: 'External Doctor API ID (for later SaaS integration)',
       type: 'string',
     }),
+    defineField({
+    name: 'timezone',
+    title: 'Doctor Timezone',
+    type: 'string',
+    initialValue: 'Asia/Kolkata',
+    options: {
+      list: [
+        { title: 'India Standard Time (IST)', value: 'Asia/Kolkata' },
+        { title: 'Dubai Time', value: 'Asia/Dubai' },
+        { title: 'London Time', value: 'Europe/London' },
+        { title: 'New York Time', value: 'America/New_York' },
+      ],
+    },
+    description: 'Used for converting patient slots into doctor timezone in notifications.',
+  }),
   ],
 
   preview: {

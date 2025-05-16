@@ -1,0 +1,1 @@
+{"event":"order.paid","payload":{"order":{"entity":{"id":"order_12345","receipt":"booking_98765","amount":1000,"currency":"INR","status":"paid","created_at":1621249200}}}}
