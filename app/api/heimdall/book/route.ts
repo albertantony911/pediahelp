@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  // Generate OTP
-  const otp = otpGenerator.generate(6, {
+// Generate OTP
+const otp = otpGenerator.generate(6, {
   upperCaseAlphabets: false,
+  lowerCaseAlphabets: false,
   specialChars: false,
   digits: true,
 });
@@ -49,3 +50,4 @@ export async function POST(req: NextRequest) {
   console.log("Incoming Booking Payload:", body);
   return NextResponse.json({ bookingId: booking._id, otp }); // ⚠️ Return OTP only in dev!
 }
+

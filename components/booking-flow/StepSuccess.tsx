@@ -1,20 +1,53 @@
+// Refactored StepSuccess.tsx
 'use client';
 
 import { useBookingStore } from '@/store/bookingStore';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function StepSuccess() {
   const {
     selectedDoctor,
     selectedSlot,
+    confirmedBookingId,
     reset,
   } = useBookingStore();
+
+  const [notified, setNotified] = useState(false);
 
   const formattedDate = selectedSlot
     ? format(new Date(selectedSlot), "EEE, MMM d yyyy 'at' h:mm a")
     : '';
+
+  useEffect(() => {
+    const notify = async () => {
+      if (!confirmedBookingId || notified) return;
+
+      try {
+        const res = await fetch('/api/heimdall/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: confirmedBookingId }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          toast.success('Confirmation sent via Email, SMS, WhatsApp');
+        } else {
+          toast.warning('Booking succeeded, but notification failed');
+        }
+      } catch (err) {
+        toast.error('Notification error');
+      }
+
+      setNotified(true);
+    };
+
+    notify();
+  }, [confirmedBookingId, notified]);
 
   const handleDownloadICS = () => {
     if (!selectedDoctor || !selectedSlot) return;
@@ -30,7 +63,7 @@ export default function StepSuccess() {
       `DTSTART:${start}`,
       `DTEND:${end}`,
       `SUMMARY:${title}`,
-      `DESCRIPTION:Appointment via Pediahelp`,
+      `DESCRIPTION:Appointment via PediaHelp`,
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\n');
@@ -45,7 +78,7 @@ export default function StepSuccess() {
   };
 
   return (
-    <div className="text-center space-y-6">
+    <div className="text-center space-y-6 animate-in fade-in duration-700">
       <CheckCircle2 className="mx-auto text-green-600 w-16 h-16" />
       <h2 className="text-2xl font-bold">Booking Confirmed!</h2>
       <p className="text-muted-foreground">We’ve sent a confirmation to your email and phone.</p>
@@ -61,7 +94,7 @@ export default function StepSuccess() {
               />
             )}
             <div>
-              <div className="font-medium">{selectedDoctor.name}</div>
+              <div className="font-medium text-lg">{selectedDoctor.name}</div>
               <div className="text-sm text-muted-foreground">{formattedDate}</div>
               <div className="text-sm font-semibold mt-1">Fee: ₹{selectedDoctor.appointmentFee}</div>
             </div>

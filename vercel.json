@@ -1,18 +1,8 @@
 {
-  "routes": [
+  "crons": [
     {
-      "src": "/api/payment/razorpay-webhook",
-      "methods": ["POST"],
-      "headers": {
-        "x-vercel-raw-body": "true"
-      }
-    },
-    {
-      "src": "/api/zcal-webhook",
-      "methods": ["POST"],
-      "headers": {
-        "x-vercel-raw-body": "true"
-      }
+      "path": "/api/heimdall/reminder",
+      "schedule": "0 * * * *"
     }
   ]
 }
