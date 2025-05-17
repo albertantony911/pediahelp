@@ -115,40 +115,6 @@ export type SpecialtyCard = {
     _type: "block";
     _key: string;
   }>;
-  cards?: Array<{
-    name?: string;
-    image?: {
-      asset?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-      };
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      alt?: string;
-      _type: "image";
-    };
-    link?: {
-      hasLink?: boolean;
-      linkType?: "internal" | "external";
-      internalLink?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "page";
-      } | {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "specialities";
-      };
-      externalUrl?: string;
-    };
-    _type: "card";
-    _key: string;
-  }>;
 };
 
 export type SectionBlock = {
@@ -993,6 +959,67 @@ export type SpecialtyCards = {
   }>;
 };
 
+export type Specialities = {
+  _id: string;
+  _type: "specialities";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  title?: string;
+  slug?: Slug;
+  blocks?: Array<{
+    _key: string;
+  } & Hero1 | {
+    _key: string;
+  } & Hero2 | {
+    _key: string;
+  } & SectionHeader | {
+    _key: string;
+  } & SplitRow | {
+    _key: string;
+  } & GridRow | {
+    _key: string;
+  } & Carousel1 | {
+    _key: string;
+  } & Carousel2 | {
+    _key: string;
+  } & TimelineRow | {
+    _key: string;
+  } & Cta1 | {
+    _key: string;
+  } & LogoCloud1 | {
+    _key: string;
+  } & Faqs | {
+    _key: string;
+  } & FormNewsletter | {
+    _key: string;
+  } & ContactForm | {
+    _key: string;
+  } & AllPosts | {
+    _key: string;
+  } & SectionBlock | {
+    _key: string;
+  } & SpecialtyCard | {
+    _key: string;
+  } & WaveDivider>;
+  meta_title?: string;
+  meta_description?: string;
+  noindex?: boolean;
+  ogImage?: {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  orderRank?: string;
+};
+
 export type WaveDividerVariant = {
   _id: string;
   _type: "waveDividerVariant";
@@ -1325,67 +1352,6 @@ export type Page = {
   orderRank?: string;
 };
 
-export type Specialities = {
-  _id: string;
-  _type: "specialities";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  title?: string;
-  slug?: Slug;
-  blocks?: Array<{
-    _key: string;
-  } & Hero1 | {
-    _key: string;
-  } & Hero2 | {
-    _key: string;
-  } & SectionHeader | {
-    _key: string;
-  } & SplitRow | {
-    _key: string;
-  } & GridRow | {
-    _key: string;
-  } & Carousel1 | {
-    _key: string;
-  } & Carousel2 | {
-    _key: string;
-  } & TimelineRow | {
-    _key: string;
-  } & Cta1 | {
-    _key: string;
-  } & LogoCloud1 | {
-    _key: string;
-  } & Faqs | {
-    _key: string;
-  } & FormNewsletter | {
-    _key: string;
-  } & ContactForm | {
-    _key: string;
-  } & AllPosts | {
-    _key: string;
-  } & SectionBlock | {
-    _key: string;
-  } & SpecialtyCard | {
-    _key: string;
-  } & WaveDivider>;
-  meta_title?: string;
-  meta_description?: string;
-  noindex?: boolean;
-  ogImage?: {
-    asset?: {
-      _ref: string;
-      _type: "reference";
-      _weak?: boolean;
-      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-    };
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  orderRank?: string;
-};
-
 export type SanityImageCrop = {
   _type: "sanity.imageCrop";
   top?: number;
@@ -1457,7 +1423,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | WaveDivider | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | SpecialtyCards | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | Specialities | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | WaveDivider | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery

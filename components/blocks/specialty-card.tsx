@@ -24,36 +24,38 @@ export interface SpecialtyCardProps {
     _type: 'block';
     _key: string;
   }[] | null;
-  cards?: Array<{
-    _key: string;
-    name?: string | null;
-    image?: {
-      alt?: string | null;
-      asset?: {
-        _id: string;
-        url: string | null;
-        mimeType: string | null;
-        metadata?: {
-          lqip?: string | null;
-          dimensions?: {
-            width: number | null;
-            height: number | null;
+  cardsSet?: {
+    cards: Array<{
+      _key: string;
+      name?: string | null;
+      image?: {
+        alt?: string | null;
+        asset?: {
+          _id: string;
+          url: string | null;
+          mimeType: string | null;
+          metadata?: {
+            lqip?: string | null;
+            dimensions?: {
+              width: number | null;
+              height: number | null;
+            } | null;
           } | null;
         } | null;
       } | null;
-    } | null;
-    link?: {
-      hasLink?: boolean | null;
-      linkType?: 'internal' | 'external' | null;
-      internalLink?: {
-        _type?: 'page' | 'specialities' | null;
-        slug?: {
-          current?: string | null;
+      link?: {
+        hasLink?: boolean | null;
+        linkType?: 'internal' | 'external' | null;
+        internalLink?: {
+          _type?: 'page' | 'specialities' | null;
+          slug?: {
+            current?: string | null;
+          } | null;
         } | null;
+        externalUrl?: string | null;
       } | null;
-      externalUrl?: string | null;
-    } | null;
-  }> | null;
+    }>;
+  } | null;
 }
 
 export default function SpecialtyCard({
@@ -61,8 +63,9 @@ export default function SpecialtyCard({
   tagLine,
   title,
   body,
-  cards,
+  cardsSet,
 }: SpecialtyCardProps) {
+  const cards = cardsSet?.cards || [];
   const [isTouched, setIsTouched] = useState<Record<string, boolean>>({});
 
   const handleTouchStart = (key: string) => {
@@ -91,7 +94,7 @@ export default function SpecialtyCard({
       </Theme>
 
       {/* Card Section */}
-      {cards && cards.length > 0 && (
+      {cards.length > 0 && (
         <Theme variant={theme || 'white'} disableContainer className="!text-inherit">
           <div className="flex flex-wrap justify-center lg:gap-16 gap-5 px-8 pb-10 max-w-[1150px] mx-auto">
             {cards.map((card) => {
@@ -99,7 +102,10 @@ export default function SpecialtyCard({
 
               const lqip = card.image.asset.metadata?.lqip || '';
               const hasLink = card.link?.hasLink === true;
-              const isInternal = hasLink && card.link?.linkType === 'internal' && card.link?.internalLink?.slug?.current;
+              const isInternal =
+                hasLink &&
+                card.link?.linkType === 'internal' &&
+                card.link?.internalLink?.slug?.current;
 
               const commonProps = {
                 key: card._key,
@@ -134,7 +140,6 @@ export default function SpecialtyCard({
                 return <div {...commonProps}>{image}</div>;
               }
 
-              // Compute href inside the hasLink block to ensure it's a string
               const href = isInternal
                 ? card.link?.internalLink?._type === 'specialities'
                   ? `/specialities/${card.link?.internalLink?.slug?.current}`
@@ -142,7 +147,7 @@ export default function SpecialtyCard({
                 : card.link?.externalUrl || '#';
 
               const linkProps = {
-                href, // Now guaranteed to be a string
+                href,
                 ...(isInternal
                   ? {}
                   : {
