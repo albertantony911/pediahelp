@@ -12,6 +12,7 @@ import review from './schemas/documents/review';
 import comment from './schemas/documents/comment';
 import { blogQuestion } from './schemas/documents/blogQuestion';
 import specialities from './schemas/documents/specialities';
+import specialtyCards from './schemas/documents/specialtyCards';
 import { booking } from './schemas/documents/booking';
 import availability from './schemas/documents/availability';
 import  leave  from './schemas/documents/leave';
@@ -68,6 +69,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     blogQuestion,
     waveDividerVariant,
     specialities,
+    specialtyCards,
     booking,
     availability,
     leave,

@@ -19,6 +19,13 @@ const specialtyCard = defineType({
       },
     }),
     defineField({
+      name: 'cardsSet',
+      title: 'Cards Reference',
+      type: 'reference',
+      to: [{ type: 'specialtyCards' }],
+      description: 'Pick the shared Specialty Cards document',
+    }),
+    defineField({
       name: 'tagLine',
       title: 'Tagline',
       type: 'string',

@@ -9,34 +9,20 @@ export const specialtyCardQuery = groq`
     tagLine,
     title,
     body,
-    cards[] {
-      _key,
-      name,
-      image {
-        asset->{
-          _id,
-          url,
-          mimeType,
-          metadata {
-            lqip,
-            dimensions {
-              width,
-              height
-            }
-          }
+    cardsSet-> {
+      cards[] {
+        _key,
+        name,
+        image {
+          asset->{ _id, url, mimeType, metadata { lqip, dimensions } },
+          alt
         },
-        alt
-      },
-      link {
-        hasLink,
-        linkType,
-        internalLink->{
-          _type,
-          slug {
-            current
-          }
-        },
-        externalUrl
+        link {
+          hasLink,
+          linkType,
+          internalLink->{ _type, slug { current } },
+          externalUrl
+        }
       }
     }
   }
