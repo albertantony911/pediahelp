@@ -1,9 +1,9 @@
-// store/bookingStore.ts
 'use client';
 
 import { create } from 'zustand';
+import { v4 as uuidv4 } from 'uuid';
 
-export type BookingStep = 0 | 1 | 2 | 3; // Step 3 = Payment, Step 4 = Success (optional)
+export type BookingStep = 0 | 1 | 2;
 
 export interface PatientInfo {
   parentName: string;
@@ -32,7 +32,10 @@ export interface BookingStore {
   otpStatus: 'pending' | 'verified' | 'failed';
   razorpayOrderId: string | null;
   confirmedBookingId: string | null;
+  appointmentId: string;
   slotLocked: boolean;
+  otpVerified: boolean;
+  handleSendOtp: () => void;
 
   // Setters
   setStep: (step: BookingStep) => void;
@@ -44,8 +47,11 @@ export interface BookingStore {
   setOtpStatus: (status: BookingStore['otpStatus']) => void;
   setRazorpayOrderId: (id: string | null) => void;
   setConfirmedBookingId: (id: string | null) => void;
+  setAppointmentId: (id: string) => void;
   lockSlot: () => void;
   unlockSlot: () => void;
+  setOtpVerified: (value: boolean) => void;
+  setHandleSendOtp: (fn: () => void) => void;
   reset: () => void;
 }
 
@@ -64,20 +70,24 @@ export const useBookingStore = create<BookingStore>((set) => ({
   otpStatus: 'pending',
   razorpayOrderId: null,
   confirmedBookingId: null,
+  appointmentId: uuidv4(),
   slotLocked: false,
-
+  otpVerified: false,
+  handleSendOtp: () => {},
   setStep: (step) => set({ step }),
   setSelectedDoctor: (doctor) => set({ selectedDoctor: doctor }),
   setSelectedSlot: (slot) => set({ selectedSlot: slot }),
   setAvailability: (data) => set({ availability: data }),
-  setPatient: (info) => set({ patient: info }),
+  setPatient: (info: PatientInfo) => set({ patient: info }),
   setOtp: (otp) => set({ otp }),
   setOtpStatus: (status) => set({ otpStatus: status }),
   setRazorpayOrderId: (id) => set({ razorpayOrderId: id }),
   setConfirmedBookingId: (id) => set({ confirmedBookingId: id }),
+  setAppointmentId: (id) => set({ appointmentId: id }),
   lockSlot: () => set({ slotLocked: true }),
   unlockSlot: () => set({ slotLocked: false }),
-
+  setOtpVerified: (value) => set({ otpVerified: value }),
+  setHandleSendOtp: (fn) => set({ handleSendOtp: fn }),
   reset: () =>
     set({
       step: 0,
@@ -94,6 +104,9 @@ export const useBookingStore = create<BookingStore>((set) => ({
       otpStatus: 'pending',
       razorpayOrderId: null,
       confirmedBookingId: null,
+      appointmentId: uuidv4(),
       slotLocked: false,
+      otpVerified: false,
+      handleSendOtp: () => {},
     }),
 }));

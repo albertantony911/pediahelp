@@ -132,3 +132,8 @@ export type SomeType = string; // Existing content (if any)
 declare global {
   var tempOtps: Record<string, string> | undefined;
 }
+
+declare module 'html2pdf.js' {
+  const html2pdf: any;
+  export default html2pdf;
+}
