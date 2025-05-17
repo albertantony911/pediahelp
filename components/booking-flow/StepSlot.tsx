@@ -24,6 +24,7 @@ const PREDEFINED_SLOTS = Array.from({ length: 16 }, (_, i) => {
   return `${hour.toString().padStart(2, '0')}:00`;
 });
 
+
 // Types
 interface BookingStore {
   selectedDoctor: { _id: string; name?: string; photo?: { asset?: { url?: string } } } | null;
