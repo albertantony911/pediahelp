@@ -291,6 +291,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.18
         version: 18.3.6(@types/react@18.3.20)
+      '@types/react-window':
+        specifier: ^1.8.8
+        version: 1.8.8
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
@@ -4062,6 +4065,9 @@ packages:
 
   '@types/react-is@19.0.0':
     resolution: {integrity: sha512-71dSZeeJ0t3aoPyY9x6i+JNSvg5m9EF2i2OlSZI5QoJuI8Ocgor610i+4A10TQmURR+0vLwcVCEYFpXdzM1Biw==}
+
+  '@types/react-window@1.8.8':
+    resolution: {integrity: sha512-8Ls660bHR1AUA2kuRvVG9D/4XpRC6wjAaPT9dil7Ckc76eP9TKWZwwmgfq8Q1LANX3QNDnoU4Zp48A3w+zK69Q==}
 
   '@types/react@18.3.20':
     resolution: {integrity: sha512-IPaCZN7PShZK/3t6Q87pfTkRm6oLTd4vztyoj+cbHUF1g3FfVb2tFIL79uCRKEfv16AhqDMBywP2VW3KIZUvcg==}
@@ -13011,6 +13017,10 @@ snapshots:
       '@types/react': 18.3.20
 
   '@types/react-is@19.0.0':
+    dependencies:
+      '@types/react': 18.3.20
+
+  '@types/react-window@1.8.8':
     dependencies:
       '@types/react': 18.3.20
 

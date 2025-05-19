@@ -1,15 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import algoliasearch from 'algoliasearch/lite';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
-import { debounce } from 'lodash';
 import type { Doctor } from '@/types';
 
 interface DrawerSearchProps {
-  allDoctors: Doctor[];
+  allDoctors: Doctor[]; // used as fallback only
   onFilterChange: (filtered: Doctor[]) => void;
 }
+
+const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!;
+const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!;
+const ALGOLIA_INDEX = 'doctors_index';
+
+const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+const index = algoliaClient.initIndex(ALGOLIA_INDEX);
 
 export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: DrawerSearchProps) {
   const [query, setQuery] = useState('');
@@ -19,28 +26,32 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
 
   const searchRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLUListElement>(null);
 
-  const debouncedSearch = useRef(
-    debounce((searchText: string) => {
-      const searchTerms = searchText.toLowerCase().trim().split(/\s+/);
-      const results = allDoctors.filter(doctor =>
-        searchTerms.every(term => {
-          const nameMatch = doctor.name && doctor.name.toLowerCase().includes(term);
-          const specialtyMatch = doctor.specialty && doctor.specialty.toLowerCase().includes(term);
-          const keywordsMatch = doctor.searchKeywords?.some(keyword =>
-            keyword.toLowerCase().includes(term)
-          );
-          const expertiseMatch = doctor.expertise?.some(exp =>
-            exp.toLowerCase().includes(term)
-          );
-          return nameMatch || specialtyMatch || keywordsMatch || expertiseMatch;
-        })
-      );
-      setFilteredDoctors(results);
-      onFilterChange(results);
-    }, 200)
-  ).current;
+  const performSearch = async (value: string) => {
+    if (!value.trim()) {
+      setFilteredDoctors([]);
+      onFilterChange([]);
+      return;
+    }
+
+    try {
+      const result = await index.search<Doctor>(value, {
+        hitsPerPage: 10,
+      });
+
+      const mappedHits = result.hits.map((hit) => ({
+        ...hit,
+        _id: hit.objectID,
+      }));
+
+      setFilteredDoctors(mappedHits);
+      onFilterChange(mappedHits);
+    } catch (err) {
+      console.error('Algolia search error:', err);
+      setFilteredDoctors([]);
+      onFilterChange([]);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -48,40 +59,23 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
     setShowSuggestions(!!value.trim());
     setActiveSuggestion(-1);
 
-    if (value === '') {
-      setFilteredDoctors([]);
-      onFilterChange([]);
-    } else {
-      debouncedSearch(value);
-    }
-  };
-
-  const handleSearchSubmit = () => {
-    if (!query.trim()) return;
-    debouncedSearch(query.trim());
-    setShowSuggestions(false);
+    performSearch(value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestion(prev => Math.min(prev + 1, filteredDoctors.length - 1));
+      setActiveSuggestion((prev) => Math.min(prev + 1, filteredDoctors.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveSuggestion(prev => Math.max(prev - 1, 0));
+      setActiveSuggestion((prev) => Math.max(prev - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (activeSuggestion >= 0 && filteredDoctors[activeSuggestion]) {
         handleSuggestionClick(filteredDoctors[activeSuggestion]);
-      } else {
-        handleSearchSubmit();
       }
     } else if (e.key === 'Escape') {
-      setQuery('');
-      setShowSuggestions(false);
-      setFilteredDoctors([]);
-      onFilterChange([]);
-      searchRef.current?.blur();
+      clearSearch();
     }
   };
 
@@ -92,7 +86,7 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
     setShowSuggestions(false);
   };
 
-  const handleClearSearch = () => {
+  const clearSearch = () => {
     setQuery('');
     setShowSuggestions(false);
     setFilteredDoctors([]);
@@ -156,7 +150,7 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
 
             {query.trim() && (
               <button
-                onClick={handleClearSearch}
+                onClick={clearSearch}
                 className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2"
                 aria-label="Clear search"
               >
@@ -168,12 +162,7 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
 
         {showSuggestions && query.trim() && (
           <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
-            <ul
-              ref={suggestionsRef}
-              id="suggestions-list"
-              role="listbox"
-              className="p-2"
-            >
+            <ul id="suggestions-list" role="listbox" className="p-2">
               {filteredDoctors.length === 0 ? (
                 <li className="py-4 text-center text-gray-500 dark:text-gray-400">
                   No matching doctors found.

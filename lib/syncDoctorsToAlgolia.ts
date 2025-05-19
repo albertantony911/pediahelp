@@ -1,5 +1,6 @@
 import algoliasearch from 'algoliasearch';
 import { createClient } from '@sanity/client';
+import { calculateAverageRating } from './ratingUtils';
 import 'dotenv/config';
 
 const sanityClient = createClient({
@@ -21,29 +22,58 @@ export async function syncDoctorsToAlgolia() {
     *[_type == "doctor"] | order(orderRank asc) {
       _id,
       name,
+      slug,
+      photo { asset->{ _id, url } },
       specialty,
-      slug { current },
-      photo { asset->{ url } },
+      designation,
+      location,
+      languages,
       appointmentFee,
-      experienceYears,
+      nextAvailableSlot,
+      about,
+      whatsappNumber,
       expertise,
+      experienceYears,
       searchKeywords,
-      languages
+      averageRating,
+      bookingId,
+      externalApiId,
+      authoredArticles[]->{ title, slug },
+      "availability": *[_type == "availability" && references(^._id)][0]{ 
+        monday, tuesday, wednesday, thursday, friday, saturday, sunday
+      },
+      "reviews": *[_type == "review" && references(^._id) && approved == true]{ rating }
     }
   `);
 
-const records = doctors.map((doc: any) => ({
-  objectID: doc._id, 
-  name: doc.name,
-  slug: doc.slug.current,
-  specialty: doc.specialty,
-  photoUrl: doc.photo?.asset?.url ?? '',
-  appointmentFee: doc.appointmentFee,
-  experienceYears: doc.experienceYears,
-  languages: doc.languages ?? [],
-  expertise: doc.expertise ?? [],
-  searchKeywords: doc.searchKeywords ?? [],
-}));
+  const records = doctors.map((doc: any) => {
+    const { averageRating, reviewCount } = calculateAverageRating(doc.reviews || []);
+
+    return {
+      objectID: doc._id,
+      name: doc.name,
+      slug: doc.slug?.current,
+      photoUrl: doc.photo?.asset?.url || '',
+      photoId: doc.photo?.asset?._id || '',
+      specialty: doc.specialty,
+      designation: doc.designation,
+      location: doc.location,
+      languages: doc.languages || [],
+      appointmentFee: doc.appointmentFee,
+      nextAvailableSlot: doc.nextAvailableSlot || '',
+      about: doc.about || '',
+      whatsappNumber: doc.whatsappNumber || '',
+      expertise: doc.expertise || [],
+      experienceYears: doc.experienceYears || 0,
+      searchKeywords: doc.searchKeywords || [],
+      bookingId: doc.bookingId || '',
+      externalApiId: doc.externalApiId || '',
+      averageRating: doc.averageRating ?? averageRating,
+      reviewCount: reviewCount,
+      authoredArticles: doc.authoredArticles || [],
+      availability: doc.availability || {},
+    };
+  });
 
   await index.saveObjects(records);
 
@@ -51,12 +81,16 @@ const records = doctors.map((doc: any) => ({
     searchableAttributes: [
       'unordered(name)',
       'unordered(specialty)',
+      'unordered(designation)',
+      'unordered(location)',
       'unordered(expertise)',
       'unordered(searchKeywords)',
       'unordered(languages)',
     ],
     attributesForFaceting: ['searchable(specialty)', 'searchable(languages)'],
-    customRanking: ['desc(experienceYears)', 'asc(appointmentFee)'],
+    customRanking: ['desc(experienceYears)', 'desc(averageRating)', 'asc(appointmentFee)'],
     ranking: ['words', 'filters', 'typo', 'attribute', 'proximity', 'exact', 'custom'],
   });
+
+  console.log(`✅ Synced ${records.length} doctors to Algolia`);
 }
