@@ -1,96 +1,62 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import algoliasearch from 'algoliasearch/lite';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchBox, useInstantSearch } from 'react-instantsearch';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
 import type { Doctor } from '@/types';
 
-interface DrawerSearchProps {
-  allDoctors: Doctor[]; // used as fallback only
-  onFilterChange: (filtered: Doctor[]) => void;
+interface Props {
+  allDoctors: Doctor[];
+  onFilterChange: (filteredHits: any[]) => void;
 }
 
-const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!;
-const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!;
-const ALGOLIA_INDEX = 'doctors_index';
-
-const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
-const index = algoliaClient.initIndex(ALGOLIA_INDEX);
-
-export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: DrawerSearchProps) {
-  const [query, setQuery] = useState('');
+export default function DrawerDoctorSearch({ onFilterChange }: Props) {
+  const { query, refine } = useSearchBox();
+  const { results } = useInstantSearch();
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
 
-  const performSearch = async (value: string) => {
-    if (!value.trim()) {
-      setFilteredDoctors([]);
-      onFilterChange([]);
-      return;
+  useEffect(() => {
+    if (results?.hits && Array.isArray(results.hits)) {
+      onFilterChange(results.hits);
     }
-
-    try {
-      const result = await index.search<Doctor>(value, {
-        hitsPerPage: 10,
-      });
-
-      const mappedHits = result.hits.map((hit) => ({
-        ...hit,
-        _id: hit.objectID,
-      }));
-
-      setFilteredDoctors(mappedHits);
-      onFilterChange(mappedHits);
-    } catch (err) {
-      console.error('Algolia search error:', err);
-      setFilteredDoctors([]);
-      onFilterChange([]);
-    }
-  };
+  }, [results, onFilterChange]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    setShowSuggestions(!!value.trim());
+    refine(e.target.value);
+    setShowSuggestions(!!e.target.value.trim());
     setActiveSuggestion(-1);
-
-    performSearch(value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const hits = results?.hits as any[] || [];
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestion((prev) => Math.min(prev + 1, filteredDoctors.length - 1));
+      setActiveSuggestion((prev) => Math.min(prev + 1, hits.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveSuggestion((prev) => Math.max(prev - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (activeSuggestion >= 0 && filteredDoctors[activeSuggestion]) {
-        handleSuggestionClick(filteredDoctors[activeSuggestion]);
+      if (activeSuggestion >= 0 && hits[activeSuggestion]) {
+        refine(hits[activeSuggestion].name);
+        setShowSuggestions(false);
       }
     } else if (e.key === 'Escape') {
-      clearSearch();
+      refine('');
+      setShowSuggestions(false);
+      searchRef.current?.blur();
     }
   };
 
-  const handleSuggestionClick = (doctor: Doctor) => {
-    setQuery(doctor.name || '');
-    setFilteredDoctors([doctor]);
-    onFilterChange([doctor]);
+  const handleClear = () => {
+    refine('');
     setShowSuggestions(false);
-  };
-
-  const clearSearch = () => {
-    setQuery('');
-    setShowSuggestions(false);
-    setFilteredDoctors([]);
-    onFilterChange([]);
   };
 
   return (
@@ -150,7 +116,7 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
 
             {query.trim() && (
               <button
-                onClick={clearSearch}
+                onClick={handleClear}
                 className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2"
                 aria-label="Clear search"
               >
@@ -162,18 +128,26 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
 
         {showSuggestions && query.trim() && (
           <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-3 text-black dark:text-white border border-gray-200 dark:border-zinc-700">
-            <ul id="suggestions-list" role="listbox" className="p-2">
-              {filteredDoctors.length === 0 ? (
+            <ul
+              ref={suggestionsRef}
+              id="suggestions-list"
+              role="listbox"
+              className="p-2"
+            >
+              {(results?.hits as any[])?.length === 0 ? (
                 <li className="py-4 text-center text-gray-500 dark:text-gray-400">
                   No matching doctors found.
                 </li>
               ) : (
-                filteredDoctors.slice(0, 5).map((doctor, index) => {
+                (results?.hits as any[]).slice(0, 5).map((hit, index) => {
                   const isActive = activeSuggestion === index;
                   return (
                     <li
-                      key={doctor.slug?.current || index}
-                      onClick={() => handleSuggestionClick(doctor)}
+                      key={hit.objectID}
+                      onClick={() => {
+                        refine(hit.name);
+                        setShowSuggestions(false);
+                      }}
                       onMouseEnter={() => setActiveSuggestion(index)}
                       className={`p-2 rounded-md cursor-pointer ${
                         isActive
@@ -184,7 +158,7 @@ export default function DrawerDoctorSearch({ allDoctors, onFilterChange }: Drawe
                       aria-selected={isActive}
                     >
                       <div className="truncate font-medium max-w-[200px]">
-                        {doctor.name}
+                        {hit.name}
                       </div>
                     </li>
                   );

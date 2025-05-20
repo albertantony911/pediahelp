@@ -1,21 +1,23 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import Image from 'next/image'
-import { urlFor } from '@/sanity/lib/image'
-import PortableTextRenderer from '@/components/portable-text-renderer'
-import { PAGE_QUERYResult } from '@/sanity.types'
-import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer'
-import { Button } from '@/components/ui/button'
-import { Theme } from '@/components/ui/theme/Theme'
-import { Title, Subtitle, Content } from '@/components/ui/theme/typography'
+import Link from 'next/link';
+import Image from 'next/image';
+import { urlFor } from '@/sanity/lib/image';
+import PortableTextRenderer from '@/components/portable-text-renderer';
+import { PAGE_QUERYResult } from '@/sanity.types';
+import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer';
+import { Button } from '@/components/ui/button';
+import { Theme } from '@/components/ui/theme/Theme';
+import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
+import type { Doctor } from '@/types';
+import { useDoctors } from '@/components/providers/DoctorsProvider';
 
-type LayoutOption = 'image-left' | 'image-right' | null
+type LayoutOption = 'image-left' | 'image-right' | null;
 
 type Hero1Props = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>['blocks']>[number],
   { _type: 'hero-1' }
->
+>;
 
 const Hero1: React.FC<Hero1Props> = ({
   theme,
@@ -29,49 +31,57 @@ const Hero1: React.FC<Hero1Props> = ({
   buttonType,
   customButton,
 }) => {
-  // Desktop layout: true if image is on the left
-  const isImageLeftDesktop = layout === 'image-left'
-
-  // Mobile layout: reverse the desktop layout if reverseOnMobile is true
-  const isImageLeftMobile = reverseOnMobile ? !isImageLeftDesktop : isImageLeftDesktop
+  const isImageLeftDesktop = layout === 'image-left';
+  const isImageLeftMobile = reverseOnMobile ? !isImageLeftDesktop : isImageLeftDesktop;
+  const allDoctors = useDoctors();
 
   return (
     <Theme variant={theme || 'dark-shade'}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-20">
-        {/* Mobile: Image first if isImageLeftMobile is true, else Text first */}
-        <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
-          {isImageLeftMobile && <ImageBlock image={image} />}
-          <TextBlock
-            tagLine={tagLine}
-            title={title}
-            body={body}
-            showButton={showButton}
-            buttonType={buttonType}
-            customButton={customButton}
-          />
-          {!isImageLeftMobile && <ImageBlock image={image} />}
+      <div className="flex flex-col">
+        {/* ✅ Mobile-only SVG logo */}
+        <div className="lg:hidden w-full flex justify-center items-center py-">
+          <img className='h-20 py-3' src="./images/logo.svg" alt="" />
         </div>
 
-        {/* Desktop: Use original layout logic */}
-        <div className="hidden lg:contents">
-          {isImageLeftDesktop && <ImageBlock image={image} />}
-          <TextBlock
-            tagLine={tagLine}
-            title={title}
-            body={body}
-            showButton={showButton}
-            buttonType={buttonType}
-            customButton={customButton}
-          />
-          {!isImageLeftDesktop && <ImageBlock image={image} />}
+        {/* Grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-2">
+          {/* === Mobile layout === */}
+          <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+            {isImageLeftMobile && <ImageBlock image={image} />}
+            <TextBlock
+              tagLine={tagLine}
+              title={title}
+              body={body}
+              showButton={showButton}
+              buttonType={buttonType}
+              customButton={customButton}
+              allDoctors={allDoctors}
+            />
+            {!isImageLeftMobile && <ImageBlock image={image} />}
+          </div>
+
+          {/* === Desktop layout === */}
+          <div className="hidden lg:contents">
+            {isImageLeftDesktop && <ImageBlock image={image} />}
+            <TextBlock
+              tagLine={tagLine}
+              title={title}
+              body={body}
+              showButton={showButton}
+              buttonType={buttonType}
+              customButton={customButton}
+              allDoctors={allDoctors}
+            />
+            {!isImageLeftDesktop && <ImageBlock image={image} />}
+          </div>
         </div>
       </div>
     </Theme>
-  )
-}
+  );
+};
 
 const ImageBlock: React.FC<{ image: any | null }> = ({ image }) => {
-  if (!image?.asset?._id) return null
+  if (!image?.asset?._id) return null;
 
   return (
     <div className="flex flex-col justify-center w-full max-sm:-mx-10 max-sm:w-[calc(100%+5rem)]">
@@ -86,17 +96,26 @@ const ImageBlock: React.FC<{ image: any | null }> = ({ image }) => {
         quality={100}
       />
     </div>
-  )
-}
+  );
+};
 
 const TextBlock: React.FC<{
-  tagLine?: string | null
-  title?: string | null
-  body?: any[] | null
-  showButton?: boolean | null
-  buttonType?: string | null
-  customButton?: { label: string | null; link: string | null; isExternal: boolean | null } | null
-}> = ({ tagLine, title, body, showButton, buttonType, customButton }) => {
+  tagLine?: string | null;
+  title?: string | null;
+  body?: any[] | null;
+  showButton?: boolean | null;
+  buttonType?: string | null;
+  customButton?: { label: string | null; link: string | null; isExternal: boolean | null } | null;
+  allDoctors: Doctor[];
+}> = ({
+  tagLine,
+  title,
+  body,
+  showButton,
+  buttonType,
+  customButton,
+  allDoctors,
+}) => {
   return (
     <div className="flex flex-col justify-center text-left">
       {tagLine && <Subtitle>{tagLine}</Subtitle>}
@@ -109,7 +128,7 @@ const TextBlock: React.FC<{
       {showButton && (
         <div className="mt-4 animate-fade-up [animation-delay:400ms] opacity-0">
           {buttonType === 'primaryCTA' ? (
-            <DoctorSearchDrawer>
+            <DoctorSearchDrawer allDoctors={allDoctors}>
               <Button variant="secondary">Book an Appointment</Button>
             </DoctorSearchDrawer>
           ) : (
@@ -130,7 +149,7 @@ const TextBlock: React.FC<{
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Hero1
+export default Hero1;

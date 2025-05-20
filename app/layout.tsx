@@ -1,30 +1,27 @@
-// app/layout.tsx
-import type { Metadata } from "next"
-import { Nunito_Sans as FontSans } from "next/font/google"
-import { Delius_Unicase as FontSecondary } from "next/font/google"
-import "./globals.css"
-import { cn } from "@/lib/utils"
-import { InstantSearchProvider } from "@/components/providers/InstantSearchProvider"
+import type { Metadata } from "next";
+import { Nunito_Sans as FontSans } from "next/font/google";
+import { Delius_Unicase as FontSecondary } from "next/font/google";
+import "./globals.css";
+import { cn } from "@/lib/utils";
+import { InstantSearchProvider } from "@/components/providers/InstantSearchProvider";
+import { DoctorsProvider } from "@/components/providers/DoctorsProvider";
+import { fetchAllDoctors } from "@/lib/fetchDoctors"; 
 
-
-// Fonts
 const fontSans = FontSans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
-})
+});
 
 const fontSecondary = FontSecondary({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-secondary",
-})
+});
 
-// Environment
-const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production"
-const siteURL = process.env.NEXT_PUBLIC_SITE_URL!
+const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
+const siteURL = process.env.NEXT_PUBLIC_SITE_URL!;
 
-// Metadata
 export const metadata: Metadata = {
   metadataBase: new URL(siteURL),
   title: {
@@ -43,14 +40,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   robots: isProduction ? "index, follow" : "noindex, nofollow",
-}
+};
 
-// Layout
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
+  const allDoctors = await fetchAllDoctors(); // ✅ Fetch once here
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -64,9 +62,11 @@ export default function RootLayout({
         )}
       >
         <InstantSearchProvider>
-    {children}
+          <DoctorsProvider allDoctors={allDoctors}>
+            {children}
+          </DoctorsProvider>
         </InstantSearchProvider>
       </body>
     </html>
-  )
+  );
 }

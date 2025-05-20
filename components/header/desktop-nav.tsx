@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,14 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
+import { useDoctors } from '@/components/providers/DoctorsProvider';
+
+// ----------------- Delayed Action Function -----------------
+
+const delayedAction = (callback: () => void, delay = 150, skipDelay = false) => {
+  if ('vibrate' in navigator) navigator.vibrate([10]);
+  skipDelay ? callback() : setTimeout(callback, delay);
+};
 
 // ----------------- Dropdown Component -----------------
 
@@ -129,7 +138,6 @@ const resourcesList = [
   { name: 'FAQs', href: '/faq' },
 ];
 
-
 const navItems = [
   { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },
@@ -152,6 +160,7 @@ export default function DesktopNav() {
   const navContainerRef = useRef<HTMLDivElement>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { scrollY } = useScroll();
+  const allDoctors = useDoctors();
 
   const scale = useTransform(scrollY, [0, 100], [1, 0.97]);
   const y = useTransform(scrollY, [0, 100], [0, -6]);
@@ -225,9 +234,15 @@ export default function DesktopNav() {
       >
         <Link
           href="/"
-          className="h-12 min-w-[90px] px-6 flex items-center justify-center rounded-full bg-zinc-700 text-[var(--primary)] font-semibold text-sm tracking-widest"
+          className="h-12  px-6 flex items-center justify-center "
         >
-          LOGO
+          <Image
+            src="/images/logo.svg"
+            alt="Logo"
+            width={100}
+            height={50}
+            className="h-12 w-auto"
+          />
         </Link>
 
         <div className="flex gap-6 items-center">
@@ -267,8 +282,13 @@ export default function DesktopNav() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <DoctorSearchDrawer>
-            <Button variant="default" size="default">
+          <DoctorSearchDrawer allDoctors={allDoctors}>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => delayedAction(() => null)}
+              aria-label="Book an Appointment"
+            >
               Book an Appointment
             </Button>
           </DoctorSearchDrawer>
