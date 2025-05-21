@@ -131,25 +131,18 @@ const specialtiesList = [
   { name: 'Endocrinology', href: '/specialities/endocrinology' },
 ];
 
-const resourcesList = [
-  { name: 'Blogs', href: '/blog' },
-  { name: 'Childcare', href: '/blog' },
-  { name: 'Lactation', href: '/blog' },
-  { name: 'FAQs', href: '/faq' },
-];
 
 const navItems = [
   { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },
   { label: 'Consultation', href: '/consultation' },
   { label: 'Specialities', href: '/specialities', dropdown: true },
-  { label: 'Resources', href: '/blog', dropdown: true },
+  { label: 'Resources', href: '/blog'},
   { label: 'Contact', href: '/contact' },
 ];
 
 const dropdownItemsMap: Record<string, DropdownItem[]> = {
   specialities: specialtiesList,
-  resources: resourcesList,
 };
 
 // ----------------- Desktop Nav -----------------
