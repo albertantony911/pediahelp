@@ -6,6 +6,7 @@ import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface Post {
   _id: string;
@@ -130,15 +131,15 @@ export default function BlogSearchAlgolia() {
 
   return (
     <div
-      className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${
-        isFocused ? 'max-w-[34rem] scale-100' : 'max-w-lg scale-[0.98]'
+      className={`relative w-full mx-auto transition-all duration-300  ease-in-out ${
+        isFocused ? 'max-w-[30rem] scale-100' : 'max-w-sm scale-[0.98]'
       }`}
       role="search"
     >
       <div className="relative">
         <div className={`transition-all duration-200 ${isFocused ? 'my-1' : ''}`}>
           <div
-            className={`flex items-center relative bg-white rounded-full border border-gray-200 shadow-sm transition-all duration-300 ${
+            className={`flex items-center relative bg-white rounded-full border border-gray-200 shadow-sm transition-all  duration-300 ${
               isSearching ? 'animate-glow border-[var(--mid-shade)] ring-2 ring-[var(--mid-shade)]' : ''
             }`}
           >
@@ -159,7 +160,7 @@ export default function BlogSearchAlgolia() {
             <Input
               ref={searchInputRef}
               type="search"
-              placeholder="Search blog posts"
+              placeholder="Search blogs by topic or concerns"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -172,13 +173,17 @@ export default function BlogSearchAlgolia() {
                 setShowSuggestions(!!inputValue.trim() || recentSearches.length > 0);
               }}
               onBlur={handleBlur}
-              className={`w-full truncate text-zinc-800 placeholder-zinc-400 rounded-full transition-all duration-200 focus:ring-[var(--mid-shade)] shadow-2xl focus:ring-2 focus:border-[var(--mid-shade)] ${
+              className={cn(
+                'w-full truncate text-zinc-800 placeholder-zinc-400',
+                'placeholder:text-sm md:placeholder:text-base',
+                'rounded-full transition-all duration-200 focus:ring-[var(--mid-shade)] shadow-2xl focus:ring-2 focus:border-[var(--mid-shade)]',
                 isFocused
                   ? inputValue.trim()
                     ? 'pl-12 pr-16 py-6'
                     : 'pl-12 pr-12 py-6'
-                  : 'pl-10 pr-10 py-5'
-              } ${isSearching ? 'opacity-70' : ''}`}
+                  : 'pl-10 pr-10 py-5',
+                isSearching ? 'opacity-70' : ''
+              )}
             />
 
             {!isFocused && (

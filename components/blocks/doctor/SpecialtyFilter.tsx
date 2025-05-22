@@ -94,7 +94,7 @@ export default function SpecialtyFilter() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative ">
+    <div className="w-full max-w-3xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative ">
       {/* Always-visible grid */}
       <div
         className={clsx(

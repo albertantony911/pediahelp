@@ -129,12 +129,11 @@ export default function ConsultationPage() {
 
       {/* Hero section */}
       <Theme variant="dark-shade">
-        <div className="pt-10 lg:pt-48 text-gray-300 text-center max-w-3xl mx-auto">
-          <Subtitle>Book a Consultation</Subtitle>
-          <Title>Find the Right Pediatric Specialist</Title>
+        <div className="pt-10 lg:pt-48 text-gray-300 text-left sm:text-center max-w-3xl mx-auto">
+          <Subtitle>Book an Appointement</Subtitle>
+          <Title>Find the right pediatric expert for your child</Title>
           <Content>
-            Discover pediatric super-specialists who understand your child’s needs.
-            Use our intelligent search and filters to find experienced doctors available for consultations.
+          Connect with trusted pediatric specialists who care about your child’s health and well-being.
           </Content>
         </div>
       </Theme>

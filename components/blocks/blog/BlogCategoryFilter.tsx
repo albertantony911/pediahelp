@@ -47,7 +47,7 @@ export default function BlogCategoryFilter({ categories }: BlogCategoryFilterPro
   };
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 my-6">
+    <div className="flex flex-wrap justify-start sm:justify-center pl-2 gap-2 sm:gap-2.5 my-6">
       {categories.map((cat) => (
         <button
           key={cat._id}

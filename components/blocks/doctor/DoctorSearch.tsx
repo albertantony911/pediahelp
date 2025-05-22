@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft } from 'lucide-react';
 import type { Doctor } from '@/types';
 import { debounce } from 'lodash';
+import { cn } from '@/lib/utils';
 
 interface Props {
   allDoctors: Doctor[];
@@ -108,7 +109,7 @@ export default function DrawerDoctorSearch({ onFilterChange }: Props) {
             <Input
               ref={searchRef}
               type="text"
-              placeholder="Search by name or speciality"
+              placeholder="Search by name or specialty"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -126,13 +127,17 @@ export default function DrawerDoctorSearch({ onFilterChange }: Props) {
                   setShowSuggestions(false);
                 }, 200);
               }}
-              className={`w-full truncate bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5.5 sm:py-6 transition-all ${
+              className={cn(
+                'w-full truncate bg-gray-100 dark:bg-zinc-800 text-black dark:text-white',
+                'placeholder:text-sm sm:placeholder:text-base placeholder-gray-500',
+                'rounded-full transition-all',
                 isFocused
                   ? inputValue.trim()
-                    ? 'pl-12 pr-16 shadow-md truncate'
-                    : 'pl-12 pr-12 shadow-md truncate'
-                  : 'pl-12 pr-4  shadow-sm truncate'
-              } ${isSearching ? 'opacity-70' : ''}`}
+                    ? 'pl-12 pr-16 py-5.5 sm:py-6 shadow-md'
+                    : 'pl-12 pr-12 py-5.5 sm:py-6 shadow-md'
+                  : 'pl-12 pr-4 py-5.5 sm:py-6 shadow-sm',
+                isSearching && 'opacity-70'
+              )}
               aria-autocomplete="list"
               aria-controls="suggestions-list"
               aria-expanded={showSuggestions}

@@ -75,15 +75,13 @@ export default function BlogLanding({ theme = 'dark-shade' }: BlogLandingProps) 
 
         <section
           ref={blogSectionRef}
-          className="mx-auto py-12 lg:pt-48"
+          className="mx-auto pt-12 lg:pt-48"
         >
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <Subtitle>Find Expert-Written Resources</Subtitle>
-            <Title>Knowledge Hub</Title>
+          <div className="sm:text-center max-w-4xl mx-auto mb-8 text-left ">
+            <Subtitle>Resource Hub</Subtitle>
+            <Title>Trusted parenting and childcare guide</Title>
             <Content>
-              We believe every child has a unique spark. At our center, kids explore, learn, and
-              laugh together in a safe, nurturing environment designed to spark curiosity and
-              inspire creativity every single day.
+            Get expert tips, answers to common concerns, and practical guidance for every stage of your child’s growth.
             </Content>
           </div>
 
@@ -141,7 +139,7 @@ function BlogHits({ scrollTargetRef }: { scrollTargetRef: React.RefObject<HTMLEl
   return (
     <>
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-12 lg:mt-16 max-w-6xl mx-auto "
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-10  lg:mt-16 max-w-6xl mx-auto "
       >
         <AnimatePresence mode="wait">
           {hits.length > 0 ? (

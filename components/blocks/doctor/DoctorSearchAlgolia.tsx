@@ -6,6 +6,7 @@ import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowLeft, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface Doctor {
   objectID: string;
@@ -194,7 +195,7 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
   };
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 sm:px-0 ">
+    <div className="relative max-w-sm mx-auto px-4 sm:px-0 ">
       <div className="relative">
         <div className={`transition-all duration-200 ${isFocused ? 'my-2' : ''}`}>
           <div
@@ -215,6 +216,7 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
               </button>
             )}
 
+            
             <Input
               ref={inputRef}
               type="text"
@@ -231,13 +233,19 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
                 setShowSuggestions(!!inputValue.trim() || recentSearches.length > 0);
               }}
               onBlur={handleBlur}
-              className={`w-full text-zinc-800 placeholder-zinc-400 rounded-full py-5 transition-all focus:ring-[var(--mid-shade)] focus:ring-2 focus:border-[var(--mid-shade)] ${
-                isFocused ? 'pl-12 pr-12 shadow-md' : 'pl-12 pr-4 shadow-sm'
-              } ${isLoading ? 'opacity-70' : ''}`}
               aria-autocomplete="list"
               aria-controls="suggestions-list"
               aria-expanded={showSuggestions}
+              className={cn(
+                'w-full text-zinc-800 placeholder-zinc-400 rounded-full',
+                'placeholder:text-sm md:placeholder:text-base',
+                'py-5 transition-all focus:ring-[var(--mid-shade)] focus:ring-2 focus:border-[var(--mid-shade)]',
+                isFocused ? 'pl-12 pr-12 shadow-md' : 'pl-12 pr-4 shadow-sm',
+                isLoading && 'opacity-70'
+              )}
             />
+
+            
 
             {!isFocused && (
               <div className="absolute left-3 text-zinc-400">
