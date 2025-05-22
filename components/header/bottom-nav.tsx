@@ -126,8 +126,8 @@ export default function BottomNav() {
                 </button>
               </DrawerTrigger>
 
-              <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px] px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
-                <div ref={scrollContainerRef} className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2">
+              <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px]  px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
+                <div ref={scrollContainerRef} className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2 mt-1">
                   <ul className="space-y-2">
                     {overflowItems.map((section: any, index: number) => {
                       const spacingClass = index === 0 ? 'mt-2' : '';
