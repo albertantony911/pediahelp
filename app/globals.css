@@ -378,3 +378,17 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
+
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 128, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 128, 255, 0.15);
+  }
+}
+
+.animate-glow {
+  animation: glowPulse 1.5s infinite;
+}

@@ -147,7 +147,7 @@ export default function ConsultationPage() {
             hitsPerPage={12}
           />
 
-          <div className="sticky top-0 z-20 py-4 -mx-4 bg-dark-shade px-4">
+          <div className="sticky top-0 z-20 pt-2 sm:pt-5 -mx-4 bg-dark-shade px-4">
             <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
           </div>
 

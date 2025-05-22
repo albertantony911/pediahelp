@@ -24,20 +24,21 @@ export const metadata: Metadata = {
 
 export default function BlogSSRPage() {
   return (
-    <div>
+    <div className="relative">
       <BlogLanding />
       {/* Wave Divider Section */}
-      <div className="w-screen -mx-[calc(50vw-50%)] h-[100px] relative">
-        <img
-          src="/waves/dark-to-white-desktop-1.svg"
-          alt="Wave divider desktop"
-          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
-        />
-        <img
-          src="/waves/dark-to-white-mobile-1.svg"
-          alt="Wave divider mobile"
-          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
-        />
+      <div className="relative w-full h-[100px] overflow-hidden">
+        <picture>
+          <source
+            media="(min-width: 1024px)"
+            srcSet="/waves/dark-to-white-desktop-1.svg"
+          />
+          <img
+            src="/waves/dark-to-white-mobile-1.svg"
+            alt="Wave divider"
+            className="w-full h-full object-cover absolute top-0 left-0"
+          />
+        </picture>
       </div>
     </div>
   );

@@ -66,7 +66,7 @@ export default function SpecialtyFilter() {
       <motion.button
         key={name}
         onClick={() => handleSelect(name)}
-        className="group flex flex-col items-center justify-center mt-1 sm:mt-5 snap-center"
+        className="group flex flex-col items-center justify-center mt-1 sm:mt-5 snap-center "
         aria-label={`Filter by ${label}`}
         aria-pressed={isActive}
         initial={{ opacity: 0, y: 12 }}
@@ -76,7 +76,7 @@ export default function SpecialtyFilter() {
       >
         <div
           className={clsx(
-            'w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm group-hover:scale-105 group-focus:ring-2 group-focus:ring-[var(--mid-shade)]',
+            'w-14 h-14 rounded-full  flex items-center justify-center transition-all duration-300 shadow-sm group-hover:scale-105 group-focus:ring-2 group-focus:ring-[var(--mid-shade)]',
             isActive
               ? 'bg-[var(--mid-shade)] text-white shadow-md scale-105'
               : 'bg-transparent text-white/70 ring-1 ring-inset ring-[var(--mid-shade)] hover:bg-[var(--mid-shade)]/10 active:scale-95',
@@ -94,11 +94,11 @@ export default function SpecialtyFilter() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative">
+    <div className="w-full max-w-4xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative ">
       {/* Always-visible grid */}
       <div
         className={clsx(
-          'grid grid-cols-4 px-4 sm:grid-cols-5 md:grid-cols-8 gap-y-4 gap-x-3 md:gap-x-2',
+          'grid grid-cols-4 px-5 sm:grid-cols-5 md:grid-cols-8 gap-y-4 gap-x-3 md:gap-x-2',
           'scroll-smooth snap-x snap-mandatory md:snap-none'
         )}
       >

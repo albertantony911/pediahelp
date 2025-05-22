@@ -65,15 +65,14 @@ export default function DoctorList({
           </AnimatePresence>
         </div>
       ) : (
-        <div className="text-center py-8">
-          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-lg text-gray-900 mb-2">No doctors found</p>
-          <p className="text-sm text-gray-500 mb-4">
-            Try a different name or select a specialty.
-          </p>
+        <div className="flex flex-col items-center justify-center text-center py-16 text-white/80">
+          <Search className="w-12 h-12 text-white/30 mb-4" />
+          <p className="text-lg font-medium mb-1">No doctors found</p>
+          <p className="text-sm text-white/60">Try a different name or select a different specialty.</p>
         </div>
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && !loading && (
         <div className="flex flex-wrap gap-3 sm:gap-4 justify-center items-center max-w-full px-4 py-2 mt-8">
           {/* Previous Button */}
@@ -94,7 +93,7 @@ export default function DoctorList({
             </svg>
           </button>
 
-          {/* Page Numbers */}
+          {/* Page Number Buttons */}
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let pageToShow;
             if (totalPages <= 5) {

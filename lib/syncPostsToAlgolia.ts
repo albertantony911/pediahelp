@@ -7,7 +7,7 @@ const sanityClient = createClient({
   dataset: process.env.SANITY_DATASET!,
   apiVersion: '2023-10-01',
   useCdn: false,
-  token: process.env.SANITY_API_TOKEN!, // Add a write token for mutations
+  token: process.env.SANITY_API_TOKEN!,
 });
 
 const algoliaClient = algoliasearch(
@@ -17,15 +17,25 @@ const algoliaClient = algoliasearch(
 
 const index = algoliaClient.initIndex('blog_posts_index');
 
-// Interface for the post data expected from Sanity webhook
 interface PostWebhookData {
   _id: string;
   _type: string;
   operation: 'create' | 'update' | 'delete';
-  document: any; // The full post document
+  document: any;
 }
 
-// Sync a single post to Algolia (create/update)
+// 🧠 Utility to flatten portable text blocks
+function flattenBody(blocks: any[]): string {
+  if (!Array.isArray(blocks)) return '';
+  return blocks
+    .filter((block) => block._type === 'block' && Array.isArray(block.children))
+    .map((block) =>
+      block.children.map((child: any) => child.text || '').join('')
+    )
+    .join('\n')
+    .slice(0, 2000); // Optional: truncate long posts
+}
+
 async function syncSinglePostToAlgolia(post: any) {
   const objectID = post._id;
 
@@ -45,6 +55,7 @@ async function syncSinglePostToAlgolia(post: any) {
       : null,
     categoryTitles: post.categories?.map((c: any) => c.title) ?? [],
     categoryIds: post.categories?.map((c: any) => c._id) ?? [],
+    content: flattenBody(post.body ?? []),
   };
 
   console.log(`Syncing post ${objectID} to Algolia...`);
@@ -52,14 +63,12 @@ async function syncSinglePostToAlgolia(post: any) {
   console.log(`✅ Post ${objectID} synced to Algolia`);
 }
 
-// Delete a post from Algolia
 async function deletePostFromAlgolia(postId: string) {
   console.log(`Deleting post ${postId} from Algolia...`);
   await index.deleteObject(postId);
   console.log(`✅ Post ${postId} deleted from Algolia`);
 }
 
-// Main function to handle webhook events
 export async function syncPostsToAlgolia(data: PostWebhookData) {
   try {
     const { operation, document } = data;
@@ -67,7 +76,6 @@ export async function syncPostsToAlgolia(data: PostWebhookData) {
     if (operation === 'delete') {
       await deletePostFromAlgolia(document._id);
     } else if (operation === 'create' || operation === 'update') {
-      // Fetch the full post with references (categories, doctorAuthor)
       const post = await sanityClient.fetch(
         `
         *[_type == "post" && _id == $id][0] {
@@ -88,7 +96,8 @@ export async function syncPostsToAlgolia(data: PostWebhookData) {
             name,
             specialty
           },
-          categories[]->{ _id, title }
+          categories[]->{ _id, title },
+          body[] // include content blocks
         }
         `,
         { id: document._id }
@@ -102,7 +111,7 @@ export async function syncPostsToAlgolia(data: PostWebhookData) {
       await syncSinglePostToAlgolia(post);
     }
 
-    // Update Algolia index settings (only needs to run once, but safe to call)
+    // Update index settings (safe to run multiple times)
     await index.setSettings({
       searchableAttributes: [
         'unordered(title)',
@@ -110,9 +119,9 @@ export async function syncPostsToAlgolia(data: PostWebhookData) {
         'unordered(categoryTitles)',
         'unordered(doctorAuthor.name)',
         'unordered(doctorAuthor.specialty)',
+        'unordered(content)', // ← content has lowest priority
       ],
       attributesForFaceting: ['searchable(categoryIds)'],
-      customRanking: ['desc(_createdAt)'], // Note: _createdAt not in record, may need to add
       ranking: [
         'words',
         'filters',
@@ -129,7 +138,6 @@ export async function syncPostsToAlgolia(data: PostWebhookData) {
   }
 }
 
-// For manual full sync (e.g., initial setup or fallback)
 export async function fullSyncPostsToAlgolia() {
   const posts = await sanityClient.fetch(`
     *[_type == "post" && defined(slug.current) && defined(image.asset)] | order(_createdAt desc) {
@@ -150,7 +158,8 @@ export async function fullSyncPostsToAlgolia() {
         name,
         specialty
       },
-      categories[]->{ _id, title }
+      categories[]->{ _id, title },
+      body[]
     }
   `);
 
@@ -173,6 +182,7 @@ export async function fullSyncPostsToAlgolia() {
         : null,
       categoryTitles: post.categories?.map((c: any) => c.title) ?? [],
       categoryIds: post.categories?.map((c: any) => c._id) ?? [],
+      content: flattenBody(post.body ?? []),
     };
   });
 
