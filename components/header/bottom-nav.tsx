@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { debounce } from 'lodash';
 import {
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useDoctors } from '@/components/providers/DoctorsProvider';
+import { motion, useAnimation } from 'framer-motion';
 
 const delayedAction = (callback: () => void, delay = 150, skipDelay = false) => {
   if ('vibrate' in navigator) navigator.vibrate([10]);
@@ -77,14 +78,27 @@ export default function BottomNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [moreOpenIndex, setMoreOpenIndex] = useState<number | null>(null);
   const allDoctors = useDoctors();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollControls = useAnimation();
 
   useEffect(() => {
-    setDrawerOpen(false); // Auto-close More drawer on route change
+    setDrawerOpen(false);
   }, [pathname]);
 
   const debouncedSetMoreOpenIndex = debounce((index: number | null) => {
     setMoreOpenIndex(index);
   }, 100);
+
+  useEffect(() => {
+    if (moreOpenIndex !== null && scrollContainerRef.current) {
+      const el = scrollContainerRef.current;
+      const needsScroll = el.scrollHeight > el.clientHeight + 24;
+      if (needsScroll) {
+        scrollControls.start({ y: 0, transition: { ease: 'easeOut', duration: 0.5 } });
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  }, [moreOpenIndex]);
 
   const whatsappLink = generateWhatsAppLink('+919970450260', 'Hi, I need help!');
 
@@ -117,11 +131,12 @@ export default function BottomNav() {
                 </button>
               </DrawerTrigger>
 
-              <DrawerContent className="max-h-[75vh] bg-white rounded-t-[20px] pt-2 pb-16 px-0 shadow-xl">
-                <div className="text-[10px] text-muted-foreground mt-1 text-center">
-                  Pull down to close
-                </div>
-                <div className="overflow-y-auto max-h-[calc(75vh-3rem)] px-6 pt-4">
+              <DrawerContent className="max-h-[75vh] bg-white rounded-t-[20px] pt-2 px-0  shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
+                <motion.div
+                  ref={scrollContainerRef}
+                  animate={scrollControls}
+                  className="overflow-y-auto max-h-[calc(75vh-2rem)] px-6 pt-4 pb-2 space-y-4"
+                >
                   <ul className="space-y-4">
                     {overflowItems.map((section: any, idx: number) => {
                       const isOpen = moreOpenIndex === idx;
@@ -140,8 +155,13 @@ export default function BottomNav() {
                               <span>{section.label}</span>
                             </button>
 
-                            <div className={cn('overflow-hidden transition-all', isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0')}>
-                              <ul className="flex flex-col px-7 pb-2 pt-1 space-y-2">
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={isOpen ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="overflow-hidden"
+                            >
+                              <ul className="flex flex-col px-7 pb-2 pt-1 space-y-2 max-h-[300px] overflow-y-auto">
                                 {section.items?.map((item: any) => (
                                   <li key={item.label}>
                                     <button
@@ -155,7 +175,8 @@ export default function BottomNav() {
                                       }}
                                       className={cn(
                                         'block w-full text-left px-3 py-3 rounded-md font-medium text-sm hover:bg-muted',
-                                        isActive(pathname, item.href ?? '') && 'text-[var(--mid-shade)] font-semibold bg-muted'
+                                        isActive(pathname, item.href ?? '') &&
+                                          'text-[var(--mid-shade)] font-semibold bg-muted'
                                       )}
                                     >
                                       {item.label}
@@ -163,7 +184,7 @@ export default function BottomNav() {
                                   </li>
                                 ))}
                               </ul>
-                            </div>
+                            </motion.div>
                           </li>
                         );
                       }
@@ -181,7 +202,8 @@ export default function BottomNav() {
                             }}
                             className={cn(
                               'block w-full text-left px-4 py-4 text-base font-semibold rounded-xl bg-muted/30 text-[var(--dark-shade)] hover:bg-muted',
-                              isActive(pathname, section.href ?? '') && 'text-[var(--mid-shade)] font-semibold bg-muted'
+                              isActive(pathname, section.href ?? '') &&
+                                'text-[var(--mid-shade)] font-semibold bg-muted'
                             )}
                           >
                             {section.label}
@@ -190,7 +212,7 @@ export default function BottomNav() {
                       );
                     })}
                   </ul>
-                </div>
+                </motion.div>
               </DrawerContent>
             </Drawer>
           );
