@@ -145,7 +145,7 @@ export default async function PostPage({
         {/* Author Section */}
         {post.doctorAuthor && (
           <>
-            <div className="my-6 opacity-50 h-px w-full bg-gray-300 dark:bg-gray-600" />
+            <div className="my-6 opacity-50 h-px w-[90%] mx-auto sm:w-full bg-gray-300 dark:bg-gray-600" />
             <div className="flex flex-col px-4 items-start gap-4 animate-fade-in">
               {/* Doctor Profile Card */}
               <div className="flex-1">
