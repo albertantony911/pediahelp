@@ -1,5 +1,3 @@
-// File: components/header/bottom-nav.tsx
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -13,6 +11,7 @@ import {
   List,
   CaretDown,
 } from 'phosphor-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   Drawer,
@@ -22,7 +21,6 @@ import {
 import {
   Collapsible,
   CollapsibleTrigger,
-  CollapsibleContent,
 } from '@/components/ui/collapsible';
 import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer';
 import {
@@ -38,7 +36,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useDoctors } from '@/components/providers/DoctorsProvider';
-import { motion, useAnimation } from 'framer-motion';
 
 const delayedAction = (callback: () => void, delay = 150, skipDelay = false) => {
   if ('vibrate' in navigator) navigator.vibrate([10]);
@@ -86,7 +83,6 @@ export default function BottomNav() {
   const [openCollapsible, setOpenCollapsible] = useState<string | null>(null);
   const allDoctors = useDoctors();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollControls = useAnimation();
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -95,17 +91,6 @@ export default function BottomNav() {
   const debouncedSetOpenCollapsible = debounce((label: string | null) => {
     setOpenCollapsible(label);
   }, 100);
-
-  useEffect(() => {
-    if (openCollapsible !== null && scrollContainerRef.current) {
-      const el = scrollContainerRef.current;
-      const needsScroll = el.scrollHeight > el.clientHeight + 24;
-      if (needsScroll) {
-        scrollControls.start({ y: 0, transition: { ease: 'easeOut', duration: 0.5 } });
-        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-      }
-    }
-  }, [openCollapsible, scrollControls]);
 
   const whatsappLink = generateWhatsAppLink('+919970450260', 'Hi, I need help!');
 
@@ -139,9 +124,8 @@ export default function BottomNav() {
               </DrawerTrigger>
 
               <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px] px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
-                <motion.div
+                <div
                   ref={scrollContainerRef}
-                  animate={scrollControls}
                   className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2"
                 >
                   <ul className="space-y-2">
@@ -171,28 +155,61 @@ export default function BottomNav() {
                                 />
                               </button>
                             </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-1 pl-4 space-y-1">
-                              {section.items?.map((item: any) => (
-                                <button
-                                  key={item.label}
-                                  onClick={() => {
-                                    if (item.href) {
-                                      delayedAction(() => {
-                                        setDrawerOpen(false);
-                                        router.push(item.href);
-                                      });
-                                    }
+
+                            <AnimatePresence initial={false}>
+                              {openCollapsible === section.label && (
+                                <motion.div
+                                  key={section.label}
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                  className="overflow-hidden mt-1 pl-4"
+                                  ref={(el) => {
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                   }}
-                                  className={cn(
-                                    'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors',
-                                    isActive(pathname, item.href ?? '') &&
-                                      'text-[var(--mid-shade)] font-semibold bg-gray-100'
-                                  )}
                                 >
-                                  {item.label}
-                                </button>
-                              ))}
-                            </CollapsibleContent>
+                                  <motion.div
+                                    variants={{
+                                      open: {
+                                        transition: { staggerChildren: 0.05, delayChildren: 0.05 },
+                                      },
+                                      closed: {},
+                                    }}
+                                    initial="closed"
+                                    animate="open"
+                                    exit="closed"
+                                    className="space-y-1"
+                                  >
+                                    {section.items?.map((item: any) => (
+                                      <motion.button
+                                        key={item.label}
+                                        variants={{
+                                          closed: { opacity: 0, y: 4 },
+                                          open: { opacity: 1, y: 0 },
+                                        }}
+                                        onClick={() => {
+                                          if (item.href) {
+                                            delayedAction(() => {
+                                              setDrawerOpen(false);
+                                              router.push(item.href);
+                                            });
+                                          }
+                                        }}
+                                        className={cn(
+                                          'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700',
+                                          'hover:bg-gray-100 rounded-md transition-colors',
+                                          isActive(pathname, item.href ?? '') &&
+                                            'text-[var(--mid-shade)] font-semibold bg-gray-100'
+                                        )}
+                                      >
+                                        {item.label}
+                                      </motion.button>
+                                    ))}
+                                  </motion.div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </Collapsible>
                         );
                       }
@@ -220,7 +237,7 @@ export default function BottomNav() {
                       );
                     })}
                   </ul>
-                </motion.div>
+                </div>
               </DrawerContent>
             </Drawer>
           );
