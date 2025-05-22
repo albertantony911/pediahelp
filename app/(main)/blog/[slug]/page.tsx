@@ -5,13 +5,11 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 
-
 // Internal Components & Utilities
 import Breadcrumbs from '@/components/ui/breadcrumbs';
 import PortableTextRenderer from '@/components/portable-text-renderer';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
 import BlogQuestionForm from '@/components/blocks/forms/blog-question';
-import { Separator } from '@/components/ui/separator';
 import ShareButton from '@/components/blocks/blog/ShareButton';
 
 // Data Fetching & Metadata
@@ -99,7 +97,7 @@ export default async function PostPage({
             className="object-cover w-full h-full"
           />
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10" />
           {/* Meta Row Overlay */}
           <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
             {post.doctorAuthor?.name && (
@@ -113,49 +111,72 @@ export default async function PostPage({
       )}
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-8 md:px-6 py-10">
-        {/* Breadcrumb Navigation */}
-        <div className="mb-4 opacity-80">
-          <Breadcrumbs links={breadcrumbs} />
-        </div>
+      <div className="max-w-6xl mx-auto py-10">
+        {/* Post Content Section (Breadcrumbs, Title, Body) */}
+        <div className="post-content md:px-6 px-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-4 opacity-80">
+            <Breadcrumbs links={breadcrumbs} />
+          </div>
 
-        {/* Post Title */}
-        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-          {post.title}
-        </h1>
-        
+          {/* Post Title */}
+          <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
+            {post.title}
+          </h1>
 
-        <div className="h-px w-16 bg-dark-shade mb-6" />
-        
+          <div className="h-px w-16 bg-dark-shade mb-6" />
 
-        {/* Blog Post Body */}
-
+          {/* Blog Post Body */}
           {post.body && (
-          <article className="prose  prose-lg max-w-none text-foreground">
-            <PortableTextRenderer value={post.body} />
-          </article>
-
-        )}
+            <article className="prose prose-lg max-w-none text-foreground">
+              <PortableTextRenderer value={post.body} />
+              {/* Author Byline */}
+              {post.doctorAuthor?.name && (
+                <p className="mt-6 text-sm italic text-gray-600 dark:text-gray-300">
+                  Written by our expert{' '}
+                  {post.doctorAuthor.specialty || 'Physician'},{' '}
+                  {post.doctorAuthor.name}
+                </p>
+              )}
+            </article>
+          )}
+        </div>
 
         {/* Author Section */}
         {post.doctorAuthor && (
           <>
-            <Separator className="my-12" />
-            <h2 className="text-xl font-semibold mb-6">About the Author</h2>
-            <DoctorProfileCard
-              {...post.doctorAuthor}
-              reviews={post.doctorAuthor.reviews || []}
-            />
+            <div className="my-6 opacity-50 h-px w-full bg-gray-300 dark:bg-gray-600" />
+            <div className="flex flex-col px-4 items-start gap-4 animate-fade-in">
+              {/* Doctor Profile Card */}
+              <div className="flex-1">
+                <DoctorProfileCard
+                  {...post.doctorAuthor}
+                  reviews={post.doctorAuthor.reviews || []}
+                />
+              </div>
+            </div>
           </>
         )}
 
         {/* Blog Question Form */}
-        <div className="mt-12 border-t pt-10">
-          <h3 className="text-lg font-semibold mb-4">
-            Have a question or comment?
-          </h3>
+        <div className="mt-12 ">
+
           <BlogQuestionForm slug={slug} blogTitle={post.title ?? 'Blog Post'} />
         </div>
+      </div>
+
+      {/* Wave Divider */}
+      <div className="w-screen h-[100px] relative">
+        <img
+          src="/waves/dark-to-white-desktop-1.svg"
+          alt="Wave divider desktop"
+          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
+        />
+        <img
+          src="/waves/dark-to-white-mobile-1.svg"
+          alt="Wave divider mobile"
+          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
+        />
       </div>
     </section>
   );
