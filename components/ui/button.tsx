@@ -18,13 +18,13 @@ const buttonVariants = cva(
         ghost:
           'bg-transparent text-white border border-white hover:brightness-110',
         outline:
-          'bg-transparent text-[var(--dark-shade)] border border-[var(--dark-shade)] hover:brightness-110',
+          'bg-transparent text-[var(--dark-shade)] border border-[var(--mid-shade)] hover:brightness-110',
         destructive:
           'bg-red-500 text-white hover:bg-red-600',
         link:
           'text-[var(--dark-shade)] underline-offset-4 hover:underline',
         whatsapp:
-          'bg-white text-[var(--dark-shade)] border border-[var(--dark-shade)] hover:bg-[#1EBE5D] hover:text-white focus-visible:ring-[#25D366]/50',
+          'bg-white text-[var(--mid-shade)] border border-[var(--mid-shade)] hover:bg-[#1EBE5D] hover:text-white focus-visible:ring-[#25D366]/50',
       },
       size: {
         sm: 'px-5 py-2 text-sm',

@@ -8,29 +8,14 @@ import {
   Star,
   Wallet,
   User,
-  HeartPulse,
-  Baby,
-  Brain,
-  Syringe,
-  Eye,
-  BadgePlus,
-  Stethoscope,
   Share2,
+  CalendarDays,
 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import type { Doctor, Review } from '@/types';
 import { calculateAverageRating } from '@/lib/ratingUtils';
 import { Button } from '@/components/ui/button';
-
-const specialtyIcons: Record<string, React.ReactNode> = {
-  cardiology: <HeartPulse className="w-4 h-4 text-red-500" />,
-  neonatology: <Baby className="w-4 h-4 text-pink-500" />,
-  neurology: <Brain className="w-4 h-4 text-purple-500" />,
-  immunology: <Syringe className="w-4 h-4 text-blue-500" />,
-  ophthalmology: <Eye className="w-4 h-4 text-cyan-500" />,
-  dentistry: <BadgePlus className="w-4 h-4 text-yellow-600" />,
-};
 
 export default function DoctorProfileCard({
   name,
@@ -45,19 +30,17 @@ export default function DoctorProfileCard({
 }: Doctor & { reviews?: Review[] }) {
   const slugString = typeof slug === 'object' ? slug.current : slug;
   const photoUrl = photo?.asset?.url;
-  const specialtyKey = specialty.toLowerCase().replace(/\s+/g, '');
-  const specialtyIcon = specialtyIcons[specialtyKey] || <Stethoscope className="w-4 h-4 text-gray-500" />;
 
   const { averageRating, reviewCount } = calculateAverageRating(reviews);
-  const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) ? averageRating.toFixed(1) : 'N/A';
-  const displayExperience = typeof experienceYears === 'number' && experienceYears > 0 ? `, ${experienceYears}+ years` : '';
+  const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) && reviewCount > 0 ? averageRating.toFixed(1) : null;
+  const displayExperience = typeof experienceYears === 'number' && experienceYears > 0 ? `${experienceYears}+ yrs` : '';
 
   if (!name || !specialty || !slugString || !appointmentFee) return null;
 
   return (
-    <Card className="rounded-3xl p-4 shadow-md bg-white max-w-4xl mx-auto w-full">
-      <div className="flex sm:flex-row flex-col gap-4 sm:min-h-[160px]">
-        <DoctorPhoto name={name} photoUrl={photoUrl} rating={displayRating} reviewCount={reviewCount} />
+    <Card className="rounded-3xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white max-w-[40rem] mx-auto w-full">
+      <div className="flex sm:flex-row flex-col gap-4 sm:gap-6 sm:min-h-[160px]">
+        <DoctorPhoto name={name} photoUrl={photoUrl} slug={slugString} />
         <div className="flex-1 flex flex-col gap-2">
           <DoctorHeader
             name={name}
@@ -66,18 +49,18 @@ export default function DoctorProfileCard({
             slug={slugString}
             appointmentFee={appointmentFee}
             photoUrl={photoUrl}
-            specialtyIcon={specialtyIcon}
             rating={displayRating}
-            reviewCount={reviewCount}
           />
           {Array.isArray(expertise) && expertise.length > 0 && (
-            <div className="mt-1.5 mx-1 flex Witems-start gap-2 text-sm text-gray-800">
-              <span>
-                <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
-              </span>
-            </div>
+            <>
+              <div className="mx-1 mt-1 flex items-start gap-2 text-sm sm:text-base text-gray-800">
+                <span>
+                  <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
+                </span>
+              </div>
+            </>
           )}
-          <div className="mt-2 flex flex-row gap-2 w-full">
+          <div className="mt-2 flex flex-row gap-2 w-full sm:flex-1">
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
               <Button
                 variant="whatsapp"
@@ -85,7 +68,7 @@ export default function DoctorProfileCard({
                   `Hi, I'd like to book a consultation with ${name} via PediaHelp.`
                 )}`}
                 external
-                className="w-[40%] sm:w-auto flex items-center justify-center px-5 py-2.5"
+                className="w-[40%] sm:flex-1 flex items-center justify-center px-5 py-2.5 hover:bg-green-600/90 transition-colors duration-200"
               >
                 <FaWhatsapp className="w-5 h-5 mr-1" />
                 WhatsApp
@@ -94,16 +77,15 @@ export default function DoctorProfileCard({
               <Button
                 variant="secondary"
                 disabled
-                className="w-[40%] sm:w-auto px-5 py-2.5"
+                className="w-[40%] sm:flex-1 px-5 py-2.5"
               >
                 Message
               </Button>
             )}
-
             <Button
               asChild
               variant="default"
-              className="w-2/3 sm:w-auto px-6 py-2.5"
+              className="w-2/3 sm:flex-[2] px-6 py-2.5 hover:bg-blue-600/90 transition-colors duration-200"
             >
               <Link href={`/consultation/${slugString}/booking`}>
                 Book Appointment
@@ -116,10 +98,10 @@ export default function DoctorProfileCard({
   );
 }
 
-function DoctorPhoto({ name, photoUrl, rating, reviewCount }: { name: string; photoUrl?: string; rating: string; reviewCount: number }) {
+function DoctorPhoto({ name, photoUrl, slug }: { name: string; photoUrl?: string; slug: string }) {
   return (
-    <div className="hidden sm:block w-[150px] aspect-[0.8] relative">
-      <div className="h-full rounded-xl overflow-hidden bg-gray-100 drop-shadow-dark-shade" >
+    <Link href={`/consultation/${slug}`} className="hidden sm:block w-[150px] aspect-[0.8] relative">
+      <div className="h-full rounded-2xl overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
         {photoUrl ? (
           <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
         ) : (
@@ -127,15 +109,8 @@ function DoctorPhoto({ name, photoUrl, rating, reviewCount }: { name: string; ph
             <User className="w-6 h-6" />
           </div>
         )}
-        <div
-          className="absolute bottom-0 left-0 right-0 text-white text-sm font-medium py-1.5 px-2 rounded-b-xl flex items-center justify-center gap-1.5"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
-        >
-          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          <span>{`${rating} (${reviewCount})`}</span>
-        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -146,9 +121,7 @@ function DoctorHeader({
   photoUrl,
   slug,
   appointmentFee,
-  specialtyIcon,
   rating,
-  reviewCount,
 }: {
   name: string;
   specialty: string;
@@ -156,15 +129,13 @@ function DoctorHeader({
   photoUrl?: string;
   slug: string;
   appointmentFee: number;
-  specialtyIcon: React.ReactNode;
-  rating: string;
-  reviewCount: number;
+  rating: string | null;
 }) {
   return (
     <>
       {/* Mobile */}
       <div className="flex sm:hidden items-start gap-3 mx-1 mt-1">
-        <div className="aspect-[0.8]  w-[74px] rounded-lg overflow-hidden bg-gray-100 relative">
+        <Link href={`/consultation/${slug}`} className="aspect-[0.8] w-[74px] rounded-lg overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
           {photoUrl ? (
             <Image src={photoUrl} alt={`Dr. ${name}`} width={110} height={160} className="w-full h-full object-cover" />
           ) : (
@@ -172,19 +143,17 @@ function DoctorHeader({
               <User className="w-5 h-5" />
             </div>
           )}
-          <div
-            className="absolute bottom-0 left-0 right-0 text-white text-xs font-medium py-1 px-2 rounded-b-lg flex items-center justify-center gap-1"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
-          >
-            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-            <span>{`${rating} (${reviewCount})`}</span>
-          </div>
-        </div>
+        </Link>
         <div className="flex-1 flex flex-col gap-1 ml-1">
-          <h2 className="text-xl font-bold text-gray-900">{name}</h2>
-          <div className="text-sm text-gray-700">
-            {specialty}
-            {experience}
+          <h2 className="text-xl font-semibold text-gray-700">{name}</h2>
+          <div className="text-sm text-gray-500 flex items-center gap-1.5">
+            <span>{specialty}, {experience}</span>
+            {rating && (
+              <span className="flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                {rating}
+              </span>
+            )}
           </div>
           <div className="flex flex-nowrap items-center gap-1.5 mt-2 overflow-x-auto">
             <ProfileLink slug={slug} />
@@ -195,43 +164,55 @@ function DoctorHeader({
       </div>
 
       {/* Desktop */}
-      <div className="hidden sm:flex flex-col gap-1">
-        <div className="flex flex-row gap-3">
-          <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
-          <div className="flex items-center gap-1.5 text-base text-gray-700">
-            {specialtyIcon}
-            <span>{specialty}{experience}</span>
+      <div className="hidden sm:flex flex-col gap-0 text-sm">
+        <div className="flex flex-row gap-2">
+          <h2 className="text-xl font-bold text-gray-700">{name}, </h2>
+          <div className="flex items-center gap-1 text-base text-gray-500">
+            <span>{specialty}</span>
           </div>
         </div>
-        <div className="flex flex-nowrap items-center gap-2 mt-2 overflow-x-auto">
+        <div className="flex flex-nowrap items-center gap-2 mt-1.5 overflow-x-auto">
           <ProfileLink slug={slug} />
           <ShareProfilePill slug={slug} />
-          <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} />
+          <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} className="text-base text-gray-500" />
+          {experience && (
+            <Pill
+              icon={<CalendarDays className="w-4 h-4 text-gray-500" />}
+              text={experience}
+              className="text-base text-gray-500"
+            />
+          )}
+          {rating && (
+            <Pill
+              icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+              text={rating}
+              className="text-base text-gray-500 "
+            />
+          )}
         </div>
       </div>
     </>
   );
 }
 
-function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
+function Pill({ icon, text, className = '' }: { icon: React.ReactNode; text: string; className?: string }) {
   return (
-    <div className="flex items-center gap-1.5  px-1 py-1 rounded-full text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap  transition-colors duration-150">
+    <div className={`flex items-center gap-1.5 px-1 py-1 rounded-full text-xs text-gray-500 font-medium whitespace-nowrap transition-colors duration-150 ${className}`}>
       {icon}
       <span>{text}</span>
     </div>
   );
 }
 
-
 function ProfileLink({ slug }: { slug: string }) {
   return (
     <Button
       asChild
       variant="outline"
-      className="text-xs sm:text-sm px-3 py-1"
+      className="text-xs sm:text-[12px] px-2 text-gray-500 sm:px-1.75 py-1 sm:py-1 border-gray-400 active:bg-mid-shade active:text-white hover:bg-mid-shade hover:text-white active:scale-95"
     >
-      <Link href={`/consultation/${slug}`} className="flex items-center gap-1.5">
-        <User className="w-4 h-4" />
+      <Link href={`/consultation/${slug}`} className="flex items-center gap-1 sm:gap-0.75">
+        <User className="w-3.5 h-3.5" />
         Profile
       </Link>
     </Button>
@@ -272,10 +253,10 @@ function ShareProfilePill({ slug }: { slug: string }) {
     <Button
       onClick={handleShare}
       variant="outline"
-      className={`text-xs sm:text-sm px-3 py-1 flex items-center gap-1.5 ${isPressed ? 'scale-95 bg-[#264E5B] text-white shadow-inner' : ''}`}
+      className={`text-xs sm:text-[12px] px-2 text-gray-500 sm:px-1.75 py-1 sm:py-1 border-gray-400 active:bg-mid-shade active:text-white hover:bg-mid-shade hover:text-white active:scale-95 ${isPressed ? 'scale-95 bg-[#264E5B] text-white shadow-inner' : ''}`}
       aria-label={copied ? 'Link copied to clipboard' : 'Share doctor profile'}
     >
-      <Share2 className={`w-4 h-4 ${copied ? 'animate-pulse' : ''}`} />
+      <Share2 className={`w-3.5 h-3.5 ${copied ? 'animate-pulse' : ''}`} />
       {copied ? 'Copied!' : 'Share'}
     </Button>
   );

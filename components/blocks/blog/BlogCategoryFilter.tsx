@@ -19,21 +19,24 @@ export default function BlogCategoryFilter({
   onSelect,
 }: BlogCategoryFilterProps) {
   return (
-    <div className="flex gap-1.5 flex-wrap my-6 justify-center px-4">
-      {categories.map((cat) => (
-        <button
-          key={cat._id}
-          onClick={() => onSelect(cat._id)}
-          className={clsx(
-            'px-3 py-1.5 rounded-full border text-xs font-normal transition-colors duration-200',
-            selected === cat._id
-              ? 'bg-light-shade text-white border-light-shade hover:bg-light-shade/80 active:bg-light-shade'
-              : 'bg-muted text-muted-foreground border-border hover:bg-accent'
-          )}
-        >
-          {cat.title}
-        </button>
-      ))}
-    </div>
+<div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 my-6">
+  {categories.map((cat) => (
+    <button
+  key={cat._id}
+  onClick={() => onSelect(cat._id)}
+  aria-pressed={selected === cat._id}
+  className={clsx(
+    'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mid-shade)] focus-visible:ring-offset-1',
+    selected === cat._id
+      ? 'bg-[var(--mid-shade)] text-white shadow-md scale-105'
+      : 'bg-transparent text-white/70 ring-1 ring-inset ring-[var(--mid-shade)] hover:bg-[var(--mid-shade)]/10 active:scale-95'
+  )}
+>
+  {cat.title}
+</button>
+
+  ))}
+</div>
+
   );
 }

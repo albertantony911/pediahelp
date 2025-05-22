@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import Logo from '@/components/logo';
 import { urlFor } from '@/sanity/lib/image';
 import PortableTextRenderer from '@/components/portable-text-renderer';
 import { PAGE_QUERYResult } from '@/sanity.types';
@@ -39,8 +40,8 @@ const Hero1: React.FC<Hero1Props> = ({
     <Theme variant={theme || 'dark-shade'}>
       <div className="flex flex-col">
         {/* ✅ Mobile-only SVG logo */}
-        <div className="lg:hidden w-full flex justify-center items-center py-">
-          <img className='h-20 py-3' src="./images/logo.svg" alt="" />
+        <div className="lg:hidden w-full flex justify-center items-center">
+        <Logo />
         </div>
 
         {/* Grid layout */}

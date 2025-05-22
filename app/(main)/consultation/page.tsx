@@ -10,6 +10,10 @@ import SpecialtyFilter from '@/components/blocks/doctor/SpecialtyFilter';
 import DoctorList from '@/components/blocks/doctor/DoctorList';
 import DoctorSearchAlgolia from '@/components/blocks/doctor/DoctorSearchAlgolia';
 
+import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
+import { Theme } from '@/components/ui/theme/Theme';
+import Logo from '@/components/logo';
+
 import type { Doctor, Review } from '@/types';
 
 const searchClient = algoliasearch(
@@ -61,7 +65,7 @@ async function getDoctors(): Promise<Doctor[]> {
   }
 }
 
-export default function ConsultationPageWrapper() {
+export default function ConsultationPage() {
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchHits, setSearchHits] = useState<{ objectID: string }[]>([]);
@@ -102,45 +106,74 @@ export default function ConsultationPageWrapper() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8">
-        <div className="text-center py-8 text-gray-600">Loading doctors...</div>
+      <div className="min-h-screen bg-dark-shade text-gray-300 py-8 text-center">
+        <p className="text-gray-600">Loading doctors...</p>
       </div>
     );
   }
 
   if (error || !allDoctors.length) {
     return (
-      <div className="min-h-screen bg-dark-shade text-gray-300 max-w-lg px-4 py-8">
-        <div className="text-center py-8 text-red-400">
-          {error || 'Failed to load doctors. Please try again later.'}
-        </div>
+      <div className="min-h-screen bg-dark-shade text-gray-300 py-8 text-center max-w-lg mx-auto">
+        <p className="text-red-400">{error || 'Failed to load doctors. Please try again later.'}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-dark-shade text-gray-300 px-4 py-8 lg:pt-50">
-      <InstantSearch searchClient={searchClient} indexName="doctors_index">
-        <Configure
-          filters={selectedSpecialty ? `keywords:${selectedSpecialty.toLowerCase()}` : ''}
-          hitsPerPage={12}
-        />
+    <>
+      {/* Mobile Logo */}
+      <div className="w-full flex justify-center items-center bg-dark-shade lg:hidden">
+        <Logo />
+      </div>
 
-        {/* Search bar comes first */}
-        <div className="sticky top-0 z-20 py-4 -mx-4 px-4 bg-dark-shade ">
-          <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
+      {/* Hero section */}
+      <Theme variant="dark-shade">
+        <div className="pt-10 lg:pt-48 text-gray-300 text-center max-w-3xl mx-auto">
+          <Subtitle>Book a Consultation</Subtitle>
+          <Title>Find the Right Pediatric Specialist</Title>
+          <Content>
+            Discover pediatric super-specialists who understand your child’s needs.
+            Use our intelligent search and filters to find experienced doctors available for consultations.
+          </Content>
         </div>
+      </Theme>
 
-        {/* Then specialty filter */}
-        <SpecialtyFilter />
+      {/* Search + Filters + Doctors */}
+      <div className="bg-dark-shade text-gray-300 px-4 pb-5 pt-5">
+        <InstantSearch searchClient={searchClient} indexName="doctors_index">
+          <Configure
+            filters={selectedSpecialty ? `keywords:${selectedSpecialty.toLowerCase()}` : ''}
+            hitsPerPage={12}
+          />
 
-        {/* Doctor list */}
-        <DoctorList
-          allDoctors={allDoctors}
-          filteredDoctors={displayedDoctors === allDoctors ? undefined : displayedDoctors}
-          loading={loading}
+          <div className="sticky top-0 z-20 py-4 -mx-4 bg-dark-shade px-4">
+            <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
+          </div>
+
+          <SpecialtyFilter />
+
+          <DoctorList
+            allDoctors={allDoctors}
+            filteredDoctors={displayedDoctors === allDoctors ? undefined : displayedDoctors}
+            loading={loading}
+          />
+        </InstantSearch>
+      </div>
+
+      {/* Wave divider */}
+      <div className="w-screen -mx-[calc(50vw-50%)] h-[100px] relative">
+        <img
+          src="/waves/dark-to-white-desktop-1.svg"
+          alt="Wave divider desktop"
+          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
         />
-      </InstantSearch>
-    </div>
+        <img
+          src="/waves/dark-to-white-mobile-1.svg"
+          alt="Wave divider mobile"
+          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
+        />
+      </div>
+    </>
   );
 }

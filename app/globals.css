@@ -338,3 +338,43 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
+
+
+
+@keyframes dropdown-fade-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-dropdown {
+  animation: dropdown-fade-slide 0.3s ease-out both;
+}
+
+@keyframes icon-click-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+
+.animate-icon-pulse {
+  animation: pulse 0.3s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
