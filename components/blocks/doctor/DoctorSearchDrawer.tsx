@@ -40,7 +40,7 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
     previousPath.current = pathname;
   }, [pathname, drawerOpen]);
 
-  // Reset search state when drawer opens/closes
+  // Reset search state when drawer opens
   useEffect(() => {
     if (drawerOpen) {
       setSearchHits([]);
@@ -50,10 +50,6 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
         setIsInitialLoad(false);
       }, 100);
       return () => clearTimeout(timer);
-    } else {
-      // Reset state when drawer closes to prevent jitter on next open
-      setSearchHits([]);
-      setIsInitialLoad(true);
     }
   }, [drawerOpen]);
 
@@ -77,12 +73,12 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
     return filtered;
   }, [searchHits, allDoctors, isInitialLoad]);
 
-  // Scroll to top on new search (but not during closing)
+  // Scroll to top on new search
   useEffect(() => {
-    if (!isInitialLoad && scrollRef.current && drawerOpen) {
+    if (!isInitialLoad && scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [searchHits, isInitialLoad, drawerOpen]);
+  }, [searchHits, isInitialLoad]);
 
   // Handle case where allDoctors might be empty or undefined
   const shouldShowList = filteredDoctors && filteredDoctors.length > 0;
@@ -96,7 +92,7 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
         <div className="mx-auto w-full max-w-2xl flex flex-col h-[90vh]">
           <InstantSearch searchClient={searchClient} indexName="doctors_index">
             <Configure hitsPerPage={12} />
-            <DrawerHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-3 pb-3 border-b border-border/50">
+            <DrawerHeader className="sticky top-0 z-20 bg-background/80 backdrop-blur-md pt-3 pb-3">
               <DrawerDoctorSearch
                 allDoctors={allDoctors}
                 onFilterChange={handleFilterChange}
@@ -106,14 +102,13 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
               ref={scrollRef}
               className="flex-1 overflow-y-auto max-h-[calc(90vh-6.5rem)] px-4 pt-4 pb-12 scrollbar-hide"
             >
-              <AnimatePresence mode="wait" initial={false}>
+              <AnimatePresence mode="wait">
                 {isInitialLoad ? (
                   <motion.div
                     key="loading"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
                     className="text-center text-sm text-zinc-500 mt-10"
                   >
                     Loading doctors...
@@ -123,8 +118,8 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
                     key="doctor-list"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
                   >
                     <DoctorList
                       allDoctors={allDoctors}
@@ -137,7 +132,6 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
                     className="text-center text-sm text-zinc-500 mt-10"
                   >
                     No doctors found.
