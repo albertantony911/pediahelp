@@ -126,7 +126,7 @@ export default function DrawerDoctorSearch({ onFilterChange }: Props) {
                   setShowSuggestions(false);
                 }, 200);
               }}
-              className={`w-full truncate bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5.5 transition-all ${
+              className={`w-full truncate bg-gray-100 dark:bg-zinc-800 text-black dark:text-white placeholder-gray-500 rounded-full py-5.5 sm:py-6 transition-all ${
                 isFocused
                   ? inputValue.trim()
                     ? 'pl-12 pr-16 shadow-md truncate'

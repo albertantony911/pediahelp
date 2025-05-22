@@ -43,7 +43,7 @@ async function syncSinglePostToAlgolia(post: any) {
     objectID,
     _id: post._id,
     title: post.title ?? '',
-    slug: post.slug?.current ?? '',
+    slug: post.slug ?? null, // Store as object { current: string } or null
     excerpt: post.excerpt ?? null,
     imageUrl: post.image?.asset?.url ?? null,
     imageAlt: post.image?.alt ?? post.title ?? 'Blog image',
@@ -170,7 +170,7 @@ export async function fullSyncPostsToAlgolia() {
       objectID,
       _id: post._id,
       title: post.title ?? '',
-      slug: post.slug?.current ?? '',
+      slug: post.slug ?? null, // Store as object { current: string } or null
       excerpt: post.excerpt ?? null,
       imageUrl: post.image?.asset?.url ?? null,
       imageAlt: post.image?.alt ?? post.title ?? 'Blog image',

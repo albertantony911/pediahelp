@@ -1,3 +1,5 @@
+// File: components/header/bottom-nav.tsx
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -17,6 +19,11 @@ import {
   DrawerTrigger,
   DrawerContent,
 } from '@/components/ui/drawer';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
 import { DoctorSearchDrawer } from '@/components/blocks/doctor/DoctorSearchDrawer';
 import {
   AlertDialog,
@@ -76,7 +83,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [moreOpenIndex, setMoreOpenIndex] = useState<number | null>(null);
+  const [openCollapsible, setOpenCollapsible] = useState<string | null>(null);
   const allDoctors = useDoctors();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollControls = useAnimation();
@@ -85,12 +92,12 @@ export default function BottomNav() {
     setDrawerOpen(false);
   }, [pathname]);
 
-  const debouncedSetMoreOpenIndex = debounce((index: number | null) => {
-    setMoreOpenIndex(index);
+  const debouncedSetOpenCollapsible = debounce((label: string | null) => {
+    setOpenCollapsible(label);
   }, 100);
 
   useEffect(() => {
-    if (moreOpenIndex !== null && scrollContainerRef.current) {
+    if (openCollapsible !== null && scrollContainerRef.current) {
       const el = scrollContainerRef.current;
       const needsScroll = el.scrollHeight > el.clientHeight + 24;
       if (needsScroll) {
@@ -98,7 +105,7 @@ export default function BottomNav() {
         el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
       }
     }
-  }, [moreOpenIndex]);
+  }, [openCollapsible, scrollControls]);
 
   const whatsappLink = generateWhatsAppLink('+919970450260', 'Hi, I need help!');
 
@@ -131,61 +138,62 @@ export default function BottomNav() {
                 </button>
               </DrawerTrigger>
 
-              <DrawerContent className="max-h-[75vh] bg-white rounded-t-[20px] pt-2 px-0  shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
+              <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px] px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
                 <motion.div
                   ref={scrollContainerRef}
                   animate={scrollControls}
-                  className="overflow-y-auto max-h-[calc(75vh-2rem)] px-6 pt-4 pb-2 space-y-4"
+                  className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2"
                 >
-                  <ul className="space-y-4">
-                    {overflowItems.map((section: any, idx: number) => {
-                      const isOpen = moreOpenIndex === idx;
-
+                  <ul className="space-y-2">
+                    {overflowItems.map((section: any) => {
                       if (section.type === 'group') {
                         return (
-                          <li key={section.label}>
-                            <button
-                              className="w-full flex justify-start items-center gap-2 px-4 py-3 text-base font-semibold rounded-xl bg-muted/30 text-[var(--dark-shade)] hover:bg-muted"
-                              onClick={() => debouncedSetMoreOpenIndex(isOpen ? null : idx)}
-                            >
-                              <CaretDown
-                                weight="bold"
-                                className={cn('size-4 transition-transform', isOpen && 'rotate-180')}
-                              />
-                              <span>{section.label}</span>
-                            </button>
-
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={isOpen ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="overflow-hidden"
-                            >
-                              <ul className="flex flex-col px-7 pb-2 pt-1 space-y-2 max-h-[300px] overflow-y-auto">
-                                {section.items?.map((item: any) => (
-                                  <li key={item.label}>
-                                    <button
-                                      onClick={() => {
-                                        if (item.href) {
-                                          delayedAction(() => {
-                                            setDrawerOpen(false);
-                                            router.push(item.href);
-                                          });
-                                        }
-                                      }}
-                                      className={cn(
-                                        'block w-full text-left px-3 py-3 rounded-md font-medium text-sm hover:bg-muted',
-                                        isActive(pathname, item.href ?? '') &&
-                                          'text-[var(--mid-shade)] font-semibold bg-muted'
-                                      )}
-                                    >
-                                      {item.label}
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                            </motion.div>
-                          </li>
+                          <Collapsible
+                            key={section.label}
+                            open={openCollapsible === section.label}
+                            onOpenChange={() =>
+                              debouncedSetOpenCollapsible(
+                                openCollapsible === section.label ? null : section.label
+                              )
+                            }
+                          >
+                            <CollapsibleTrigger asChild>
+                              <button
+                                className="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                              >
+                                <span>{section.label}</span>
+                                <CaretDown
+                                  weight="bold"
+                                  className={cn(
+                                    'size-4 transition-transform duration-200',
+                                    openCollapsible === section.label && 'rotate-180'
+                                  )}
+                                />
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-1 pl-4 space-y-1">
+                              {section.items?.map((item: any) => (
+                                <button
+                                  key={item.label}
+                                  onClick={() => {
+                                    if (item.href) {
+                                      delayedAction(() => {
+                                        setDrawerOpen(false);
+                                        router.push(item.href);
+                                      });
+                                    }
+                                  }}
+                                  className={cn(
+                                    'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors',
+                                    isActive(pathname, item.href ?? '') &&
+                                      'text-[var(--mid-shade)] font-semibold bg-gray-100'
+                                  )}
+                                >
+                                  {item.label}
+                                </button>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
                         );
                       }
 
@@ -201,9 +209,9 @@ export default function BottomNav() {
                               }
                             }}
                             className={cn(
-                              'block w-full text-left px-4 py-4 text-base font-semibold rounded-xl bg-muted/30 text-[var(--dark-shade)] hover:bg-muted',
+                              'block w-full text-left px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors',
                               isActive(pathname, section.href ?? '') &&
-                                'text-[var(--mid-shade)] font-semibold bg-muted'
+                                'text-[var(--mid-shade)] font-semibold bg-gray-100'
                             )}
                           >
                             {section.label}
