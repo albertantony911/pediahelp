@@ -108,7 +108,10 @@ export default function BottomNav() {
 
         if (overflow) {
           return (
-            <Drawer key={label} open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Drawer key={label} open={drawerOpen} onOpenChange={(open) => {
+              setDrawerOpen(open);
+              if (!open) setOpenCollapsible(null); // Reset collapsible
+            }}>
               <DrawerTrigger asChild>
                 <button
                   aria-label={`${label} menu`}
@@ -124,98 +127,98 @@ export default function BottomNav() {
               </DrawerTrigger>
 
               <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px] px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
-                <div
-                  ref={scrollContainerRef}
-                  className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2"
-                >
+                <div ref={scrollContainerRef} className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2">
                   <ul className="space-y-2">
-                    {overflowItems.map((section: any) => {
+                    {overflowItems.map((section: any, index: number) => {
+                      const spacingClass = index === 0 ? 'mt-2' : '';
+
                       if (section.type === 'group') {
                         return (
-                          <Collapsible
-                            key={section.label}
-                            open={openCollapsible === section.label}
-                            onOpenChange={() =>
-                              debouncedSetOpenCollapsible(
-                                openCollapsible === section.label ? null : section.label
-                              )
-                            }
-                          >
-                            <CollapsibleTrigger asChild>
-                              <button
-                                className="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                              >
-                                <span>{section.label}</span>
-                                <CaretDown
-                                  weight="bold"
-                                  className={cn(
-                                    'size-4 transition-transform duration-200',
-                                    openCollapsible === section.label && 'rotate-180'
-                                  )}
-                                />
-                              </button>
-                            </CollapsibleTrigger>
-
-                            <AnimatePresence initial={false}>
-                              {openCollapsible === section.label && (
-                                <motion.div
-                                  key={section.label}
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                  className="overflow-hidden mt-1 pl-4"
-                                  ref={(el) => {
-                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                                  }}
+                          <li key={section.label} className={spacingClass}>
+                            <Collapsible
+                              open={openCollapsible === section.label}
+                              onOpenChange={() =>
+                                debouncedSetOpenCollapsible(
+                                  openCollapsible === section.label ? null : section.label
+                                )
+                              }
+                            >
+                              <CollapsibleTrigger asChild>
+                                <button
+                                  className="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                                 >
+                                  <span>{section.label}</span>
+                                  <CaretDown
+                                    weight="bold"
+                                    className={cn(
+                                      'size-4 transition-transform duration-200',
+                                      openCollapsible === section.label && 'rotate-180'
+                                    )}
+                                  />
+                                </button>
+                              </CollapsibleTrigger>
+
+                              <AnimatePresence initial={false}>
+                                {openCollapsible === section.label && (
                                   <motion.div
-                                    variants={{
-                                      open: {
-                                        transition: { staggerChildren: 0.05, delayChildren: 0.05 },
-                                      },
-                                      closed: {},
+                                    key={section.label}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    className="overflow-hidden mt-1 pl-4"
+                                    ref={(el) => {
+                                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                     }}
-                                    initial="closed"
-                                    animate="open"
-                                    exit="closed"
-                                    className="space-y-1"
                                   >
-                                    {section.items?.map((item: any) => (
-                                      <motion.button
-                                        key={item.label}
-                                        variants={{
-                                          closed: { opacity: 0, y: 4 },
-                                          open: { opacity: 1, y: 0 },
-                                        }}
-                                        onClick={() => {
-                                          if (item.href) {
-                                            delayedAction(() => {
-                                              setDrawerOpen(false);
-                                              router.push(item.href);
-                                            });
-                                          }
-                                        }}
-                                        className={cn(
-                                          'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700',
-                                          'hover:bg-gray-100 rounded-md transition-colors',
-                                          isActive(pathname, item.href ?? '') &&
-                                            'text-[var(--mid-shade)] font-semibold bg-gray-100'
-                                        )}
-                                      >
-                                        {item.label}
-                                      </motion.button>
-                                    ))}
+                                    <motion.div
+                                      variants={{
+                                        open: {
+                                          transition: { staggerChildren: 0.05, delayChildren: 0.05 },
+                                        },
+                                        closed: {},
+                                      }}
+                                      initial="closed"
+                                      animate="open"
+                                      exit="closed"
+                                      className="space-y-1"
+                                    >
+                                      {section.items?.map((item: any) => (
+                                        <motion.button
+                                          key={item.label}
+                                          variants={{
+                                            closed: { opacity: 0, y: 4 },
+                                            open: { opacity: 1, y: 0 },
+                                          }}
+                                          onClick={() => {
+                                            if (item.href) {
+                                              delayedAction(() => {
+                                                setDrawerOpen(false);
+                                                router.push(item.href);
+                                              });
+                                            }
+                                          }}
+                                          className={cn(
+                                            'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700',
+                                            'hover:bg-gray-100 rounded-md transition-colors',
+                                            isActive(pathname, item.href ?? '') &&
+                                              'text-[var(--mid-shade)] font-semibold bg-gray-100'
+                                          )}
+                                        >
+                                          {item.label}
+                                        </motion.button>
+                                      ))}
+                                    </motion.div>
                                   </motion.div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </Collapsible>
+                                )}
+                              </AnimatePresence>
+                            </Collapsible>
+                          </li>
                         );
                       }
 
                       return (
-                        <li key={section.label}>
+                        <li key={section.label} className={spacingClass}>
                           <button
                             onClick={() => {
                               if (section.href) {
