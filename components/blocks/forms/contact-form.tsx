@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,37 +21,51 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
+import { CheckCircle2, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
 import { Title, Subtitle } from '@/components/ui/theme/typography';
+
+const config = {
+  TIMER_DURATION: 30,
+  OTP_LENGTH: 6,
+  PHONE_LENGTH: 10,
+  MAX_OTP_ATTEMPTS: 3,
+  RATE_LIMIT_WINDOW: 60 * 1000, // 1 minute
+};
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   message: z.string().min(6, 'Message must be at least 6 characters').max(500, 'Message must be less than 500 characters'),
-  otp: z.string().length(6, 'OTP must be 6 digits').optional(),
+  otp: z.string().length(config.OTP_LENGTH, 'OTP must be 6 digits').optional(),
 });
 
 interface ContactFormProps {
-  _type: 'contact-form';
-  _key: string;
   theme?: ThemeVariant | null;
-  tagLine?: string | null;
-  title?: string | null;
-  successMessage?: string | null;
+  tagLine?: string;
+  title?: string;
+  successMessage?: string;
   pageSource?: string;
+  countryCode?: string;
 }
 
-export default function ContactForm({ theme, tagLine, title, successMessage, pageSource = 'Contact Page' }: ContactFormProps) {
+export default function ContactForm({
+  theme = null,
+  tagLine,
+  title,
+  successMessage = 'Message Sent Successfully!',
+  pageSource = 'Contact Page',
+  countryCode = '+91',
+}: ContactFormProps) {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
+  const [isLoading, setIsLoading] = useState(false);
+  const [timer, setTimer] = useState(config.TIMER_DURATION);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const lastAttemptRef = useRef(0);
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const firstFocusRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,204 +78,198 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     },
   });
 
-  const { watch, setValue } = form;
-  const name = watch('name');
-  const email = watch('email');
-  const phone = watch('phone');
-  const otp = watch('otp');
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const { watch, setValue, getValues, reset, trigger } = form;
+  const { phone, otp } = watch();
 
-  useEffect(() => {
-    if (!otpSent || isVerified || timer === 0) return;
-    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
-    return () => clearInterval(interval);
-  }, [timer, otpSent, isVerified]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = undefined;
-    }
-
+  const initializeRecaptcha = useCallback(async () => {
+    if (typeof window === 'undefined' || recaptchaRef.current) return true;
     try {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {},
-      });
+      recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      return true;
     } catch (error) {
-      console.error('Error initializing reCAPTCHA:', error);
+      console.error('Recaptcha initialization failed:', error);
+      return false;
     }
+  }, []);
 
-    return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-      }
-    };
+  const clearRecaptcha = useCallback(() => {
+    if (recaptchaRef.current) {
+      recaptchaRef.current.clear();
+      recaptchaRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
-    if ('OTPCredential' in window && confirmationResult) {
-      const ac = new AbortController();
-      navigator.credentials.get({ otp: { transport: ['sms'] }, signal: ac.signal } as any).then((otpCredential: any) => {
-        if (otpCredential?.code) {
-          form.setValue('otp', otpCredential.code);
-          handleVerifyAndSubmit(otpCredential.code);
-        }
-      }).catch((err: Error) => {
-        console.error('Web OTP API error:', err);
-      });
-      return () => ac.abort();
-    }
-  }, [confirmationResult, form]);
+    initializeRecaptcha();
+    return () => clearRecaptcha();
+  }, [initializeRecaptcha, clearRecaptcha]);
 
-  const handleOtpChange = (index: number, value: string) => {
+  useEffect(() => {
+    if (step !== 'otp' || timer === 0) return;
+    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [step, timer]);
+
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      toast.error('An unexpected error occurred. Please try again.');
+      console.error('Unhandled rejection:', event.reason);
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
+
+  const handleOtpChange = useCallback((index: number, value: string) => {
     if (!/^\d?$/.test(value)) return;
-    const arr = (otp || '').split('');
-    arr[index] = value;
-    form.setValue('otp', arr.join(''));
-
-    if (value && index < 5) otpInputsRef.current[index + 1]?.focus();
+    const newOtp = (otp || '').split('');
+    newOtp[index] = value;
+    setValue('otp', newOtp.join(''), { shouldValidate: true });
+    if (value && index < config.OTP_LENGTH - 1) otpInputsRef.current[index + 1]?.focus();
     else if (!value && index > 0) otpInputsRef.current[index - 1]?.focus();
-  };
+  }, [otp, setValue]);
 
-  const handleSendOtp = async () => {
-    const errors = form.formState.errors;
-    if (errors.name || errors.email || errors.phone || errors.message) {
-      toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
-      return;
-    }
+  const handleOtpRef = useCallback((index: number) => (el: HTMLInputElement | null) => {
+    otpInputsRef.current[index] = el;
+  }, []);
 
-    setIsSendingOtp(true);
+  const sendOtp = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
-      const verifier = window.recaptchaVerifier;
-      if (!verifier) throw new Error('reCAPTCHA not initialized');
-      await verifier.verify();
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+      const now = Date.now();
+      if (now - lastAttemptRef.current < config.RATE_LIMIT_WINDOW) {
+        setAttemptCount((prev) => prev + 1);
+        if (attemptCount >= config.MAX_OTP_ATTEMPTS) {
+          throw new Error('Too many attempts. Please wait a minute.');
+        }
+      } else {
+        setAttemptCount(1);
+      }
+      lastAttemptRef.current = now;
+
+      const isValid = await trigger(['name', 'email', 'phone', 'message']);
+      if (!isValid) {
+        throw new Error(Object.values(form.formState.errors)[0]?.message || 'Please fill all fields correctly');
+      }
+
+      const recaptchaSuccess = await initializeRecaptcha();
+      if (!recaptchaSuccess || !recaptchaRef.current) {
+        throw new Error('Security verification failed. Please check your privacy settings.');
+      }
+
+      const result = await signInWithPhoneNumber(auth, `${countryCode}${phone}`, recaptchaRef.current);
       setConfirmationResult(result);
-      setOtpSent(true);
       setStep('otp');
-      setTimer(30);
-      toast.success(`OTP sent to +91${phone}`);
+      setTimer(config.TIMER_DURATION);
+      toast.success(`OTP sent to ${countryCode}${phone}`);
+      if (firstFocusRef.current) firstFocusRef.current.focus();
     } catch (error: any) {
-      toast.error('Failed to send OTP', { description: error.message });
+      const errorMessage = error.code === 'auth/invalid-phone-number'
+        ? 'Invalid phone number format.'
+        : error.code === 'auth/too-many-requests'
+        ? 'Too many attempts. Please try again later.'
+        : error.message || 'Failed to send OTP';
+      toast.error(errorMessage);
     } finally {
-      setIsSendingOtp(false);
+      setIsLoading(false);
     }
-  };
+  }, [isLoading, attemptCount, countryCode, phone, trigger, initializeRecaptcha]);
 
-  const handleVerifyAndSubmit = async (otpCode: string) => {
-    if (!confirmationResult || !otpCode || otpCode.length !== 6) return;
-    setIsVerifyingOtp(true);
+  const verifyAndSubmit = useCallback(async () => {
+    if (!confirmationResult || !otp || otp.length !== config.OTP_LENGTH || isLoading) return;
+    setIsLoading(true);
     try {
-      await confirmationResult.confirm(otpCode);
-      setIsVerified(true);
-      toast.success('Phone number verified!');
-
-      setIsSubmitting(true);
-      const formData = form.getValues();
+      await confirmationResult.confirm(otp);
+      const formData = getValues();
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          subject: `Contact Form Submission from ${pageSource}`,
-        }),
+        body: JSON.stringify({ ...formData, phone: `${countryCode}${phone}`, subject: `Contact Form Submission from ${pageSource}` }),
+        signal: AbortSignal.timeout(5000),
       });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to submit the form');
-
+      if (!response.ok) throw new Error('Failed to submit form');
       setStep('success');
-      toast.success('Message sent successfully!');
+      toast.success(successMessage);
+      reset();
+      clearRecaptcha();
     } catch (error: any) {
-      toast.error('Verification or submission failed', { description: error.message });
+      const errorMessage = error.code === 'auth/invalid-verification-code'
+        ? 'Invalid OTP. Please try again.'
+        : error.code === 'auth/expired-verification-code'
+        ? 'OTP has expired. Please request a new one.'
+        : error.message || 'Verification or submission failed';
+      toast.error(errorMessage);
     } finally {
-      setIsVerifyingOtp(false);
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
-  };
+  }, [confirmationResult, otp, isLoading, getValues, countryCode, pageSource, successMessage, reset, clearRecaptcha]);
 
-  const resetPhone = () => {
-    setOtpSent(false);
-    form.setValue('phone', '');
-    form.setValue('otp', '');
-    setConfirmationResult(null);
+  const resetForm = useCallback(() => {
+    reset();
     setStep('form');
-    setIsVerified(false);
-    setTimer(30);
-  };
-
-  const renderStatusIcon = (valid: boolean) => (
-    <span className="absolute top-1/2 right-3 transform -translate-y-1/2 pointer-events-none">
-      {valid ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-      ) : (
-        <AlertCircle className="h-4 w-4 text-red-500" />
-      )}
-    </span>
-  );
+    setConfirmationResult(null);
+    setTimer(config.TIMER_DURATION);
+    setAttemptCount(0);
+    lastAttemptRef.current = 0;
+    clearRecaptcha();
+    if (firstFocusRef.current) firstFocusRef.current.focus();
+  }, [reset, clearRecaptcha]);
 
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: 'easeIn' } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
   };
 
   return (
-    <Theme variant={theme || 'white'}>
-      <div className="py-10 max-w-lg mx-auto">
-        {step !== 'success' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center mb-8"
-          >
-            {tagLine && <Subtitle>{tagLine}</Subtitle>}
-            {title && <Title>{title}</Title>}
-          </motion.div>
-        )}
-        <Card className="border-none shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-3xl">
-          <CardContent className="p-6">
-            {step === 'form' && (
-              <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
-                <Form {...form}>
-                <form
-                    className="space-y-4"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const isValid = form.trigger(['name', 'email', 'phone', 'message']);
-                      isValid.then((valid) => {
-                        if (valid) handleSendOtp();
-                        else {
-                          const errors = form.formState.errors;
-                          toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
-                        }
-                      });
-                    }}
-                  >
+    <div className="py-10 px-4 mx-auto bg-dark-shade">
+      <Theme variant={theme || 'white'}>
+        <AnimatePresence>
+          {step !== 'success' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center mb-8"
+            >
+              {tagLine && <Subtitle>{tagLine}</Subtitle>}
+              {title && <Title>{title}</Title>}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Theme>
 
+      <Card className="border-none max-w-md mx-auto shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-3xl">
+        <CardContent className="p-6">
+          <div id="recaptcha-container" className="hidden" />
+          <div aria-live="assertive" className="sr-only">
+            {step === 'form' && 'Please fill out the contact form'}
+            {step === 'otp' && `Enter the ${config.OTP_LENGTH}-digit OTP sent to ${countryCode}${phone}`}
+            {step === 'success' && successMessage}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {step === 'form' && (
+              <motion.div key="form" variants={formVariants} initial="hidden" animate="visible" exit="exit">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(sendOtp)} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <FormLabel className="flex items-center gap-2">
                             <User className="w-4 h-4" /> Name
                           </FormLabel>
-                          <div className="relative">
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Your Name"
-                                disabled={otpSent}
-                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
-                              />
-                            </FormControl>
-                            {name && !otpSent && renderStatusIcon(!!name.trim())}
-                          </div>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              ref={firstFocusRef}
+                              placeholder="Your Name"
+                              disabled={isLoading}
+                              className="rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm"
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -271,21 +279,18 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <FormLabel className="flex items-center gap-2">
                             <Mail className="w-4 h-4" /> Email
                           </FormLabel>
-                          <div className="relative">
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Your Email"
-                                type="email"
-                                disabled={otpSent}
-                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
-                              />
-                            </FormControl>
-                            {email && !otpSent && renderStatusIcon(isEmailValid)}
-                          </div>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="Your Email"
+                              disabled={isLoading}
+                              className="rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm"
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -295,30 +300,24 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                            <Phone className="w-4 h-4" /> Phone Number
+                          <FormLabel className="flex items-center gap-2">
+                            <Phone className="w-4 h-4" /> Phone
                           </FormLabel>
-                          <div className="relative flex items-center border border-gray-200/50 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm">
-                            <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">
-                              🇮🇳 +91
-                            </div>
+                          <div className="flex items-center border rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm overflow-hidden">
+                            <span className="flex items-center px-3 py-2 gap-1">
+                              🇮🇳 {countryCode}
+                            </span>
                             <FormControl>
                               <input
                                 {...field}
                                 type="tel"
                                 inputMode="numeric"
-                                pattern="[0-9]*"
-                                disabled={otpSent}
-                                placeholder="Enter 10-digit mobile number"
-                                className="w-full px-3 py-2 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100"
-                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                placeholder="Enter 10-digit number"
+                                disabled={isLoading}
+                                className="flex-1 px-3 py-2 bg-transparent outline-none border-l"
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, config.PHONE_LENGTH))}
                               />
                             </FormControl>
-                            {otpSent && (
-                              <Button type="button" variant="ghost" size="sm" onClick={resetPhone} className="rounded-lg">
-                                Edit
-                              </Button>
-                            )}
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -329,7 +328,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                       name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <FormLabel className="flex items-center gap-2">
                             <MessageSquare className="w-4 h-4" /> Message
                           </FormLabel>
                           <FormControl>
@@ -337,21 +336,20 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                               {...field}
                               placeholder="Your Message"
                               rows={4}
-                              disabled={otpSent}
-                              className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all resize-none"
+                              disabled={isLoading}
+                              className="rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm resize-none"
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div id="recaptcha-container" />
                     <Button
                       type="submit"
-                      disabled={isSendingOtp}
-                      className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm"
+                      disabled={isLoading}
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all"
                     >
-                      {isSendingOtp ? (
+                      {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...
                         </>
@@ -363,40 +361,36 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                 </Form>
               </motion.div>
             )}
-
             {step === 'otp' && (
-              <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
+              <motion.div key="otp" variants={formVariants} initial="hidden" animate="visible" exit="exit">
                 <Form {...form}>
-                  <form className="space-y-4">
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="otp"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <FormLabel className="flex items-center gap-2">
                             <Phone className="w-4 h-4" /> Enter OTP
                           </FormLabel>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            OTP sent to <span className="font-semibold">+91{phone}</span>
-                          </p>
+                          <p className="text-sm text-gray-500">Sent to {countryCode}{phone}</p>
                           <FormControl>
                             <div className="flex justify-center gap-2">
-                              {Array.from({ length: 6 }).map((_, i) => (
+                              {Array.from({ length: config.OTP_LENGTH }).map((_, i) => (
                                 <motion.input
                                   key={i}
                                   type="text"
                                   inputMode="numeric"
                                   maxLength={1}
-                                  className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
-                                  ref={(el) => {
-                                    otpInputsRef.current[i] = el;
-                                  }}
+                                  ref={handleOtpRef(i)}
                                   value={otp?.[i] || ''}
                                   onChange={(e) => handleOtpChange(i, e.target.value)}
-                                  disabled={isVerifyingOtp || isVerified}
-                                  initial={{ scale: 0.8, opacity: 0 }}
-                                  animate={{ scale: 1, opacity: 1 }}
+                                  disabled={isLoading}
+                                  className="w-10 h-12 text-center border rounded-md bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                                  initial={{ scale: 0.8 }}
+                                  animate={{ scale: 1 }}
                                   transition={{ duration: 0.3, delay: i * 0.1 }}
+                                  aria-label={`OTP digit ${i + 1}`}
                                 />
                               ))}
                             </div>
@@ -405,52 +399,63 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                         </FormItem>
                       )}
                     />
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-sm text-gray-500">
                       <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
                       <button
-                        onClick={handleSendOtp}
-                        disabled={timer > 0}
-                        className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}
+                        onClick={sendOtp}
+                        disabled={timer > 0 || isLoading}
+                        className="text-primary disabled:opacity-50"
                       >
                         Resend OTP
                       </button>
                     </div>
-                    {!isVerified && (
-                      <Button
-                        onClick={() => otp && handleVerifyAndSubmit(otp)}
-                        disabled={isVerifyingOtp || !otp || otp.length !== 6}
-                        className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
-                      >
-                        {isVerifyingOtp ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...
-                          </>
-                        ) : (
-                          'Verify & Send'
-                        )}
-                      </Button>
-                    )}
-                  </form>
+                    <Button
+                      onClick={verifyAndSubmit}
+                      disabled={isLoading || !otp || otp.length !== config.OTP_LENGTH}
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...
+                        </>
+                      ) : (
+                        'Verify & Send'
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={resetForm}
+                      disabled={isLoading}
+                      className="w-full rounded-lg"
+                    >
+                      Edit Phone
+                    </Button>
+                  </div>
                 </Form>
               </motion.div>
             )}
-
             {step === 'success' && (
               <motion.div
+                key="success"
                 variants={formVariants}
                 initial="hidden"
                 animate="visible"
-                className="text-center"
+                className="text-center space-y-4"
               >
-                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {successMessage || 'Message Sent Successfully!'}
-                </h3>
+                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
+                <h3 className="text-xl font-semibold">{successMessage}</h3>
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  className="rounded-lg"
+                >
+                  Submit Another
+                </Button>
               </motion.div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </Theme>
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

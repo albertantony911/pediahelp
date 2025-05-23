@@ -2,26 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-// Simple in-memory rate limiter
-const rateLimitMap = new Map<string, number[]>();
+// Enhanced rate limiter
+const rateLimits = new Map<string, { count: number; expiresAt: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const MAX_REQUESTS = 10;
-
-// Validate environment variables
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-  'NEXT_PUBLIC_SITE_URL',
-  'REVALIDATE_SECRET_TOKEN',
-];
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing environment variables: ${missingEnvVars.join(', ')}`);
-}
+const MAX_REQUESTS = 5;
 
 interface ContactFormData {
   name: string;
@@ -29,29 +13,35 @@ interface ContactFormData {
   phone: string;
   message: string;
   subject: string;
+  otpVerified: boolean;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    // Rate limiting
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
-    const now = Date.now();
-    const requests = rateLimitMap.get(ip) || [];
-    const recentRequests = requests.filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW);
-    
-    if (recentRequests.length >= MAX_REQUESTS) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+// Cleanup expired rate limits
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, limit] of rateLimits.entries()) {
+    if (limit.expiresAt < now) {
+      rateLimits.delete(ip);
     }
-    
-    recentRequests.push(now);
-    rateLimitMap.set(ip, recentRequests);
+  }
+}, RATE_LIMIT_WINDOW);
 
+export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || 'unknown';
+
+  // Rate limiting check
+  const currentLimit = rateLimits.get(ip) || { count: 0, expiresAt: Date.now() + RATE_LIMIT_WINDOW };
+  if (currentLimit.count >= MAX_REQUESTS) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': RATE_LIMIT_WINDOW.toString() } }
+    );
+  }
+
+  try {
     const body: ContactFormData = await req.json();
 
-    // Validate required fields
+    // Validation
     if (!body.name || !body.email || !body.phone || !body.message || !body.subject) {
       return NextResponse.json(
         { error: 'All fields are required' },
@@ -59,49 +49,53 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
+    if (!body.otpVerified) {
+      return NextResponse.json(
+        { error: 'OTP verification required' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
       return NextResponse.json(
         { error: 'Invalid email address' },
         { status: 400 }
       );
     }
 
-    // Validate phone format (10 digits)
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(body.phone)) {
+    if (!/^\+91\d{10}$/.test(body.phone)) {
       return NextResponse.json(
-        { error: 'Phone number must be 10 digits' },
+        { error: 'Invalid phone number format' },
         { status: 400 }
       );
     }
 
-    // Store in Firestore
-    const submission = {
+    // Store submission
+    await addDoc(collection(db, 'contact-submissions'), {
       name: body.name,
       email: body.email,
-      phone: `+91${body.phone}`,
+      phone: body.phone,
       message: body.message,
       subject: body.subject,
       submittedAt: serverTimestamp(),
-    };
+      ipAddress: ip,
+      otpVerified: body.otpVerified,
+    });
 
-    await addDoc(collection(db, 'contact-submissions'), submission);
-
-    // Revalidate contact page
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/contact&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
-    ).catch((err) => console.warn('⚠️ Revalidation failed:', err.message));
+    // Update rate limit
+    rateLimits.set(ip, {
+      count: currentLimit.count + 1,
+      expiresAt: currentLimit.expiresAt,
+    });
 
     return NextResponse.json(
       { message: 'Form submitted successfully' },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error submitting form:', error);
+    console.error('Submission error:', error);
     return NextResponse.json(
-      { error: 'Failed to submit form' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
