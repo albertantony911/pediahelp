@@ -228,7 +228,21 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
             {step === 'form' && (
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
                 <Form {...form}>
-                  <form className="space-y-4" onSubmit={form.handleSubmit(handleSendOtp)}>
+                <form
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const isValid = form.trigger(['name', 'email', 'phone', 'message']);
+                      isValid.then((valid) => {
+                        if (valid) handleSendOtp();
+                        else {
+                          const errors = form.formState.errors;
+                          toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
+                        }
+                      });
+                    }}
+                  >
+
                     <FormField
                       control={form.control}
                       name="name"
@@ -335,7 +349,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                     <Button
                       type="submit"
                       disabled={isSendingOtp}
-                      className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm"
                     >
                       {isSendingOtp ? (
                         <>
