@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,13 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
+import { Title, Subtitle } from '@/components/ui/theme/typography';
 
-import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
-import PortableTextRenderer from '@/components/portable-text-renderer';
-
-// Define form validation schema with Zod
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
   email: z.string().email('Invalid email address'),
@@ -43,9 +39,10 @@ interface ContactFormProps {
   tagLine?: string | null;
   title?: string | null;
   successMessage?: string | null;
+  pageSource?: string;
 }
 
-export default function ContactForm({ theme, tagLine, title, successMessage }: ContactFormProps) {
+export default function ContactForm({ theme, tagLine, title, successMessage, pageSource = 'Contact Page' }: ContactFormProps) {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isVerified, setIsVerified] = useState(false);
@@ -53,8 +50,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [timer, setTimer] = useState(30);
+  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Initialize form with react-hook-form and Zod validation
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,28 +64,69 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     },
   });
 
-  const { watch } = form;
+  const { watch, setValue } = form;
   const name = watch('name');
   const email = watch('email');
   const phone = watch('phone');
   const otp = watch('otp');
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // Initialize reCAPTCHA verifier
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {},
-        });
-      } catch (error) {
-        console.error('Error initializing reCAPTCHA:', error);
-      }
+    if (!otpSent || isVerified || timer === 0) return;
+    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [timer, otpSent, isVerified]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = undefined;
     }
+
+    try {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {},
+      });
+    } catch (error) {
+      console.error('Error initializing reCAPTCHA:', error);
+    }
+
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+    };
   }, []);
 
-  // Handle sending OTP
+  useEffect(() => {
+    if ('OTPCredential' in window && confirmationResult) {
+      const ac = new AbortController();
+      navigator.credentials.get({ otp: { transport: ['sms'] }, signal: ac.signal } as any).then((otpCredential: any) => {
+        if (otpCredential?.code) {
+          form.setValue('otp', otpCredential.code);
+          handleVerifyAndSubmit(otpCredential.code);
+        }
+      }).catch((err: Error) => {
+        console.error('Web OTP API error:', err);
+      });
+      return () => ac.abort();
+    }
+  }, [confirmationResult, form]);
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d?$/.test(value)) return;
+    const arr = (otp || '').split('');
+    arr[index] = value;
+    form.setValue('otp', arr.join(''));
+
+    if (value && index < 5) otpInputsRef.current[index + 1]?.focus();
+    else if (!value && index > 0) otpInputsRef.current[index - 1]?.focus();
+  };
+
   const handleSendOtp = async () => {
     const errors = form.formState.errors;
     if (errors.name || errors.email || errors.phone || errors.message) {
@@ -99,10 +138,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     try {
       const verifier = window.recaptchaVerifier;
       if (!verifier) throw new Error('reCAPTCHA not initialized');
+      await verifier.verify();
       const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       setConfirmationResult(result);
       setOtpSent(true);
       setStep('otp');
+      setTimer(30);
       toast.success(`OTP sent to +91${phone}`);
     } catch (error: any) {
       toast.error('Failed to send OTP', { description: error.message });
@@ -111,33 +152,23 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     }
   };
 
-  // Handle OTP verification
-  const handleVerifyOtp = async () => {
-    if (!confirmationResult || !otp) return; // Ensure otp is defined
+  const handleVerifyAndSubmit = async (otpCode: string) => {
+    if (!confirmationResult || !otpCode || otpCode.length !== 6) return;
     setIsVerifyingOtp(true);
     try {
-      await confirmationResult.confirm(otp); // Now TypeScript knows otp is a string
+      await confirmationResult.confirm(otpCode);
       setIsVerified(true);
       toast.success('Phone number verified!');
-    } catch (error: any) {
-      toast.error('Invalid OTP', { description: error.message });
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
 
-  // Handle form submission
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    if (!isVerified) {
-      toast.error('Please verify your phone number first');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
+      setIsSubmitting(true);
+      const formData = form.getValues();
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...formData,
+          subject: `Contact Form Submission from ${pageSource}`,
+        }),
       });
 
       const result = await response.json();
@@ -146,13 +177,13 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
       setStep('success');
       toast.success('Message sent successfully!');
     } catch (error: any) {
-      toast.error('Failed to submit the form', { description: error.message });
+      toast.error('Verification or submission failed', { description: error.message });
     } finally {
+      setIsVerifyingOtp(false);
       setIsSubmitting(false);
     }
   };
 
-  // Reset phone number
   const resetPhone = () => {
     setOtpSent(false);
     form.setValue('phone', '');
@@ -160,9 +191,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     setConfirmationResult(null);
     setStep('form');
     setIsVerified(false);
+    setTimer(30);
   };
 
-  // Render status icons for validation feedback
   const renderStatusIcon = (valid: boolean) => (
     <span className="absolute top-1/2 right-3 transform -translate-y-1/2 pointer-events-none">
       {valid ? (
@@ -173,7 +204,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
     </span>
   );
 
-  // Animation variants for form steps
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -182,7 +212,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
 
   return (
     <Theme variant={theme || 'white'}>
-      <div className="py-10 max-w-lg mx-auto px-4">
+      <div className="py-10 max-w-lg mx-auto">
         {step !== 'success' && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -193,8 +223,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
             {title && <Title>{title}</Title>}
           </motion.div>
         )}
-
-        <Card className="border-none shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md">
+        <Card className="border-none shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-3xl">
           <CardContent className="p-6">
             {step === 'form' && (
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
@@ -272,7 +301,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                               />
                             </FormControl>
                             {otpSent && (
-                              <Button type="button" variant="ghost" size="sm" onClick={resetPhone}>
+                              <Button type="button" variant="ghost" size="sm" onClick={resetPhone} className="rounded-lg">
                                 Edit
                               </Button>
                             )}
@@ -313,7 +342,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...
                         </>
                       ) : (
-                        'Send OTP to Verify'
+                        'Send Message'
                       )}
                     </Button>
                   </form>
@@ -337,28 +366,44 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                             OTP sent to <span className="font-semibold">+91{phone}</span>
                           </p>
                           <FormControl>
-                            <InputOTP
-                              maxLength={6}
-                              {...field}
-                              disabled={isVerifyingOtp || isVerified}
-                            >
-                              <InputOTPGroup>
-                                <InputOTPSlot index={0} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                                <InputOTPSlot index={1} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                                <InputOTPSlot index={2} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                                <InputOTPSlot index={3} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                                <InputOTPSlot index={4} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                                <InputOTPSlot index={5} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm" />
-                              </InputOTPGroup>
-                            </InputOTP>
+                            <div className="flex justify-center gap-2">
+                              {Array.from({ length: 6 }).map((_, i) => (
+                                <motion.input
+                                  key={i}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
+                                  ref={(el) => {
+                                    otpInputsRef.current[i] = el;
+                                  }}
+                                  value={otp?.[i] || ''}
+                                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                                  disabled={isVerifyingOtp || isVerified}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                                />
+                              ))}
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
+                      <button
+                        onClick={handleSendOtp}
+                        disabled={timer > 0}
+                        className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}
+                      >
+                        Resend OTP
+                      </button>
+                    </div>
                     {!isVerified && (
                       <Button
-                        onClick={handleVerifyOtp}
+                        onClick={() => otp && handleVerifyAndSubmit(otp)}
                         disabled={isVerifyingOtp || !otp || otp.length !== 6}
                         className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
                       >
@@ -367,37 +412,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage }: C
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...
                           </>
                         ) : (
-                          'Verify OTP'
+                          'Verify & Send'
                         )}
                       </Button>
                     )}
                   </form>
                 </Form>
-
-                {isVerified && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4"
-                  >
-                    <p className="text-sm text-green-600 flex items-center gap-2 mb-4 justify-center">
-                      <CheckCircle2 className="w-4 h-4" /> Phone number verified!
-                    </p>
-                    <Button
-                      onClick={form.handleSubmit(onSubmit)}
-                      disabled={isSubmitting}
-                      className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...
-                        </>
-                      ) : (
-                        'Send Message'
-                      )}
-                    </Button>
-                  </motion.div>
-                )}
               </motion.div>
             )}
 

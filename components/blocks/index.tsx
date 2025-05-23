@@ -46,7 +46,7 @@ import FormNewsletter from "@/components/blocks/forms/newsletter";
 import AllPosts from "@/components/blocks/all-posts";
 import SectionBlock from "@/components/ui/section-block";
 import SpecialtyCard from "@/components/blocks/specialty-card";
-import ContactForm from "@/components/blocks/forms/ContactForm";
+import ContactForm from "@/components/blocks/forms/contact-form";
 import WaveDivider from "@/components/blocks/wave-divider";
 
 // 4. Component mapping with type-safe keys

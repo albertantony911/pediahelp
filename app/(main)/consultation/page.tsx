@@ -123,17 +123,17 @@ export default function ConsultationPage() {
   return (
     <>
       {/* Mobile Logo */}
-      <div className="w-full flex justify-center items-center bg-dark-shade lg:hidden">
+      <div className="w-full flex justify-center items-center bg-white lg:hidden">
         <Logo />
       </div>
 
       {/* Hero section */}
       <Theme variant="dark-shade">
         <div className="pt-10 lg:pt-48 text-gray-300 text-left sm:text-center max-w-3xl mx-auto">
-          <Subtitle>Book an Appointement</Subtitle>
+          <Subtitle>Book an Appointment</Subtitle>
           <Title>Find the right pediatric expert for your child</Title>
           <Content>
-          Connect with trusted pediatric specialists who care about your child’s health and well-being.
+            Connect with trusted pediatric specialists who care about your child’s health and well-being.
           </Content>
         </div>
       </Theme>
@@ -146,7 +146,7 @@ export default function ConsultationPage() {
             hitsPerPage={12}
           />
 
-          <div className="sticky top-0 z-20 pt-2 sm:pt-5 -mx-4 bg-dark-shade px-4">
+          <div className="sticky top-0 z-20 pt-3 pb-[1px] sm:pt-5 -mx-4 bg-dark-shade px-4">
             <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
           </div>
 
@@ -160,8 +160,8 @@ export default function ConsultationPage() {
         </InstantSearch>
       </div>
 
-      {/* Wave divider */}
-      <div className="w-screen -mx-[calc(50vw-50%)] h-[100px] relative">
+      {/* Wave Divider */}
+      <div className="w-screen h-[100px] relative">
         <img
           src="/waves/dark-to-white-desktop-1.svg"
           alt="Wave divider desktop"

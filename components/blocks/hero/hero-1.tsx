@@ -37,47 +37,50 @@ const Hero1: React.FC<Hero1Props> = ({
   const allDoctors = useDoctors();
 
   return (
-    <Theme variant={theme || 'dark-shade'}>
-      <div className="flex flex-col">
-        {/* ✅ Mobile-only SVG logo */}
-        <div className="lg:hidden w-full flex justify-center items-center">
+    <>
+      {/* Mobile-only SVG Logo (Outside Theme) */}
+      <div className="w-full flex justify-center items-center bg-white lg:hidden">
         <Logo />
-        </div>
-
-        {/* Grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-2">
-          {/* === Mobile layout === */}
-          <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
-            {isImageLeftMobile && <ImageBlock image={image} />}
-            <TextBlock
-              tagLine={tagLine}
-              title={title}
-              body={body}
-              showButton={showButton}
-              buttonType={buttonType}
-              customButton={customButton}
-              allDoctors={allDoctors}
-            />
-            {!isImageLeftMobile && <ImageBlock image={image} />}
-          </div>
-
-          {/* === Desktop layout === */}
-          <div className="hidden lg:contents">
-            {isImageLeftDesktop && <ImageBlock image={image} />}
-            <TextBlock
-              tagLine={tagLine}
-              title={title}
-              body={body}
-              showButton={showButton}
-              buttonType={buttonType}
-              customButton={customButton}
-              allDoctors={allDoctors}
-            />
-            {!isImageLeftDesktop && <ImageBlock image={image} />}
-          </div>
-        </div>
       </div>
-    </Theme>
+
+      {/* Themed Content */}
+      <Theme variant={theme || 'dark-shade'}>
+        <div className="flex flex-col">
+          {/* Grid layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-5">
+            {/* === Mobile layout === */}
+            <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+              {isImageLeftMobile && <ImageBlock image={image} />}
+              <TextBlock
+                tagLine={tagLine}
+                title={title}
+                body={body}
+                showButton={showButton}
+                buttonType={buttonType}
+                customButton={customButton}
+                allDoctors={allDoctors}
+              />
+              {!isImageLeftMobile && <ImageBlock image={image} />}
+            </div>
+
+            {/* === Desktop layout === */}
+            <div className="hidden lg:contents">
+              {isImageLeftDesktop && <ImageBlock image={image} />}
+              <TextBlock
+                tagLine={tagLine}
+                title={title}
+                body={body}
+                showButton={showButton}
+                buttonType={buttonType}
+                customButton={customButton}
+                allDoctors={allDoctors}
+              />
+              {!isImageLeftDesktop && <ImageBlock image={image} />}
+            </div>
+          </div>
+        </div>
+      </Theme>
+    </>
   );
 };
 

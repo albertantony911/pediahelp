@@ -67,41 +67,45 @@ export default function BlogLanding({ theme = 'dark-shade' }: BlogLandingProps) 
   }, []);
 
   return (
-    <Theme variant={theme || 'dark-shade'}>
-      <div className="w-full">
-        <div className="lg:hidden w-full flex justify-center items-center">
-          <Logo />
-        </div>
-
-        <section
-          ref={blogSectionRef}
-          className="mx-auto pt-12 lg:pt-48"
-        >
-          <div className="sm:text-center max-w-4xl mx-auto mb-8 text-left ">
-            <Subtitle>Resource Hub</Subtitle>
-            <Title>Trusted parenting and childcare guide</Title>
-            <Content>
-            Get expert tips, answers to common concerns, and practical guidance for every stage of your child’s growth.
-            </Content>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-8 text-gray-600">Loading posts...</div>
-          ) : (
-            <InstantSearch
-              searchClient={searchClient}
-              indexName="blog_posts_index"
-              future={{ preserveSharedStateOnUnmount: true }}
-            >
-              <Configure hitsPerPage={POSTS_PER_PAGE} />
-              <BlogSearchAlgolia />
-              <BlogCategoryFilter categories={[{ _id: 'all', title: 'All' }, ...categories]} />
-              <BlogHits scrollTargetRef={blogSectionRef} />
-            </InstantSearch>
-          )}
-        </section>
+    <>
+      {/* Mobile-only SVG Logo (Outside Theme) */}
+      <div className="w-full flex justify-center items-center bg- lg:hidden">
+        <Logo />
       </div>
-    </Theme>
+
+      {/* Themed Content */}
+      <Theme variant={theme || 'dark-shade'}>
+        <div className="w-full">
+          <section
+            ref={blogSectionRef}
+            className="mx-auto pt-12 lg:pt-48"
+          >
+            <div className="sm:text-center max-w-4xl mx-auto mb-8 text-left">
+              <Subtitle>Resource Hub</Subtitle>
+              <Title>Trusted parenting and childcare guide</Title>
+              <Content>
+                Get expert tips, answers to common concerns, and practical guidance for every stage of your child’s growth.
+              </Content>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-600">Loading posts...</div>
+            ) : (
+              <InstantSearch
+                searchClient={searchClient}
+                indexName="blog_posts_index"
+                future={{ preserveSharedStateOnUnmount: true }}
+              >
+                <Configure hitsPerPage={POSTS_PER_PAGE} />
+                <BlogSearchAlgolia />
+                <BlogCategoryFilter categories={[{ _id: 'all', title: 'All' }, ...categories]} />
+                <BlogHits scrollTargetRef={blogSectionRef} />
+              </InstantSearch>
+            )}
+          </section>
+        </div>
+      </Theme>
+    </>
   );
 }
 
@@ -139,7 +143,7 @@ function BlogHits({ scrollTargetRef }: { scrollTargetRef: React.RefObject<HTMLEl
   return (
     <>
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-10  lg:mt-16 max-w-6xl mx-auto "
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-10 lg:mt-16 max-w-6xl mx-auto"
       >
         <AnimatePresence mode="wait">
           {hits.length > 0 ? (

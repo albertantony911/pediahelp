@@ -52,13 +52,11 @@ export default function DoctorProfileCard({
             rating={displayRating}
           />
           {Array.isArray(expertise) && expertise.length > 0 && (
-            <>
-              <div className="mx-1 mt-1 flex items-start gap-2 text-sm sm:text-base text-gray-800">
-                <span>
-                  <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
-                </span>
-              </div>
-            </>
+            <div className="mx-1 mt-1 flex items-start gap-2 text-sm sm:text-base text-gray-800">
+              <span>
+                <strong>Expertise:</strong> {expertise.filter(Boolean).join(', ')}
+              </span>
+            </div>
           )}
           <div className="mt-2 flex flex-row gap-2 w-full sm:flex-1">
             {whatsappNumber && /^\+91\d{10}$/.test(whatsappNumber) ? (
@@ -68,16 +66,16 @@ export default function DoctorProfileCard({
                   `Hi, I'd like to book a consultation with ${name} via PediaHelp.`
                 )}`}
                 external
-                className="w-[40%] sm:flex-1 flex items-center justify-center px-5 py-2.5 hover:bg-green-600/90 transition-colors duration-200"
+                className=""
               >
                 <FaWhatsapp className="w-5 h-5 mr-1" />
                 WhatsApp
               </Button>
             ) : (
               <Button
-                variant="secondary"
+                variant="whatsapp"
                 disabled
-                className="w-[40%] sm:flex-1 px-5 py-2.5"
+                className=" sm:flex-1 px-5 py-2.5"
               >
                 Message
               </Button>
@@ -85,7 +83,7 @@ export default function DoctorProfileCard({
             <Button
               asChild
               variant="default"
-              className="w-2/3 sm:flex-[2] px-6 py-2.5 hover:bg-blue-600/90 transition-colors duration-200"
+              className="w-2/3"
             >
               <Link href={`/consultation/${slugString}/booking`}>
                 Book Appointment
@@ -171,7 +169,7 @@ function DoctorHeader({
             <span>{specialty}</span>
           </div>
         </div>
-        <div className="flex flex-nowrap items-center gap-2 mt-1.5 overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-2 mt-1.5 overflow-visible">
           <ProfileLink slug={slug} />
           <ShareProfilePill slug={slug} />
           <Pill icon={<Wallet className="w-4 h-4 text-gray-500" />} text={`₹${appointmentFee}`} className="text-base text-gray-500" />
@@ -186,7 +184,7 @@ function DoctorHeader({
             <Pill
               icon={<Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
               text={rating}
-              className="text-base text-gray-500 "
+              className="text-base text-gray-500"
             />
           )}
         </div>
@@ -197,9 +195,9 @@ function DoctorHeader({
 
 function Pill({ icon, text, className = '' }: { icon: React.ReactNode; text: string; className?: string }) {
   return (
-    <div className={`flex items-center gap-1.5 px-1 py-1 rounded-full text-xs text-gray-500 font-medium whitespace-nowrap transition-colors duration-150 ${className}`}>
+    <div className={`flex items-center gap-1.5 px-1 py-1 rounded-full text-xs text-gray-500 font-medium whitespace-nowrap transition-colors duration-150 max-w-[140px] truncate ${className}`}>
       {icon}
-      <span>{text}</span>
+      <span className="truncate">{text}</span>
     </div>
   );
 }

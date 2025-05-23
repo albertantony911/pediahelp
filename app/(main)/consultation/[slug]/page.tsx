@@ -1,11 +1,11 @@
-
 import { notFound } from 'next/navigation';
 import { groq } from 'next-sanity';
 import { client } from '@/sanity/lib/client';
 
-import DoctorReview from '@/components/blocks/forms/doctor-review';
+import DoctorReview from '@/components/blocks/forms/feedback-form';
 import DoctorReviews from '@/components/blocks/doctor/DoctorReviews';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
+import Logo from '@/components/logo';
 
 import {
   Card,
@@ -112,63 +112,114 @@ export default async function DoctorPage({ params }: { params: Promise<{ slug: s
   const languages = Array.isArray(doctor.languages) ? doctor.languages : [];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 bg-dark-shade">
-      {/* 5. Profile Card */}
-      <DoctorProfileCard {...doctor} reviews={reviews} />
+    <>
+      {/* Mobile-only SVG Logo */}
+      <div className="w-full flex justify-center items-center bg-white lg:hidden">
+        <Logo />
+      </div>
 
-      {/* 6. Qualifications Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Qualifications & Experience</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6 text-sm text-gray-800">
-          {education.length > 0 && (
-            <QualificationBlock icon={<GraduationCap className="w-4 h-4" />} title="Education" items={education} />
-          )}
-          {achievements.length > 0 && (
-            <QualificationBlock icon={<Award className="w-4 h-4" />} title="Achievements" items={achievements} />
-          )}
-          {publications.length > 0 && (
-            <QualificationBlock icon={<BookOpenCheck className="w-4 h-4" />} title="Publications" items={publications} />
-          )}
-          {others.length > 0 && (
-            <QualificationBlock icon={<MoreHorizontal className="w-4 h-4" />} title="Other Highlights" items={others} />
-          )}
-          {languages.length > 0 && (
-            <QualificationBlock icon={<User className="w-4 h-4" />} title="Languages Known" items={languages} />
-          )}
-        </CardContent>
-      </Card>
+      {/* Title Section (Meet the Doctor) */}
+      <div className="w-full bg-gradient-to-b from-dark-shade to-gray-800 lg:pt-40">
+        <div className="max-w-5xl mx-auto px-4 py-8 text-center text-gray-100">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 animate-fade-in">
+            Meet {doctor.name}
+          </h1>
+          <p className="text-lg md:text-xl text-gray-300 animate-fade-in">
+            Your Trusted {doctor.specialty || 'Pediatric Specialist'}
+          </p>
+        </div>
+      </div>
 
-      {/* 7. About */}
-      {doctor.about && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">About the Doctor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-800 whitespace-pre-line">{doctor.about}</p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Main Content */}
+      <div className="w-full bg-dark-shade">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-10 space-y-8">
+          {/* Doctor Profile (Unchanged) */}
+          <div className="border border-gray-100 shadow-md rounded-2xl animate-fade-in">
+            <DoctorProfileCard {...doctor} reviews={reviews} />
+          </div>
 
-      {/* 8. Reviews */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Ratings & Reviews</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DoctorReviews reviews={reviews} />
-        </CardContent>
-      </Card>
+          {/* About the Doctor */}
+          {doctor.about && (
+            <Card className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md hover:shadow-lg transition-shadow rounded-2xl animate-fade-in">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  About the Doctor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-base text-gray-700 dark:text-gray-300 whitespace-pre-line">{doctor.about}</p>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* 9. Review Form */}
-      <DoctorReview doctorId={doctorId} />
-    </div>
+          {/* Qualifications & Experience */}
+          <Card className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md hover:shadow-lg transition-shadow rounded-2xl animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Qualifications & Experience
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 text-base text-gray-700 dark:text-gray-300">
+              {education.length > 0 && (
+                <QualificationBlock icon={<GraduationCap className="w-5 h-5 text-gray-600 dark:text-gray-300 p-1 rounded-full bg-gray-200 dark:bg-gray-700" />} title="Education" items={education} />
+              )}
+              {achievements.length > 0 && (
+                <QualificationBlock icon={<Award className="w-5 h-5 text-gray-600 dark:text-gray-300 p-1 rounded-full bg-gray-200 dark:bg-gray-700" />} title="Achievements" items={achievements} />
+              )}
+              {publications.length > 0 && (
+                <QualificationBlock icon={<BookOpenCheck className="w-5 h-5 text-gray-600 dark:text-gray-300 p-1 rounded-full bg-gray-200 dark:bg-gray-700" />} title="Publications" items={publications} />
+              )}
+              {others.length > 0 && (
+                <QualificationBlock icon={<MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-300 p-1 rounded-full bg-gray-200 dark:bg-gray-700" />} title="Other Highlights" items={others} />
+              )}
+              {languages.length > 0 && (
+                <QualificationBlock icon={<User className="w-5 h-5 text-gray-600 dark:text-gray-300 p-1 rounded-full bg-gray-200 dark:bg-gray-700" />} title="Languages Known" items={languages} />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Ratings & Reviews (Glassmorphism Effect) */}
+          <Card className="bg-white/10 dark:bg-gray-800/10 backdrop-blur-md border border-white/20 dark:border-gray-500/20 shadow-lg hover:shadow-xl transition-shadow rounded-2xl animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Ratings & Reviews
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DoctorReviews reviews={reviews.slice(0, 3)} />
+              {reviews.length > 3 && (
+                <button className="mt-4 text-base text-gray-600 dark:text-gray-300 hover:underline">
+                  See More Reviews
+                </button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Review Form (Submit Your Feedback) (Glassmorphism Effect) */}
+          <div className="mx-auto animate-fade-in">
+            <DoctorReview doctorId={doctorId} />
+          </div>
+        </div>
+      </div>
+
+      {/* Wave Divider */}
+      <div className="w-screen h-[100px] relative">
+        <img
+          src="/waves/dark-to-white-desktop-1.svg"
+          alt="Wave divider desktop"
+          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
+        />
+        <img
+          src="/waves/dark-to-white-mobile-1.svg"
+          alt="Wave divider mobile"
+          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
+        />
+      </div>
+    </>
   );
 }
 
-// 10. Reusable QualificationBlock
+// Reusable QualificationBlock
 function QualificationBlock({
   icon,
   title,
@@ -180,11 +231,11 @@ function QualificationBlock({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 font-semibold text-gray-900 mb-1">
+      <div className="flex items-center gap-3 font-medium text-gray-900 dark:text-gray-100 mb-2">
         {icon}
         <span className="text-base">{title}</span>
       </div>
-      <ul className="ml-3 list-disc space-y-1 text-gray-700 text-[15px] leading-relaxed">
+      <ul className="ml-4 list-disc space-y-1 text-gray-700 dark:text-gray-300 text-base leading-relaxed">
         {items.map((item, i) => (
           <li key={i}>{item}</li>
         ))}

@@ -23,11 +23,13 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-interface ContactFormData {
+interface CareerFormData {
   name: string;
   email: string;
   phone: string;
-  message: string;
+  jobTitle: string;
+  coverLetter: string;
+  resumeLink: string;
   subject: string;
 }
 
@@ -49,10 +51,10 @@ export async function POST(req: NextRequest) {
     recentRequests.push(now);
     rateLimitMap.set(ip, recentRequests);
 
-    const body: ContactFormData = await req.json();
+    const body: CareerFormData = await req.json();
 
     // Validate required fields
-    if (!body.name || !body.email || !body.phone || !body.message || !body.subject) {
+    if (!body.name || !body.email || !body.phone || !body.jobTitle || !body.coverLetter || !body.resumeLink || !body.subject) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -77,31 +79,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate resume link (Google Drive shareable URL)
+    const driveRegex = /https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+\/view\?usp=sharing/;
+    if (!driveRegex.test(body.resumeLink)) {
+      return NextResponse.json(
+        { error: 'Invalid Google Drive shareable link' },
+        { status: 400 }
+      );
+    }
+
+
+    try {
+      const response = await fetch(body.resumeLink, { method: 'HEAD' });
+      if (response.status !== 200 || response.url.includes('accounts.google.com')) {
+        return NextResponse.json(
+          { error: 'Resume link is not publicly accessible. Set sharing to "Anyone with the link".' },
+          { status: 400 }
+        );
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Failed to verify resume link accessibility' },
+        { status: 400 }
+      );
+    }
+
+
     // Store in Firestore
     const submission = {
       name: body.name,
       email: body.email,
       phone: `+91${body.phone}`,
-      message: body.message,
+      jobTitle: body.jobTitle,
+      coverLetter: body.coverLetter,
+      resumeLink: body.resumeLink,
       subject: body.subject,
       submittedAt: serverTimestamp(),
     };
 
-    await addDoc(collection(db, 'contact-submissions'), submission);
+    await addDoc(collection(db, 'career-submissions'), submission);
 
-    // Revalidate contact page
+    // Revalidate careers page
     await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/contact&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
+      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/careers&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
     ).catch((err) => console.warn('⚠️ Revalidation failed:', err.message));
 
     return NextResponse.json(
-      { message: 'Form submitted successfully' },
+      { message: 'Application submitted successfully' },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error submitting form:', error);
+    console.error('Error submitting application:', error);
     return NextResponse.json(
-      { error: 'Failed to submit form' },
+      { error: 'Failed to submit application' },
       { status: 500 }
     );
   }

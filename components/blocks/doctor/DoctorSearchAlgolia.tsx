@@ -195,7 +195,7 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
   };
 
   return (
-    <div className="relative max-w-sm mx-auto px-4 sm:px-0 ">
+    <div className="relative max-w-sm mx-auto px-4   sm:px-0 ">
       <div className="relative">
         <div className={`transition-all duration-200 ${isFocused ? 'my-2' : ''}`}>
           <div
