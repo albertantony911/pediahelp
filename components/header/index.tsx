@@ -1,26 +1,6 @@
-import Link from "next/link";
-import Logo from "@/components/logo";
 import DesktopNav from "@/components/header/desktop-nav";
 import BottomNav from "@/components/header/bottom-nav"
 
-
-const navItems = [
-  {
-    label: "Home",
-    href: "/",
-    target: false,
-  },
-  {
-    label: "Blog",
-    href: "/blog",
-    target: false,
-  },
-  {
-    label: "About",
-    href: "/about",
-    target: false,
-  },
-];
 
 export default function Header() {
   return (
