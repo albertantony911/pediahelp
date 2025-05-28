@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Drawer,
@@ -23,15 +24,23 @@ const searchClient = algoliasearch(
 interface Props {
   children: React.ReactNode;
   allDoctors: Doctor[];
+  initialSearchHits?: { objectID: string }[]; // Added prop
 }
 
-export function DoctorSearchDrawer({ children, allDoctors }: Props) {
+export function DoctorSearchDrawer({ children, allDoctors, initialSearchHits }: Props) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searchHits, setSearchHits] = useState<{ objectID: string }[]>([]);
+  const [searchHits, setSearchHits] = useState<{ objectID: string }[]>(initialSearchHits || []);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const previousPath = useRef(pathname);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Initialize searchHits with pre-fetched hits
+  useEffect(() => {
+    if (initialSearchHits && initialSearchHits.length > 0 && !searchHits.length) {
+      setSearchHits(initialSearchHits);
+    }
+  }, [initialSearchHits]);
 
   useEffect(() => {
     if (drawerOpen && pathname !== previousPath.current) {
@@ -43,7 +52,9 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
   // Reset search state when drawer opens
   useEffect(() => {
     if (drawerOpen) {
-      setSearchHits([]);
+      if (!initialSearchHits) {
+        setSearchHits([]); // Only reset if no pre-fetched hits
+      }
       setIsInitialLoad(true);
       // Small delay to ensure search component is ready
       const timer = setTimeout(() => {
@@ -51,7 +62,7 @@ export function DoctorSearchDrawer({ children, allDoctors }: Props) {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [drawerOpen]);
+  }, [drawerOpen, initialSearchHits]);
 
   const handleFilterChange = useCallback((hits: { objectID: string }[]) => {
     setSearchHits(hits);

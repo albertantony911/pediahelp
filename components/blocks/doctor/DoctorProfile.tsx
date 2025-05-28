@@ -13,9 +13,16 @@ import {
 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { Doctor, Review } from '@/types';
 import { calculateAverageRating } from '@/lib/ratingUtils';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+// Define types for calculateAverageRating
+interface RatingResult {
+  averageRating: number | null;
+  reviewCount: number;
+}
 
 export default function DoctorProfileCard({
   name,
@@ -31,7 +38,7 @@ export default function DoctorProfileCard({
   const slugString = typeof slug === 'object' ? slug.current : slug;
   const photoUrl = photo?.asset?.url;
 
-  const { averageRating, reviewCount } = calculateAverageRating(reviews);
+  const { averageRating, reviewCount }: RatingResult = calculateAverageRating(reviews);
   const displayRating = typeof averageRating === 'number' && !isNaN(averageRating) && reviewCount > 0 ? averageRating.toFixed(1) : null;
   const displayExperience = typeof experienceYears === 'number' && experienceYears > 0 ? `${experienceYears}+ yrs` : '';
 
@@ -40,7 +47,11 @@ export default function DoctorProfileCard({
   return (
     <Card className="rounded-3xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white max-w-[40rem] mx-auto w-full">
       <div className="flex sm:flex-row flex-col gap-4 sm:gap-6 sm:min-h-[160px]">
-        <DoctorPhoto name={name} photoUrl={photoUrl} slug={slugString} />
+        <DoctorPhoto
+          name={name}
+          photoUrl={photoUrl}
+          slug={slugString}
+        />
         <div className="flex-1 flex flex-col gap-2">
           <DoctorHeader
             name={name}
@@ -75,7 +86,7 @@ export default function DoctorProfileCard({
               <Button
                 variant="whatsapp"
                 disabled
-                className=" sm:flex-1 px-5 py-2.5"
+                className="sm:flex-1 px-5 py-2.5"
               >
                 Message
               </Button>
@@ -96,12 +107,26 @@ export default function DoctorProfileCard({
   );
 }
 
-function DoctorPhoto({ name, photoUrl, slug }: { name: string; photoUrl?: string; slug: string }) {
+function DoctorPhoto({
+  name,
+  photoUrl,
+  slug,
+}: {
+  name: string;
+  photoUrl?: string;
+  slug: string;
+}) {
   return (
     <Link href={`/consultation/${slug}`} className="hidden sm:block w-[150px] aspect-[0.8] relative">
       <div className="h-full rounded-2xl overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
         {photoUrl ? (
-          <Image src={photoUrl} alt={`Dr. ${name}`} width={150} height={320} className="w-full h-full object-cover" />
+          <Image
+            src={photoUrl}
+            alt={`Dr. ${name}`}
+            width={150}
+            height={320}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <User className="w-6 h-6" />
@@ -135,7 +160,13 @@ function DoctorHeader({
       <div className="flex sm:hidden items-start gap-3 mx-1 mt-1">
         <Link href={`/consultation/${slug}`} className="aspect-[0.8] w-[74px] rounded-lg overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
           {photoUrl ? (
-            <Image src={photoUrl} alt={`Dr. ${name}`} width={110} height={160} className="w-full h-full object-cover" />
+            <Image
+              src={photoUrl}
+              alt={`Dr. ${name}`}
+              width={110}
+              height={160}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
               <User className="w-5 h-5" />

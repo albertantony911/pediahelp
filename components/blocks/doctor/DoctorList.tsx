@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
 import { Search } from 'lucide-react';
@@ -21,12 +21,52 @@ export default function DoctorList({
 }: DoctorListProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [visibleDoctors, setVisibleDoctors] = useState<string[]>([]); // Track visible cards for animations
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map()); // Store refs for observer
 
+  // Update doctors list based on filtered or all doctors
   useEffect(() => {
     const baseList = filteredDoctors?.length ? filteredDoctors : allDoctors;
     setDoctors(baseList);
     setCurrentPage(0);
+    setVisibleDoctors([]); // Reset visible doctors on list change
   }, [filteredDoctors, allDoctors]);
+
+  // Set up IntersectionObserver for triggering animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const doctorId = entry.target.getAttribute('data-id');
+            if (doctorId) {
+              setVisibleDoctors((prev) => {
+                if (!prev.includes(doctorId)) {
+                  return [...prev, doctorId];
+                }
+                return prev;
+              });
+              observer.unobserve(entry.target);
+            }
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    cardRefs.current.forEach((element) => {
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => {
+      cardRefs.current.forEach((element) => {
+        if (element) observer.unobserve(element);
+      });
+      observer.disconnect();
+    };
+  }, [doctors]);
 
   const totalPages = Math.ceil(doctors.length / ITEMS_PER_PAGE);
 
@@ -43,25 +83,34 @@ export default function DoctorList({
   return (
     <div className="space-y-6 mt-0 mb-10">
       {loading ? (
-        <div className="grid gap-6 max-w-4xl mx-auto">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-[180px] bg-gray-200 animate-pulse rounded-3xl"></div>
-          ))}
+        <div className="flex flex-col items-center justify-center text-center py-16 text-white/80">
+          <Search className="w-12 h-12 text-white/30 mb-4" />
+          <p className="text-lg font-medium mb-1">Loading doctors...</p>
+          <p className="text-sm text-white/60">Please wait while we fetch the results.</p>
         </div>
       ) : paginatedDoctors.length > 0 ? (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
-            {paginatedDoctors.map((doctor) => (
-              <motion.div
-                key={doctor._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <DoctorProfileCard {...doctor} />
-              </motion.div>
-            ))}
+            {paginatedDoctors.map((doctor) => {
+              const isVisible = visibleDoctors.includes(doctor._id);
+              return (
+                <motion.div
+                  key={doctor._id}
+                  ref={(el) => {
+                    if (el) {
+                      cardRefs.current.set(doctor._id, el);
+                    }
+                  }}
+                  data-id={doctor._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <DoctorProfileCard {...doctor} />
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       ) : (

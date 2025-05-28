@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { debounce } from 'lodash';
 import { CaretDown as CaretDownIcon } from 'phosphor-react';
 import Image from 'next/image';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion, TargetAndTransition, VariantLabels } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   Drawer,
@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useDoctors } from '@/components/providers/DoctorsProvider';
+import algoliasearch from 'algoliasearch/lite'; // Added for pre-fetching
 
 interface NavItem {
   label: string;
@@ -37,7 +38,7 @@ interface NavItem {
   logoSrc?: string;
   primary?: boolean;
   overflow?: boolean;
-  customVariants?: keyof typeof navAnimations.buttonVariants; // Constrained to specific variant keys
+  customVariants?: keyof typeof navAnimations.buttonVariants;
 }
 
 interface OverflowItem {
@@ -47,7 +48,6 @@ interface OverflowItem {
   items?: { label: string; href: string }[];
 }
 
-// Centralized styles for navigation items
 const navItemStyles = {
   button: (active: boolean) =>
     cn(
@@ -61,8 +61,11 @@ const navItemStyles = {
   primaryIcon: 'relative w-[36px] h-[36px] object-contain z-10',
 };
 
-// Animation variants for navigation
-const navAnimations = {
+const navAnimations: {
+  logoVariants: { [key: string]: TargetAndTransition };
+  buttonVariants: { [key: string]: TargetAndTransition };
+  drawerItemVariants: { [key: string]: TargetAndTransition };
+} = {
   logoVariants: {
     initial: {
       scale: 1,
@@ -145,9 +148,13 @@ const navAnimations = {
       },
     },
   },
+  drawerItemVariants: {
+    initial: { scale: 1 },
+    hover: { scale: 1.02, transition: { duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] } },
+    tap: { scale: [1, 0.95, 1], transition: { duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94], times: [0, 0.5, 1] } },
+  },
 };
 
-// Centralized navigation items
 const navItems: NavItem[] = [
   { label: 'Home', href: '/', logoSrc: '/images/icons/ph_home_icon.svg' },
   { label: 'Resources', href: '/blog', logoSrc: '/images/icons/ph_resources_icon.svg' },
@@ -187,7 +194,6 @@ const delayedAction = (callback: () => void, delay = 150, skipDelay = false) => 
 const generateWhatsAppLink = (phone: string, message: string) =>
   `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-// Reusable Nav Item Button Component
 function NavItemButton({
   label,
   href,
@@ -213,7 +219,7 @@ function NavItemButton({
       variants={navAnimations.buttonVariants}
       initial="initial"
       whileHover={prefersReducedMotion ? undefined : "hover"}
-      whileTap={prefersReducedMotion ? undefined : variant}
+      whileTap={prefersReducedMotion ? undefined : (typeof variant === 'string' ? variant : undefined)}
     >
       {logoSrc && (
         <motion.img
@@ -222,7 +228,7 @@ function NavItemButton({
           className={navItemStyles.icon}
           variants={navAnimations.logoVariants}
           initial="initial"
-          animate={prefersReducedMotion ? undefined : variant}
+          animate={prefersReducedMotion ? undefined : (typeof variant === 'string' ? variant : undefined)}
           whileHover={prefersReducedMotion ? undefined : "hover"}
           whileTap={prefersReducedMotion ? undefined : "tap"}
           style={{
@@ -238,7 +244,6 @@ function NavItemButton({
   );
 }
 
-// Reusable Drawer Content Component
 function NavDrawerContent({
   pathname,
   router,
@@ -247,27 +252,80 @@ function NavDrawerContent({
   setOpenCollapsible,
   setDrawerOpen,
 }: {
-  pathname: string;
-  router: ReturnType<typeof useRouter>;
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
-  openCollapsible: string | null;
-  setOpenCollapsible: (label: string | null) => void;
-  setDrawerOpen: (open: boolean) => void;
+  readonly pathname: string;
+  readonly router: ReturnType<typeof useRouter>;
+  readonly scrollContainerRef: React.RefObject<HTMLDivElement>;
+  readonly openCollapsible: string | null;
+  readonly setOpenCollapsible: (label: string | null) => void;
+  readonly setDrawerOpen: (open: boolean) => void;
 }) {
   const debouncedSetOpenCollapsible = debounce((label: string | null) => {
     setOpenCollapsible(label);
   }, 100);
+  const [isAnimating, setIsAnimating] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAnimating(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <DrawerContent className="max-h-[80vh] bg-white rounded-t-[24px] px-4 pb-6 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)]">
-      <div ref={scrollContainerRef} className="overflow-y-auto max-h-[calc(80vh-4rem)] space-y-2 mt-1">
-        <ul className="space-y-2">
-          {overflowItems.map((section, index) => {
-            const spacingClass = index === 0 ? 'mt-2' : '';
-
+    <DrawerContent className="max-h-[calc(100vh-2rem)] bg-white rounded-t-[24px] px-6 pb-8 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)] flex flex-col items-center">
+      <div className="py-6 flex justify-center">
+        <button
+          onClick={() => {
+            delayedAction(() => {
+              setDrawerOpen(false);
+              router.push('/');
+            });
+          }}
+          className="focus:outline-none"
+        >
+          <Image
+            src="/images/pediahelp_logo_transparent_vertical_black.svg"
+            alt="PediaHelp Logo"
+            width={200}
+            height={200}
+            className="object-contain"
+          />
+        </button>
+      </div>
+      <div
+        ref={scrollContainerRef}
+        className={cn(
+          'min-h-0 flex-1 w-full flex flex-col items-center space-y-1',
+          isAnimating ? 'overflow-y-hidden' : 'overflow-y-auto'
+        )}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        <motion.ul
+          className="space-y-1 w-full"
+          initial="closed"
+          animate="open"
+          variants={{
+            open: { transition: { staggerChildren: 0.05, delayChildren: 0.2 } },
+            closed: {},
+          }}
+          onAnimationComplete={() => setIsAnimating(false)}
+        >
+          {overflowItems.map((section: OverflowItem, index: number) => {
             if (section.type === 'group') {
               return (
-                <li key={section.label} className={spacingClass}>
+                <motion.li
+                  key={section.label}
+                  className="w-full"
+                  variants={{
+                    closed: { opacity: 0, y: 4 },
+                    open: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+                  }}
+                >
                   <Collapsible
                     open={openCollapsible === section.label}
                     onOpenChange={() =>
@@ -277,14 +335,24 @@ function NavDrawerContent({
                     }
                   >
                     <CollapsibleTrigger asChild>
-                      <button className="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-                        <span>{section.label}</span>
-                        <CaretDownIcon
-                          weight="bold"
-                          className={cn(
-                            'size-4 transition-transform duration-200',
-                            openCollapsible === section.label && 'rotate-180'
-                          )}
+                      <button
+                        className="w-full flex justify-center items-center py-1 text-base font-medium text-gray-700 font-secondary uppercase relative transition-colors duration-200"
+                      >
+                        <motion.span
+                          variants={navAnimations.drawerItemVariants}
+                          initial="initial"
+                          whileHover="hover"
+                          whileTap="tap"
+                        >
+                          {section.label}
+                        </motion.span>
+                        <motion.span
+                          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-[1px] bg-mid-shade"
+                          initial={{ width: '0%' }}
+                          animate={{
+                            width: openCollapsible === section.label ? '50%' : '0%',
+                          }}
+                          transition={{ duration: 0.5, ease: 'easeInOut' }}
                         />
                       </button>
                     </CollapsibleTrigger>
@@ -292,63 +360,69 @@ function NavDrawerContent({
                       {openCollapsible === section.label && (
                         <motion.div
                           key={section.label}
+                          layout
                           initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
-                          className="overflow-hidden mt-1 pl-4"
-                          ref={(el) => {
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          animate={{
+                            height: 'auto',
+                            opacity: 1,
+                            transition: { duration: 0.25, ease: 'easeInOut' },
                           }}
+                          exit={{
+                            height: 0,
+                            opacity: 0,
+                            transition: { duration: 0.2, ease: 'easeInOut' },
+                          }}
+                          style={{ minHeight: 0, overflow: 'hidden' }}
+                          className={cn(
+                            'mt-2 flex flex-col items-center',
+                            section.label === 'Specialties' ? 'space-y-0.5' : 'space-y-1'
+                          )}
                         >
-                          <motion.div
-                            variants={{
-                              open: {
-                                transition: { staggerChildren: 0.05, delayChildren: 0.05 },
-                              },
-                              closed: {},
-                            }}
-                            initial="closed"
-                            animate="open"
-                            exit="closed"
-                            className="space-y-1"
-                          >
-                            {section.items?.map((item) => (
-                              <motion.button
-                                key={item.label}
-                                variants={{
-                                  closed: { opacity: 0, y: 4 },
-                                  open: { opacity: 1, y: 0 },
-                                }}
-                                onClick={() => {
-                                  if (item.href) {
-                                    delayedAction(() => {
-                                      setDrawerOpen(false);
-                                      router.push(item.href!);
-                                    });
-                                  }
-                                }}
-                                className={cn(
-                                  'block w-full text-left px-3 py-2 text-sm font-medium text-gray-700',
-                                  'hover:bg-gray-100 rounded-md transition-colors',
-                                  isActive(pathname, item.href ?? '') &&
-                                    'text-[var(--mid-shade)] font-semibold bg-gray-100'
-                                )}
+                          {section.items?.map((item) => (
+                            <button
+                              key={item.label}
+                              onClick={() => {
+                                if (item.href) {
+                                  delayedAction(() => {
+                                    setDrawerOpen(false);
+                                    router.push(item.href!);
+                                  });
+                                }
+                              }}
+                              className={cn(
+                                'block w-full text-center py-1 font-medium text-gray-700 font-secondary uppercase transition-colors duration-200',
+                                section.label === 'Specialties' ? 'text-sm' : 'text-sm',
+                                isActive(pathname, item.href ?? '') &&
+                                  'text-[var(--mid-shade)] font-medium'
+                              )}
+                            >
+                              <motion.span
+                                variants={navAnimations.drawerItemVariants}
+                                initial="initial"
+                                whileHover="hover"
+                                whileTap="tap"
                               >
                                 {item.label}
-                              </motion.button>
-                            ))}
-                          </motion.div>
+                              </motion.span>
+                            </button>
+                          ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </Collapsible>
-                </li>
+                </motion.li>
               );
             }
 
             return (
-              <li key={section.label} className={spacingClass}>
+              <motion.li
+                key={section.label}
+                className="w-full"
+                variants={{
+                  closed: { opacity: 0, y: 4 },
+                  open: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+                }}
+              >
                 <button
                   onClick={() => {
                     if (section.href) {
@@ -359,17 +433,24 @@ function NavDrawerContent({
                     }
                   }}
                   className={cn(
-                    'block w-full text-left px-4 py-3 text-base font-medium text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors',
+                    'block w-full text-center py-1 text-base font-medium text-gray-700 font-secondary uppercase transition-colors duration-200',
                     isActive(pathname, section.href ?? '') &&
-                      'text-[var(--mid-shade)] font-semibold bg-gray-100'
+                      'text-[var(--mid-shade)] font-medium'
                   )}
                 >
-                  {section.label}
+                  <motion.span
+                    variants={navAnimations.drawerItemVariants}
+                    initial="initial"
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    {section.label}
+                  </motion.span>
                 </button>
-              </li>
+              </motion.li>
             );
           })}
-        </ul>
+        </motion.ul>
       </div>
     </DrawerContent>
   );
@@ -384,8 +465,27 @@ export default function BottomNav() {
   const allDoctors = useDoctors();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  // Added for pre-fetching
+  const [initialSearchHits, setInitialSearchHits] = useState<{ objectID: string }[]>([]);
 
-  // Seamless breathe-wiggle loop for primary button
+  // Pre-fetch Algolia search results
+  useEffect(() => {
+    const searchClient = algoliasearch(
+      process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
+      process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
+    );
+    const index = searchClient.initIndex('doctors_index');
+
+    index
+      .search('', { hitsPerPage: 12 })
+      .then(({ hits }) => {
+        setInitialSearchHits(hits as { objectID: string }[]);
+      })
+      .catch((err) => {
+        console.error('Failed to pre-fetch Algolia results:', err);
+      });
+  }, []);
+
   useEffect(() => {
     if (prefersReducedMotion) return;
 
@@ -407,7 +507,6 @@ export default function BottomNav() {
     };
   }, [prefersReducedMotion]);
 
-  // Close drawer on route change
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
@@ -460,15 +559,19 @@ export default function BottomNav() {
 
         if (primary) {
           return (
-            <DoctorSearchDrawer key={label} allDoctors={allDoctors}>
+            <DoctorSearchDrawer
+              key={label}
+              allDoctors={allDoctors}
+              initialSearchHits={initialSearchHits} // Pass pre-fetched hits
+            >
               <motion.div
                 className="group relative flex flex-col items-center justify-center z-10 cursor-pointer"
                 variants={navAnimations.buttonVariants}
                 initial="initial"
                 whileHover={prefersReducedMotion ? undefined : "hover"}
-                whileTap={prefersReducedMotion ? undefined : tapVariant}
+                whileTap={prefersReducedMotion ? undefined : (tapVariant as VariantLabels)}
                 style={{
-                  filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.12)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08))',
+                  filter: 'drop-shadow(0_6px_12px_rgba(0,0,0,0.12))_drop-shadow(0_2px_6px_rgba(0,0,0,0.08))',
                 }}
               >
                 <span className={navItemStyles.primaryButton}>

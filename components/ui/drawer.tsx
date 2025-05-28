@@ -57,12 +57,27 @@ function DrawerContent({
         data-slot="drawer-content"
         className={cn(
           "group/drawer-content bg-background fixed z-50 flex h-auto flex-col transition-all duration-300 ease-out shadow-md",
-          // Rounded and sized for bottom drawer
-          "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-[32px] data-[vaul-drawer-direction=bottom]:border-t",
-          // Other directions (unchanged)
-          "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b",
+
+          // bottom drawer uses 85vh max-height now
+          "data-[vaul-drawer-direction=bottom]:inset-x-0",
+          "data-[vaul-drawer-direction=bottom]:bottom-0",
+          "data-[vaul-drawer-direction=bottom]:mt-24",
+          "data-[vaul-drawer-direction=bottom]:max-h-[85vh]",
+          "data-[vaul-drawer-direction=bottom]:rounded-t-[32px]",
+          "data-[vaul-drawer-direction=bottom]:border-t",
+
+          // if you also do top drawers
+          "data-[vaul-drawer-direction=top]:inset-x-0",
+          "data-[vaul-drawer-direction=top]:top-0",
+          "data-[vaul-drawer-direction=top]:mb-24",
+          "data-[vaul-drawer-direction=top]:max-h-[85vh]",
+          "data-[vaul-drawer-direction=top]:rounded-b-lg",
+          "data-[vaul-drawer-direction=top]:border-b",
+
+          // left/right unchanged
           "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm",
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
+
           className
         )}
         {...props}
@@ -70,7 +85,6 @@ function DrawerContent({
         <VisuallyHidden>
           <DrawerTitle>More Menu</DrawerTitle>
         </VisuallyHidden>
-        {/* Smaller, softer pill grip */}
         <div className="bg-dark-shade/10 mx-auto mt-3 hidden h-1.5 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>
