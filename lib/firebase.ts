@@ -41,10 +41,12 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize App Check with reCAPTCHA v3
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider('6LfyME4rAAAAAJvshPIPIxqqOCLcNofyerndicyj'),
-  isTokenAutoRefreshEnabled: true,
-});
+// Initialize App Check only in a browser environment
+if (typeof window !== 'undefined') {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6LfyME4rAAAAAJvshPIPIxqqOCLcNofyerndicyj'),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 export { app, auth, db };
