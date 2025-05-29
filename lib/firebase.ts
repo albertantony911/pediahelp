@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 interface FirebaseConfig {
   apiKey: string;
@@ -41,7 +41,7 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize App Check with reCAPTCHA Enterprise v3 in browser
+// Initialize App Check with standard reCAPTCHA v3 in browser
 if (typeof window !== 'undefined') {
   const v3Key = process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY;
 
@@ -51,26 +51,14 @@ if (typeof window !== 'undefined') {
   }
 
   try {
-    console.log('Initializing Firebase App Check with reCAPTCHA Enterprise v3, siteKey:', v3Key);
-    // Use ReCaptchaEnterpriseProvider with only the site key
+    console.log('Initializing Firebase App Check with standard reCAPTCHA v3, siteKey:', v3Key);
     initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(v3Key),
+      provider: new ReCaptchaV3Provider(v3Key),
       isTokenAutoRefreshEnabled: true,
     });
-    console.log('Firebase App Check initialized successfully with reCAPTCHA Enterprise v3');
+    console.log('Firebase App Check initialized successfully with standard reCAPTCHA v3');
   } catch (error) {
-    console.error('Failed to initialize Firebase App Check with reCAPTCHA Enterprise v3:', error);
-    // Fallback to ReCaptchaV3Provider if the v3 key is not Enterprise
-    try {
-      console.log('Falling back to standard reCAPTCHA v3 provider');
-      initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(v3Key),
-        isTokenAutoRefreshEnabled: true,
-      });
-      console.log('Firebase App Check initialized successfully with standard reCAPTCHA v3');
-    } catch (fallbackError) {
-      console.error('Failed to initialize Firebase App Check with standard reCAPTCHA v3:', fallbackError);
-    }
+    console.error('Failed to initialize Firebase App Check with standard reCAPTCHA v3:', error);
   }
 }
 
