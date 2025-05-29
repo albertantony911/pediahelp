@@ -12,12 +12,10 @@ interface ContactFormData {
   otpVerified: boolean;
 }
 
-// Rate limiter
 const rateLimits = new Map<string, { count: number; expiresAt: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const MAX_REQUESTS = 5;
 
-// Cleanup expired entries
 setInterval(() => {
   const now = Date.now();
   for (const [ip, limit] of rateLimits) {
@@ -31,16 +29,20 @@ export async function POST(req: NextRequest) {
     req.headers.get('x-real-ip') ||
     'unknown';
 
-  // Rate limiting
   const current = rateLimits.get(ip) || { count: 0, expiresAt: Date.now() + RATE_LIMIT_WINDOW };
   if (current.count >= MAX_REQUESTS) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
+  let body: ContactFormData;
   try {
-    const body: ContactFormData = await req.json();
+    body = await req.json();
+  } catch (error) {
+    console.error('Invalid JSON payload:', error);
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
 
-    // Basic validation
+  try {
     if (!body.name || !body.email || !body.phone || !body.message || !body.subject) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
@@ -48,7 +50,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OTP verification required' }, { status: 400 });
     }
 
-    // Save to Firestore
     await addDoc(collection(db, 'contact-submissions'), {
       name: body.name,
       email: body.email,
@@ -60,7 +61,6 @@ export async function POST(req: NextRequest) {
       otpVerified: true,
     });
 
-    // Send notification email via Gmail SMTP
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
@@ -79,12 +79,11 @@ export async function POST(req: NextRequest) {
       text: `Name: ${body.name}\nEmail: ${body.email}\nPhone: +91${body.phone}\n\nMessage:\n${body.message}`,
     });
 
-    // Update rate limit
     rateLimits.set(ip, { count: current.count + 1, expiresAt: current.expiresAt });
 
     return NextResponse.json({ message: 'Form submitted successfully' }, { status: 200 });
   } catch (error: any) {
     console.error('Contact submission error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

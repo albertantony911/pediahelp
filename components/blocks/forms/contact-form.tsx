@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -78,15 +78,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   }, [timer, otpSent, isVerified]);
 
   useEffect(() => {
-    // Guard against server-side execution or missing auth instance
     if (typeof window === 'undefined' || !auth) {
       console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
       return;
     }
-  
-    // Function to initialize and render the reCAPTCHA verifier
+
     const initializeRecaptcha = () => {
-      // Clear any existing verifier to prevent conflicts
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
@@ -95,15 +92,13 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
           console.error('Failed to clear existing reCAPTCHA verifier:', error);
         }
       }
-  
-      // Validate reCAPTCHA v2 key
+
       const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
       if (!siteKey) {
         console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
         return;
       }
-  
-      // Initialize the reCAPTCHA verifier
+
       let verifier: RecaptchaVerifier;
       try {
         verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -124,11 +119,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         });
         return;
       }
-  
-      // Store the verifier globally for later use
+
       window.recaptchaVerifier = verifier;
-  
-      // Render the reCAPTCHA widget
+
       verifier
         .render()
         .then((widgetId) => {
@@ -142,11 +135,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
           });
         });
     };
-  
-    // Execute the initialization
+
     initializeRecaptcha();
-  
-    // Cleanup on component unmount
+
     return () => {
       if (window.recaptchaVerifier) {
         try {
@@ -159,34 +150,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
     };
   }, [auth]);
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('OTPCredential' in window) || !confirmationResult) return;
 
-    const ac = new AbortController();
-    navigator.credentials
-      .get({
-        otp: { transport: ['sms'] },
-        signal: ac.signal,
-      } as any)
-      .then((otpCredential: any) => {
-        if (otpCredential?.code) {
-          const code = otpCredential.code.replace(/\D/g, '').slice(0, 6); // Ensure 6 digits
-          form.setValue('otp', code);
-          otpInputsRef.current.forEach((input, i) => {
-            if (input) input.value = code[i] || '';
-          });
-          handleVerifyAndSubmit(code);
-        }
-      })
-      .catch((err: Error) => {
-        console.error('Web OTP API error:', err);
-        toast.error('Failed to auto-fill OTP', { description: err.message });
-      });
-
-    return () => ac.abort();
-  }, [confirmationResult, form]);
-
-  const handleOtpChange = (index: number, value: string, event?: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (value && !/^\d$/.test(value)) return; // Allow only single digits
     const arr = (otp || '').split('');
     arr[index] = value;
@@ -197,11 +162,23 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     } else if (
       !value &&
       index > 0 &&
-      event &&
-      'nativeEvent' in event &&
+      event.target.selectionStart === 0 &&
       (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward'
     ) {
       otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otpInputsRef.current[index]?.value && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+      const arr = (otp || '').split('');
+      arr[index - 1] = '';
+      form.setValue('otp', arr.join(''));
+    } else if (event.key === 'ArrowLeft' && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    } else if (event.key === 'ArrowRight' && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
     }
   };
 
@@ -222,7 +199,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       setOtpSent(true);
       setStep('otp');
       setTimer(30);
-      setValue('otp', ''); // Clear OTP field only
+      setValue('otp', '');
       toast.success(`OTP sent to +91${phone}`);
       console.log('Phone authentication OTP sent successfully');
     } catch (error: any) {
@@ -242,32 +219,42 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
     setIsVerifyingOtp(true);
     try {
-      // Verify OTP
       const otpResult = await confirmationResult.confirm(otpCode);
       if (!otpResult.user) {
         throw new Error('Phone number verification failed');
       }
       setIsVerified(true);
       toast.success('Phone number verified!');
-
-      // Submit form data
+  
       setIsSubmitting(true);
       const formData = form.getValues();
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        subject: `Contact Form Submission from ${pageSource}`,
+        otpVerified: true,
+      };
+      console.log('Submitting payload:', payload);
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          subject: `Contact Form Submission from ${pageSource}`,
-          otpVerified: true,
-        }),
+        body: JSON.stringify(payload),
       });
-
-      const submitResult = await response.json();
+  
+      let submitResult;
+      try {
+        submitResult = await response.json();
+      } catch (error) {
+        console.error('Failed to parse response JSON:', error);
+        throw new Error('Invalid response from server');
+      }
+  
       if (!response.ok) {
         throw new Error(submitResult.error || 'Failed to submit the form');
       }
-
+  
       setStep('success');
       toast.success('Message sent successfully!');
     } catch (error: any) {
@@ -482,13 +469,13 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                                   type="text"
                                   inputMode="numeric"
                                   maxLength={1}
-                                  autoComplete="one-time-code"
                                   className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
                                   ref={(el) => {
                                     otpInputsRef.current[i] = el;
                                   }}
                                   value={otp?.[i] || ''}
                                   onChange={(e) => handleOtpChange(i, e.target.value, e)}
+                                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
                                   disabled={isVerifyingOtp || isVerified}
                                   initial={{ scale: 0.8, opacity: 0 }}
                                   animate={{ scale: 1, opacity: 1 }}
