@@ -38,13 +38,13 @@ const Hero1: React.FC<Hero1Props> = ({
 
   return (
     <>
-      {/* Mobile-only SVG Logo (Outside Theme) */}
-      <div className="w-full flex justify-center items-center bg-white lg:hidden">
-        <Logo />
-      </div>
 
       {/* Themed Content */}
       <Theme variant={theme || 'dark-shade'}>
+        {/* Mobile-only SVG Logo (Outside Theme) */}
+        <div className="lg:hidden ">
+          <Logo />
+        </div>
         <div className="flex flex-col">
           {/* Grid layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-5">

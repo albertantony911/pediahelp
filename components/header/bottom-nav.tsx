@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useDoctors } from '@/components/providers/DoctorsProvider';
-import algoliasearch from 'algoliasearch/lite'; // Added for pre-fetching
+import algoliasearch from 'algoliasearch/lite';
 
 interface NavItem {
   label: string;
@@ -52,9 +52,15 @@ const navItemStyles = {
   button: (active: boolean) =>
     cn(
       'group relative w-16 h-full flex flex-col items-center justify-center z-10',
-      active ? 'text-[var(--mid-shade)]' : 'text-[var(--dark-shade)] opacity-75'
+      active ? 'text-[var(--mid-shade)]' : 'text-[var(--dark-shade)]'
     ),
-  label: 'font-secondary uppercase text-[var(--dark-shade)] text-[10px] mt-1',
+  label: (active: boolean) =>
+    cn(
+      'font-secondary uppercase text-[10px] mt-1',
+      active
+        ? 'text-[var(--mid-shade)] font-bold'
+        : 'text-[var(--dark-shade)] font-normal'
+    ),
   icon: 'w-9 h-9 object-contain',
   primaryButton:
     'relative w-16 h-16 rounded-full bg-[var(--mid-shade)] text-white flex items-center justify-center z-10 overflow-visible transition-all duration-200 group-hover:bg-[var(--mid-shade)]/90',
@@ -239,7 +245,7 @@ function NavItemButton({
           onContextMenu={(e) => e.preventDefault()}
         />
       )}
-      <span className={navItemStyles.label}>{label}</span>
+      <span className={navItemStyles.label(active)}>{label}</span>
     </motion.button>
   );
 }
@@ -273,7 +279,7 @@ function NavDrawerContent({
 
   return (
     <DrawerContent className="max-h-[calc(100vh-2rem)] bg-white rounded-t-[24px] px-6 pb-8 shadow-[inset_0_-12px_8px_-6px_rgba(0,0,0,0.05)] flex flex-col items-center">
-      <div className="py-6 flex justify-center">
+      <div className="py-3 flex justify-center">
         <button
           onClick={() => {
             delayedAction(() => {
@@ -284,10 +290,10 @@ function NavDrawerContent({
           className="focus:outline-none"
         >
           <Image
-            src="/images/pediahelp_logo_transparent_vertical_black.svg"
+            src="/images/logo_square.svg"
             alt="PediaHelp Logo"
-            width={200}
-            height={200}
+            width={165}
+            height={165}
             className="object-contain"
           />
         </button>
@@ -306,7 +312,7 @@ function NavDrawerContent({
           }
         `}</style>
         <motion.ul
-          className="space-y-1 w-full"
+          className="space-y-1.5 w-full"
           initial="closed"
           animate="open"
           variants={{
@@ -336,7 +342,7 @@ function NavDrawerContent({
                   >
                     <CollapsibleTrigger asChild>
                       <button
-                        className="w-full flex justify-center items-center py-1 text-base font-medium text-gray-700 font-secondary uppercase relative transition-colors duration-200"
+                        className="w-full flex justify-center items-center py-2 text-base font-medium text-gray-700 font-secondary uppercase relative transition-colors duration-200"
                       >
                         <motion.span
                           variants={navAnimations.drawerItemVariants}
@@ -347,10 +353,10 @@ function NavDrawerContent({
                           {section.label}
                         </motion.span>
                         <motion.span
-                          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-[1px] bg-mid-shade"
+                          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-[2px] bg-mid-shade"
                           initial={{ width: '0%' }}
                           animate={{
-                            width: openCollapsible === section.label ? '50%' : '0%',
+                            width: openCollapsible === section.label ? '35%' : '0%',
                           }}
                           transition={{ duration: 0.5, ease: 'easeInOut' }}
                         />
@@ -375,7 +381,7 @@ function NavDrawerContent({
                           style={{ minHeight: 0, overflow: 'hidden' }}
                           className={cn(
                             'mt-2 flex flex-col items-center',
-                            section.label === 'Specialties' ? 'space-y-0.5' : 'space-y-1'
+                            section.label === 'Specialties' ? 'space-y-0' : 'space-y-0'
                           )}
                         >
                           {section.items?.map((item) => (
@@ -465,10 +471,8 @@ export default function BottomNav() {
   const allDoctors = useDoctors();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
-  // Added for pre-fetching
   const [initialSearchHits, setInitialSearchHits] = useState<{ objectID: string }[]>([]);
 
-  // Pre-fetch Algolia search results
   useEffect(() => {
     const searchClient = algoliasearch(
       process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
@@ -562,7 +566,7 @@ export default function BottomNav() {
             <DoctorSearchDrawer
               key={label}
               allDoctors={allDoctors}
-              initialSearchHits={initialSearchHits} // Pass pre-fetched hits
+              initialSearchHits={initialSearchHits}
             >
               <motion.div
                 className="group relative flex flex-col items-center justify-center z-10 cursor-pointer"

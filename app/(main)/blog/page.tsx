@@ -25,6 +25,7 @@ export const metadata: Metadata = {
 export default function BlogSSRPage() {
   return (
     <div className="relative">
+      
       <BlogLanding />
       {/* Wave Divider Section */}
       <div className="relative w-full h-[100px] overflow-hidden">

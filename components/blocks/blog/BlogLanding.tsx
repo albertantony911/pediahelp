@@ -68,13 +68,14 @@ export default function BlogLanding({ theme = 'dark-shade' }: BlogLandingProps) 
 
   return (
     <>
-      {/* Mobile-only SVG Logo (Outside Theme) */}
-      <div className="w-full flex justify-center items-center bg- lg:hidden">
-        <Logo />
-      </div>
+      
 
       {/* Themed Content */}
       <Theme variant={theme || 'dark-shade'}>
+        {/* Mobile-only SVG Logo (Outside Theme) */}
+        <div className="">
+          <Logo />
+        </div>
         <div className="w-full">
           <section
             ref={blogSectionRef}

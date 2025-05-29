@@ -122,13 +122,14 @@ export default function ConsultationPage() {
 
   return (
     <>
-      {/* Mobile Logo */}
-      <div className="w-full flex justify-center items-center bg-white lg:hidden">
-        <Logo />
-      </div>
+      
 
       {/* Hero section */}
       <Theme variant="dark-shade">
+        {/* Mobile Logo */}
+        <div >
+          <Logo />
+        </div>
         <div className="pt-10 lg:pt-48 text-gray-300 text-left sm:text-center max-w-3xl mx-auto">
           <Subtitle>Book an Appointment</Subtitle>
           <Title>Find the right pediatric expert for your child</Title>

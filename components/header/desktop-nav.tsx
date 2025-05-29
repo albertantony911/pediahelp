@@ -227,14 +227,14 @@ export default function DesktopNav() {
       >
         <Link
           href="/"
-          className="h-12  px-6 flex items-center justify-center "
+          className="h-16  px-6 flex items-center justify-center "
         >
           <Image
-            src="/images/logo.svg"
+            src="/images/logo_dark.svg"
             alt="Logo"
-            width={100}
-            height={50}
-            className="h-12 w-auto"
+            width={240}
+            height={80}
+            className="h-16 w-auto"
           />
         </Link>
 
