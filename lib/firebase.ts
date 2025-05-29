@@ -41,42 +41,17 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize App Check only in a browser environment
+// Initialize App Check with reCAPTCHA v3 in browser
 if (typeof window !== 'undefined') {
-  const initializeAppCheckWithRecaptcha = async () => {
-    // Wait for the grecaptcha object to be available
-    const waitForGrecaptcha = () =>
-      new Promise<void>((resolve, reject) => {
-        const checkGrecaptcha = () => {
-          if (window.grecaptcha) {
-            resolve();
-          } else {
-            setTimeout(checkGrecaptcha, 100); // Check every 100ms
-          }
-        };
-        checkGrecaptcha();
-
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          reject(new Error('reCAPTCHA script failed to load within 10 seconds'));
-        }, 10000);
-      });
-
-    try {
-      await waitForGrecaptcha();
-      initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(
-          process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY!
-        ),
-        isTokenAutoRefreshEnabled: true,
-      });
-      console.log('App Check initialized successfully with reCAPTCHA v3');
-    } catch (error) {
-      console.error('App Check initialization failed:', error);
-    }
-  };
-
-  initializeAppCheckWithRecaptcha();
+  const v3Key = process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY;
+  if (!v3Key) {
+    throw new Error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_V3_KEY');
+  }
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(v3Key),
+    isTokenAutoRefreshEnabled: true,
+  });
 }
 
 export { app, auth, db };
+

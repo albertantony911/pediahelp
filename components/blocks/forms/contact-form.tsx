@@ -78,49 +78,87 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   }, [timer, otpSent, isVerified]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Guard against server-side execution or missing auth instance
+    if (typeof window === 'undefined' || !auth) {
+      console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
+      return;
+    }
   
-    // clean up any old verifier
-    window.recaptchaVerifier?.clear?.();
-  
-    // 1️⃣ Pass `auth` first, then the container ID, then options
-    const verifier = new RecaptchaVerifier(
-      auth,                         // ← Auth instance
-      'recaptcha-container',        // ← your <div id="recaptcha-container"/>
-      {
-        size: 'invisible',
-        siteKey: process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY!,
-        // 2️⃣ Give `token` an explicit type
-        callback: (token: string) => {
-          console.log('Invisible reCAPTCHA passed, token:', token);
-        },
-        'expired-callback': () => {
-          console.warn('Invisible reCAPTCHA expired');
-          toast.error('reCAPTCHA verification expired, please try again.');
-        },
+    // Function to initialize and render the reCAPTCHA verifier
+    const initializeRecaptcha = () => {
+      // Clear any existing verifier to prevent conflicts
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          console.log('Cleared existing reCAPTCHA verifier');
+        } catch (error) {
+          console.error('Failed to clear existing reCAPTCHA verifier:', error);
+        }
       }
-    );
   
-    // expose it for later use
-    window.recaptchaVerifier = verifier;
+      // Validate reCAPTCHA v2 key
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
+      if (!siteKey) {
+        console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
+        return;
+      }
   
-    // render the invisible widget (returns widget ID)
-    verifier
-      .render()
-      .then((widgetId: number) => {
-        console.log('Invisible reCAPTCHA rendered, ID:', widgetId);
-      })
-      .catch((err: any) => {
-        console.error('Failed to render recaptcha:', err);
-        toast.error('Failed to initialize reCAPTCHA');
-      });
+      // Initialize the reCAPTCHA verifier
+      let verifier: RecaptchaVerifier;
+      try {
+        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          siteKey,
+          callback: (token: string) => {
+            console.log('Invisible reCAPTCHA passed, token:', token);
+          },
+          'expired-callback': () => {
+            toast.error('reCAPTCHA expired, please try again');
+          },
+        });
+      } catch (error) {
+        console.error('Failed to initialize reCAPTCHA verifier:', {
+          message: (error as Error).message,
+          code: (error as any).code,
+          details: (error as any).details,
+        });
+        return;
+      }
   
+      // Store the verifier globally for later use
+      window.recaptchaVerifier = verifier;
+  
+      // Render the reCAPTCHA widget
+      verifier
+        .render()
+        .then((widgetId) => {
+          console.log('reCAPTCHA v2 widget rendered, widget ID:', widgetId);
+        })
+        .catch((error) => {
+          console.error('Failed to render reCAPTCHA v2 widget:', {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+          });
+        });
+    };
+  
+    // Execute the initialization
+    initializeRecaptcha();
+  
+    // Cleanup on component unmount
     return () => {
-      verifier.clear();
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          console.log('Cleared reCAPTCHA verifier on cleanup');
+        } catch (error) {
+          console.error('Failed to clear reCAPTCHA verifier on cleanup:', error);
+        }
+        window.recaptchaVerifier = undefined;
+      }
     };
   }, [auth]);
-  
-
   useEffect(() => {
     if (typeof window === 'undefined' || !('OTPCredential' in window) || !confirmationResult) return;
 
