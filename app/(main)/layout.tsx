@@ -18,16 +18,7 @@ export default async function MainLayout({
     <>
       <Head>
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
-        {/* Load reCAPTCHA script before the app renders */}
-        <script
-          src="https://www.google.com/recaptcha/api.js?render=explicit"
-          onError={(e) => {
-            console.error('Failed to load reCAPTCHA script:', e);
-          }}
-          onLoad={() => {
-            console.log('reCAPTCHA script loaded successfully');
-          }}
-        ></script>
+        
       </Head>
 
       <Header />

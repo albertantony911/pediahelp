@@ -53,6 +53,16 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        {/* Load reCAPTCHA script before the app renders */}
+        <script
+          src="https://www.google.com/recaptcha/api.js?render=explicit"
+          onError={(e) => {
+            console.error('Failed to load reCAPTCHA script:', e);
+          }}
+          onLoad={() => {
+            console.log('reCAPTCHA script loaded successfully');
+          }}
+        ></script>
       </head>
       <body
         className={cn(
