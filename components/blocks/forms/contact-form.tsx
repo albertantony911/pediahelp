@@ -82,7 +82,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
       return;
     }
-
+  
     const initializeRecaptcha = () => {
       if (window.recaptchaVerifier) {
         try {
@@ -92,23 +92,37 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
           console.error('Failed to clear existing reCAPTCHA verifier:', error);
         }
       }
-
+  
       const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
+      const projectId = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID;
+  
       if (!siteKey) {
         console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
         return;
       }
-
+  
+      if (!projectId) {
+        console.error('Missing reCAPTCHA Enterprise project ID. Please set NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID in environment variables.');
+        return;
+      }
+  
       let verifier: RecaptchaVerifier;
       try {
+        console.log('Initializing RecaptchaVerifier with siteKey:', siteKey, 'and projectId:', projectId);
         verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          siteKey,
           callback: (token: string) => {
             console.log('Invisible reCAPTCHA passed, token:', token);
           },
           'expired-callback': () => {
+            console.log('reCAPTCHA expired');
             toast.error('reCAPTCHA expired, please try again');
+          },
+          // Add reCAPTCHA Enterprise configuration
+          recaptchaConfig: {
+            provider: 'gcp_recaptcha_enterprise', // Specify Enterprise provider
+            recaptchaEnterpriseSiteKey: siteKey, // Use the Enterprise v2 key
+            recaptchaEnterpriseProjectId: projectId, // Your project ID
           },
         });
       } catch (error) {
@@ -119,25 +133,25 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         });
         return;
       }
-
+  
       window.recaptchaVerifier = verifier;
-
+  
       verifier
         .render()
         .then((widgetId) => {
-          console.log('reCAPTCHA v2 widget rendered, widget ID:', widgetId);
+          console.log('reCAPTCHA v2 Enterprise widget rendered, widget ID:', widgetId);
         })
         .catch((error) => {
-          console.error('Failed to render reCAPTCHA v2 widget:', {
+          console.error('Failed to render reCAPTCHA v2 Enterprise widget:', {
             message: error.message,
             code: (error as any).code,
             details: (error as any).details,
           });
         });
     };
-
+  
     initializeRecaptcha();
-
+  
     return () => {
       if (window.recaptchaVerifier) {
         try {
