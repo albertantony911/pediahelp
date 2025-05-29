@@ -94,7 +94,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
   
       const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
-      const projectId = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID;
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   
       if (!siteKey) {
         console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
@@ -102,7 +102,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
   
       if (!projectId) {
-        console.error('Missing reCAPTCHA Enterprise project ID. Please set NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID in environment variables.');
+        console.error('Missing Firebase project ID. Please set NEXT_PUBLIC_FIREBASE_PROJECT_ID in environment variables.');
         return;
       }
   
@@ -120,9 +120,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
           },
           // Add reCAPTCHA Enterprise configuration
           recaptchaConfig: {
-            provider: 'gcp_recaptcha_enterprise', // Specify Enterprise provider
-            recaptchaEnterpriseSiteKey: siteKey, // Use the Enterprise v2 key
-            recaptchaEnterpriseProjectId: projectId, // Your project ID
+            provider: 'gcp_recaptcha_enterprise',
+            recaptchaEnterpriseSiteKey: siteKey,
+            recaptchaEnterpriseProjectId: projectId,
           },
         });
       } catch (error) {

@@ -44,21 +44,15 @@ const db = getFirestore(app);
 // Initialize App Check with reCAPTCHA Enterprise v3 in browser
 if (typeof window !== 'undefined') {
   const v3Key = process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY;
-  const projectId = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID;
 
   if (!v3Key) {
     console.error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_V3_KEY');
     throw new Error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_V3_KEY');
   }
 
-  if (!projectId) {
-    console.error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID');
-    throw new Error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_PROJECT_ID');
-  }
-
   try {
-    console.log('Initializing Firebase App Check with reCAPTCHA Enterprise v3, siteKey:', v3Key, 'projectId:', projectId);
-    // Use ReCaptchaEnterpriseProvider for Enterprise v3 keys
+    console.log('Initializing Firebase App Check with reCAPTCHA Enterprise v3, siteKey:', v3Key);
+    // Use ReCaptchaEnterpriseProvider with only the site key
     initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider(v3Key),
       isTokenAutoRefreshEnabled: true,
