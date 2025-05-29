@@ -138,18 +138,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   
       window.recaptchaVerifier = verifier;
   
-      verifier
-        .render()
-        .then((widgetId) => {
-          console.log('reCAPTCHA v2 Enterprise widget rendered, widget ID:', widgetId);
-        })
-        .catch((error) => {
-          console.error('Failed to render reCAPTCHA v2 Enterprise widget:', {
-            message: error.message,
-            code: (error as any).code,
-            details: (error as any).details,
-          });
-        });
+      console.log('RecaptchaVerifier initialized for Enterprise v2');
     };
   
     initializeRecaptcha();
