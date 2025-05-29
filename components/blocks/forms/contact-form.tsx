@@ -79,72 +79,47 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    const initializeRecaptcha = async () => {
-      // Clean up any existing verifier
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
+  
+    // clean up any old verifier
+    window.recaptchaVerifier?.clear?.();
+  
+    // 1️⃣ Pass `auth` first, then the container ID, then options
+    const verifier = new RecaptchaVerifier(
+      auth,                         // ← Auth instance
+      'recaptcha-container',        // ← your <div id="recaptcha-container"/>
+      {
+        size: 'invisible',
+        siteKey: process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY!,
+        // 2️⃣ Give `token` an explicit type
+        callback: (token: string) => {
+          console.log('Invisible reCAPTCHA passed, token:', token);
+        },
+        'expired-callback': () => {
+          console.warn('Invisible reCAPTCHA expired');
+          toast.error('reCAPTCHA verification expired, please try again.');
+        },
       }
-
-      // Wait for the grecaptcha object to be available
-      const waitForGrecaptcha = () =>
-        new Promise<void>((resolve, reject) => {
-          const checkGrecaptcha = () => {
-            if (window.grecaptcha) {
-              resolve();
-            } else {
-              setTimeout(checkGrecaptcha, 100); // Check every 100ms
-            }
-          };
-          checkGrecaptcha();
-
-          // Timeout after 10 seconds
-          setTimeout(() => {
-            reject(new Error('reCAPTCHA script failed to load within 10 seconds'));
-          }, 10000);
-        });
-
-      try {
-        await waitForGrecaptcha();
-
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA v3 verified successfully');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA v3 expired');
-            toast.error('reCAPTCHA verification expired, please try again.');
-          },
-          'error-callback': (error: any) => {
-            console.error('reCAPTCHA v3 error:', error);
-            toast.error('Failed to initialize reCAPTCHA', { description: error.message || 'Unknown error' });
-          },
-        });
-
-        // Ensure reCAPTCHA is rendered
-        window.recaptchaVerifier.render().then((widgetId: number) => {
-          console.log('reCAPTCHA v3 rendered with widget ID:', widgetId);
-        }).catch((error: { message?: string }) => {
-          console.error('reCAPTCHA v3 render error:', error);
-          toast.error('Failed to render reCAPTCHA', { description: error.message });
-        });
-      } catch (error) {
-        console.error('Error initializing reCAPTCHA v3:', error);
-        toast.error('Failed to initialize reCAPTCHA', { description: error instanceof Error ? error.message : String(error) });
-      }
-    };
-
-    initializeRecaptcha();
-
+    );
+  
+    // expose it for later use
+    window.recaptchaVerifier = verifier;
+  
+    // render the invisible widget (returns widget ID)
+    verifier
+      .render()
+      .then((widgetId: number) => {
+        console.log('Invisible reCAPTCHA rendered, ID:', widgetId);
+      })
+      .catch((err: any) => {
+        console.error('Failed to render recaptcha:', err);
+        toast.error('Failed to initialize reCAPTCHA');
+      });
+  
     return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-      }
+      verifier.clear();
     };
-  }, []);
+  }, [auth]);
+  
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('OTPCredential' in window) || !confirmationResult) return;

@@ -65,7 +65,9 @@ if (typeof window !== 'undefined') {
     try {
       await waitForGrecaptcha();
       initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6LfyME4rAAAAAJvshPIPIxqqOCLcNofyerndicyj'),
+        provider: new ReCaptchaV3Provider(
+          process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY!
+        ),
         isTokenAutoRefreshEnabled: true,
       });
       console.log('App Check initialized successfully with reCAPTCHA v3');
