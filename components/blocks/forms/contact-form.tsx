@@ -52,6 +52,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const [otpSent, setOtpSent] = useState(false);
   const [timer, setTimer] = useState(30);
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [recaptchaToken, setRecaptchaToken] = useState<string>('');
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -202,12 +204,17 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
       return;
     }
-
+  
     setIsSendingOtp(true);
     try {
       const verifier = window.recaptchaVerifier;
       if (!verifier) throw new Error('reCAPTCHA not initialized');
-      await verifier.verify();
+  
+      // ✅ Execute reCAPTCHA and store token
+      const token = await verifier.verify();
+      setRecaptchaToken(token);
+      console.log('Enterprise reCAPTCHA token:', token);
+  
       const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       setConfirmationResult(result);
       setOtpSent(true);
@@ -215,7 +222,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       setTimer(30);
       setValue('otp', '');
       toast.success(`OTP sent to +91${phone}`);
-      console.log('Phone authentication OTP sent successfully');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       toast.error('Failed to send OTP', {
@@ -225,6 +231,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       setIsSendingOtp(false);
     }
   };
+  
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!confirmationResult || !otpCode || otpCode.length !== 6) {
@@ -249,6 +256,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         message: formData.message,
         subject: `Contact Form Submission from ${pageSource}`,
         otpVerified: true,
+        recaptchaToken,                  
+        recaptchaAction: 'contact_submit', 
       };
       console.log('Submitting payload:', payload);
       const response = await fetch('/api/contact', {
