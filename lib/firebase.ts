@@ -43,10 +43,38 @@ const db = getFirestore(app);
 
 // Initialize App Check only in a browser environment
 if (typeof window !== 'undefined') {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6LfyME4rAAAAAJvshPIPIxqqOCLcNofyerndicyj'),
-    isTokenAutoRefreshEnabled: true,
-  });
+  const initializeAppCheckWithRecaptcha = async () => {
+    // Wait for the grecaptcha object to be available
+    const waitForGrecaptcha = () =>
+      new Promise<void>((resolve, reject) => {
+        const checkGrecaptcha = () => {
+          if (window.grecaptcha) {
+            resolve();
+          } else {
+            setTimeout(checkGrecaptcha, 100); // Check every 100ms
+          }
+        };
+        checkGrecaptcha();
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          reject(new Error('reCAPTCHA script failed to load within 10 seconds'));
+        }, 10000);
+      });
+
+    try {
+      await waitForGrecaptcha();
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider('6LfyME4rAAAAAJvshPIPIxqqOCLcNofyerndicyj'),
+        isTokenAutoRefreshEnabled: true,
+      });
+      console.log('App Check initialized successfully with reCAPTCHA v3');
+    } catch (error) {
+      console.error('App Check initialization failed:', error);
+    }
+  };
+
+  initializeAppCheckWithRecaptcha();
 }
 
 export { app, auth, db };

@@ -79,40 +79,65 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-  
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = undefined;
-    }
-  
-    try {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA v3 verified successfully'); // Changed log message for clarity
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA v3 expired'); // Changed log message for clarity
-          toast.error('reCAPTCHA verification expired, please try again.'); // Slightly more specific error message
-        },
-        'error-callback': (error: any) => {
-          console.error('reCAPTCHA v3 error:', error); // Changed log message for clarity
-          toast.error('Failed to initialize reCAPTCHA', { description: error.message || 'Unknown error' }); // Improved error handling
-        },
-      });
-  
-      // Ensure reCAPTCHA is rendered
-      window.recaptchaVerifier.render().then((widgetId: number) => {
-        console.log('reCAPTCHA v3 rendered with widget ID:', widgetId); // Changed log message and added widgetId for debugging
-      }).catch((error: { message?: string }) => {
-        console.error('reCAPTCHA v3 render error:', error); // Changed log message for clarity
-        toast.error('Failed to render reCAPTCHA', { description: error.message });
-      });
-    } catch (error) {
-      console.error('Error initializing reCAPTCHA v3:', error); // Changed log message for clarity
-      toast.error('Failed to initialize reCAPTCHA', { description: error instanceof Error ? error.message : String(error) });
-    }
-  
+
+    const initializeRecaptcha = async () => {
+      // Clean up any existing verifier
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+
+      // Wait for the grecaptcha object to be available
+      const waitForGrecaptcha = () =>
+        new Promise<void>((resolve, reject) => {
+          const checkGrecaptcha = () => {
+            if (window.grecaptcha) {
+              resolve();
+            } else {
+              setTimeout(checkGrecaptcha, 100); // Check every 100ms
+            }
+          };
+          checkGrecaptcha();
+
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            reject(new Error('reCAPTCHA script failed to load within 10 seconds'));
+          }, 10000);
+        });
+
+      try {
+        await waitForGrecaptcha();
+
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA v3 verified successfully');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA v3 expired');
+            toast.error('reCAPTCHA verification expired, please try again.');
+          },
+          'error-callback': (error: any) => {
+            console.error('reCAPTCHA v3 error:', error);
+            toast.error('Failed to initialize reCAPTCHA', { description: error.message || 'Unknown error' });
+          },
+        });
+
+        // Ensure reCAPTCHA is rendered
+        window.recaptchaVerifier.render().then((widgetId: number) => {
+          console.log('reCAPTCHA v3 rendered with widget ID:', widgetId);
+        }).catch((error: { message?: string }) => {
+          console.error('reCAPTCHA v3 render error:', error);
+          toast.error('Failed to render reCAPTCHA', { description: error.message });
+        });
+      } catch (error) {
+        console.error('Error initializing reCAPTCHA v3:', error);
+        toast.error('Failed to initialize reCAPTCHA', { description: error instanceof Error ? error.message : String(error) });
+      }
+    };
+
+    initializeRecaptcha();
+
     return () => {
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
@@ -123,7 +148,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('OTPCredential' in window) || !confirmationResult) return;
-  
+
     const ac = new AbortController();
     navigator.credentials
       .get({
@@ -144,7 +169,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         console.error('Web OTP API error:', err);
         toast.error('Failed to auto-fill OTP', { description: err.message });
       });
-  
+
     return () => ac.abort();
   }, [confirmationResult, form]);
 
@@ -153,7 +178,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     const arr = (otp || '').split('');
     arr[index] = value;
     form.setValue('otp', arr.join(''));
-  
+
     if (value && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
     } else if (
@@ -173,7 +198,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
       return;
     }
-  
+
     setIsSendingOtp(true);
     try {
       const verifier = window.recaptchaVerifier;
@@ -186,9 +211,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       setTimer(30);
       setValue('otp', ''); // Clear OTP field only
       toast.success(`OTP sent to +91${phone}`);
+      console.log('Phone authentication OTP sent successfully');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error('Failed to send OTP', { description: error.message });
+      toast.error('Failed to send OTP', {
+        description: error.message || 'An unexpected error occurred during phone authentication',
+      });
     } finally {
       setIsSendingOtp(false);
     }
@@ -208,7 +236,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
       setIsVerified(true);
       toast.success('Phone number verified!');
-  
+
       // Submit form data
       setIsSubmitting(true);
       const formData = form.getValues();
@@ -218,15 +246,15 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         body: JSON.stringify({
           ...formData,
           subject: `Contact Form Submission from ${pageSource}`,
-          otpVerified: true, // Explicitly set otpVerified
+          otpVerified: true,
         }),
       });
-  
+
       const submitResult = await response.json();
       if (!response.ok) {
         throw new Error(submitResult.error || 'Failed to submit the form');
       }
-  
+
       setStep('success');
       toast.success('Message sent successfully!');
     } catch (error: any) {
@@ -283,7 +311,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
             {step === 'form' && (
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
                 <Form {...form}>
-                <form
+                  <form
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -297,7 +325,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                       });
                     }}
                   >
-
                     <FormField
                       control={form.control}
                       name="name"
@@ -436,25 +463,25 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                           </p>
                           <FormControl>
                             <div className="flex justify-center gap-2">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                              <motion.input
-                                key={i}
-                                type="text"
-                                inputMode="numeric"
-                                maxLength={1}
-                                autoComplete="one-time-code" // Add this attribute
-                                className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
-                                ref={(el) => {
-                                  otpInputsRef.current[i] = el;
-                                }}
-                                value={otp?.[i] || ''}
-                                onChange={(e) => handleOtpChange(i, e.target.value, e)}
-                                disabled={isVerifyingOtp || isVerified}
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.3, delay: i * 0.1 }}
-                              />
-                            ))}
+                              {Array.from({ length: 6 }).map((_, i) => (
+                                <motion.input
+                                  key={i}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  autoComplete="one-time-code"
+                                  className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
+                                  ref={(el) => {
+                                    otpInputsRef.current[i] = el;
+                                  }}
+                                  value={otp?.[i] || ''}
+                                  onChange={(e) => handleOtpChange(i, e.target.value, e)}
+                                  disabled={isVerifyingOtp || isVerified}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                                />
+                              ))}
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -464,7 +491,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
                       <button
-                        onClick={handleSendOtp} // Use handleSendOtp directly
+                        onClick={handleSendOtp}
                         disabled={timer > 0 || isSendingOtp}
                         className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}
                       >
