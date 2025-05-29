@@ -5,7 +5,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { InstantSearchProvider } from "@/components/providers/InstantSearchProvider";
 import { DoctorsProvider } from "@/components/providers/DoctorsProvider";
-import { fetchAllDoctors } from "@/lib/fetchDoctors"; 
+import { fetchAllDoctors } from "@/lib/fetchDoctors";
+import ReCaptchaScript from "@/components/ReCaptchaScript"; // Import the new Client Component
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -53,16 +54,8 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        {/* Load reCAPTCHA script before the app renders */}
-        <script
-          src="https://www.google.com/recaptcha/api.js?render=explicit"
-          onError={(e) => {
-            console.error('Failed to load reCAPTCHA script:', e);
-          }}
-          onLoad={() => {
-            console.log('reCAPTCHA script loaded successfully');
-          }}
-        ></script>
+        {/* Use the Client Component to load the reCAPTCHA script */}
+        <ReCaptchaScript />
       </head>
       <body
         className={cn(

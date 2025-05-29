@@ -18,7 +18,6 @@ export default async function MainLayout({
     <>
       <Head>
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
-        
       </Head>
 
       <Header />
