@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!body.otpVerified) {
+    if (body.otpVerified !== true) {
       return NextResponse.json(
         { error: 'OTP verification required' },
         { status: 400 }
@@ -63,9 +63,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!/^\+91\d{10}$/.test(body.phone)) {
+    if (!/^[0-9]{10}$/.test(body.phone)) {
       return NextResponse.json(
-        { error: 'Invalid phone number format' },
+        { error: 'Invalid phone number format. Must be 10 digits.' },
         { status: 400 }
       );
     }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     await addDoc(collection(db, 'contact-submissions'), {
       name: body.name,
       email: body.email,
-      phone: body.phone,
+      phone: `+91${body.phone}`, // Ensure phone is stored with country code
       message: body.message,
       subject: body.subject,
       submittedAt: serverTimestamp(),
@@ -92,10 +92,10 @@ export async function POST(req: NextRequest) {
       { message: 'Form submitted successfully' },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Submission error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
