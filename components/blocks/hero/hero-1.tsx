@@ -56,73 +56,86 @@ const Hero1: React.FC<Hero1Props> = ({
   const allDoctors = useDoctors();
 
   return (
-    <Theme variant={theme || 'dark-shade'}>
+    <>
+      {/* Mobile-only SVG Logo (Outside Theme) */}
       <div className="lg:hidden">
         <Logo />
       </div>
-      <div className="flex flex-col">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-5">
-          <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
-            {isImageLeftMobile && (
-              <ImageBlock
-                image={image}
-                riveAnimation={riveAnimation}
-                stateMachines={stateMachines}
-                defaultStateMachine={defaultStateMachine}
-                interactionInputs={interactionInputs}
+
+      {/* Mobile layout: ImageBlock outside Theme */}
+      <div className={`lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+        {isImageLeftMobile && (
+          <ImageBlock
+            image={image}
+            riveAnimation={riveAnimation}
+            stateMachines={stateMachines}
+            defaultStateMachine={defaultStateMachine}
+            interactionInputs={interactionInputs}
+          />
+        )}
+        <Theme variant={theme || 'dark-shade'}>
+          <div className="flex flex-col">
+            <div className="grid grid-cols-1 gap-10 pt-5">
+              <TextBlock
+                tagLine={tagLine}
+                title={title}
+                body={body}
+                showButton={showButton}
+                buttonType={buttonType}
+                customButton={customButton}
+                allDoctors={allDoctors}
               />
-            )}
-            <TextBlock
-              tagLine={tagLine}
-              title={title}
-              body={body}
-              showButton={showButton}
-              buttonType={buttonType}
-              customButton={customButton}
-              allDoctors={allDoctors}
-            />
-            {!isImageLeftMobile && (
-              <ImageBlock
-                image={image}
-                riveAnimation={riveAnimation}
-                stateMachines={stateMachines}
-                defaultStateMachine={defaultStateMachine}
-                interactionInputs={interactionInputs}
-              />
-            )}
+            </div>
           </div>
-          <div className="hidden lg:contents">
-            {isImageLeftDesktop && (
-              <ImageBlock
-                image={image}
-                riveAnimation={riveAnimation}
-                stateMachines={stateMachines}
-                defaultStateMachine={defaultStateMachine}
-                interactionInputs={interactionInputs}
-              />
-            )}
-            <TextBlock
-              tagLine={tagLine}
-              title={title}
-              body={body}
-              showButton={showButton}
-              buttonType={buttonType}
-              customButton={customButton}
-              allDoctors={allDoctors}
-            />
-            {!isImageLeftDesktop && (
-              <ImageBlock
-                image={image}
-                riveAnimation={riveAnimation}
-                stateMachines={stateMachines}
-                defaultStateMachine={defaultStateMachine}
-                interactionInputs={interactionInputs}
-              />
-            )}
-          </div>
-        </div>
+        </Theme>
+        {!isImageLeftMobile && (
+          <ImageBlock
+            image={image}
+            riveAnimation={riveAnimation}
+            stateMachines={stateMachines}
+            defaultStateMachine={defaultStateMachine}
+            interactionInputs={interactionInputs}
+          />
+        )}
       </div>
-      </Theme>
+
+      {/* Desktop layout: Both ImageBlock and TextBlock inside Theme */}
+      <div className="hidden lg:block">
+        <Theme variant={theme || 'dark-shade'}>
+          <div className="flex flex-col">
+            <div className="grid grid-cols-2 gap вот-10 lg:pt-28">
+              {isImageLeftDesktop && (
+                <ImageBlock
+                  image={image}
+                  riveAnimation={riveAnimation}
+                  stateMachines={stateMachines}
+                  defaultStateMachine={defaultStateMachine}
+                  interactionInputs={interactionInputs}
+                />
+              )}
+              <TextBlock
+                tagLine={tagLine}
+                title={title}
+                body={body}
+                showButton={showButton}
+                buttonType={buttonType}
+                customButton={customButton}
+                allDoctors={allDoctors}
+              />
+              {!isImageLeftDesktop && (
+                <ImageBlock
+                  image={image}
+                  riveAnimation={riveAnimation}
+                  stateMachines={stateMachines}
+                  defaultStateMachine={defaultStateMachine}
+                  interactionInputs={interactionInputs}
+                />
+              )}
+            </div>
+          </div>
+        </Theme>
+      </div>
+    </>
   );
 };
 
@@ -168,7 +181,6 @@ const ImageBlock: React.FC<{
   return null;
 };
 
-// TextBlock remains unchanged
 const TextBlock: React.FC<{
   tagLine?: string | null;
   title?: string | null;
