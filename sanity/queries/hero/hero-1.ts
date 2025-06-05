@@ -50,6 +50,19 @@ export const hero1Query = groq`
       label,
       link,
       isExternal
+    },
+    riveAnimation{
+      asset->{
+        url
+      }
+    },
+    stateMachines,
+    defaultStateMachine,
+    interactionInputs[] {
+      inputName,
+      inputType,
+      event,
+      value
     }
   }
 `;

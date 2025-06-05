@@ -69,6 +69,90 @@ export default defineType({
         },
       ],
     }),
+
+    defineField({
+      name: "riveAnimation",
+      title: "Rive Animation (.riv)",
+      type: "file",
+      options: { accept: ".riv" },
+      description: "Optional. Upload a .riv file to show an animation instead of the static image.",
+    }),
+    defineField({
+      name: "stateMachines",
+      title: "Rive State Machines",
+      type: "array",
+      of: [{ type: "string" }],
+      description: "List of state machines in the .riv file. For dynamic usage.",
+    }),
+    defineField({
+      name: "defaultStateMachine",
+      title: "Default State Machine",
+      type: "string",
+      description: "Name of the default state machine to use. Must match one of the above.",
+      validation: (rule) =>
+        rule.custom((value: string | undefined, context: ValidationContext) => {
+          const parent = context.parent as any;
+          const stateMachines = parent?.stateMachines as string[] | undefined;
+          if (parent?.riveAnimation && value && stateMachines && !stateMachines.includes(value)) {
+            return "Default State Machine must match one of the listed state machines.";
+          }
+          return true;
+        }),
+    }),
+    defineField({
+      name: "interactionInputs",
+      title: "Rive Interaction Inputs",
+      type: "array",
+      of: [
+        {
+          type: "object",
+          fields: [
+            defineField({
+              name: "inputName",
+              title: "Input Name",
+              type: "string",
+              description: "Name of the input as defined in the Rive state machine.",
+            }),
+            defineField({
+              name: "inputType",
+              title: "Input Type",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Boolean", value: "boolean" },
+                  { title: "Trigger", value: "trigger" },
+                  { title: "Number", value: "number" },
+                ],
+              },
+              initialValue: "boolean",
+            }),
+            defineField({
+              name: "event",
+              title: "Trigger Event",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Hover", value: "hover" },
+                  { title: "Click", value: "click" },
+                  { title: "Scroll", value: "scroll" },
+                  { title: "Custom", value: "custom" },
+                ],
+              },
+              description: "Event that triggers this input.",
+            }),
+            defineField({
+              name: "value",
+              title: "Default Value",
+              type: "number",
+              hidden: ({ parent }) => parent?.inputType !== "number",
+              description: "Default value for number inputs.",
+            }),
+          ],
+        },
+      ],
+      description: "Define inputs for interactivity (e.g., hover, click, scroll) in the state machine.",
+    }),
+    
     defineField({
       name: "showButton",
       title: "Show Button",
@@ -128,6 +212,7 @@ export default defineType({
           description: "Enable if the link points to an external website.",
           initialValue: false,
         }),
+        
       ],
     }),
   ],
