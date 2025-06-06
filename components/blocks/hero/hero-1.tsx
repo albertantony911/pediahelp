@@ -56,86 +56,78 @@ const Hero1: React.FC<Hero1Props> = ({
   const allDoctors = useDoctors();
 
   return (
-    <>
-      {/* Mobile-only SVG Logo (Outside Theme) */}
+    <Theme variant={theme || 'dark-shade'}>
+      {/* Mobile-only SVG Logo */}
       <div className="lg:hidden">
         <Logo />
       </div>
-
-      {/* Mobile layout: ImageBlock outside Theme */}
-      <div className={`lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
-        {isImageLeftMobile && (
-          <ImageBlock
-            image={image}
-            riveAnimation={riveAnimation}
-            stateMachines={stateMachines}
-            defaultStateMachine={defaultStateMachine}
-            interactionInputs={interactionInputs}
-          />
-        )}
-        <Theme variant={theme || 'dark-shade'}>
-          <div className="flex flex-col">
-            <div className="grid grid-cols-1 gap-10 pt-5">
-              <TextBlock
-                tagLine={tagLine}
-                title={title}
-                body={body}
-                showButton={showButton}
-                buttonType={buttonType}
-                customButton={customButton}
-                allDoctors={allDoctors}
+      <div className="flex flex-col">
+        {/* Grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:pt-28 pt-5">
+          {/* === Mobile layout === */}
+          <div className={`contents lg:hidden ${isImageLeftMobile ? 'order-first' : 'order-last'}`}>
+            {isImageLeftMobile && (
+              <ImageBlock
+                image={image}
+                riveAnimation={riveAnimation}
+                stateMachines={stateMachines}
+                defaultStateMachine={defaultStateMachine}
+                interactionInputs={interactionInputs}
               />
-            </div>
-          </div>
-        </Theme>
-        {!isImageLeftMobile && (
-          <ImageBlock
-            image={image}
-            riveAnimation={riveAnimation}
-            stateMachines={stateMachines}
-            defaultStateMachine={defaultStateMachine}
-            interactionInputs={interactionInputs}
-          />
-        )}
-      </div>
-
-      {/* Desktop layout: Both ImageBlock and TextBlock inside Theme */}
-      <div className="hidden lg:block">
-        <Theme variant={theme || 'dark-shade'}>
-          <div className="flex flex-col">
-            <div className="grid grid-cols-2 gap вот-10 lg:pt-28">
-              {isImageLeftDesktop && (
-                <ImageBlock
-                  image={image}
-                  riveAnimation={riveAnimation}
-                  stateMachines={stateMachines}
-                  defaultStateMachine={defaultStateMachine}
-                  interactionInputs={interactionInputs}
-                />
-              )}
-              <TextBlock
-                tagLine={tagLine}
-                title={title}
-                body={body}
-                showButton={showButton}
-                buttonType={buttonType}
-                customButton={customButton}
-                allDoctors={allDoctors}
+            )}
+            <TextBlock
+              tagLine={tagLine}
+              title={title}
+              body={body}
+              showButton={showButton}
+              buttonType={buttonType}
+              customButton={customButton}
+              allDoctors={allDoctors}
+            />
+            {!isImageLeftMobile && (
+              <ImageBlock
+                image={image}
+                riveAnimation={riveAnimation}
+                stateMachines={stateMachines}
+                defaultStateMachine={defaultStateMachine}
+                interactionInputs={interactionInputs}
               />
-              {!isImageLeftDesktop && (
-                <ImageBlock
-                  image={image}
-                  riveAnimation={riveAnimation}
-                  stateMachines={stateMachines}
-                  defaultStateMachine={defaultStateMachine}
-                  interactionInputs={interactionInputs}
-                />
-              )}
-            </div>
+            )}
           </div>
-        </Theme>
+
+          {/* === Desktop layout === */}
+          <div className="hidden lg:contents">
+            {isImageLeftDesktop && (
+              <ImageBlock
+                image={image}
+                riveAnimation={riveAnimation}
+                stateMachines={stateMachines}
+                defaultStateMachine={defaultStateMachine}
+                interactionInputs={interactionInputs}
+              />
+            )}
+            <TextBlock
+              tagLine={tagLine}
+              title={title}
+              body={body}
+              showButton={showButton}
+              buttonType={buttonType}
+              customButton={customButton}
+              allDoctors={allDoctors}
+            />
+            {!isImageLeftDesktop && (
+              <ImageBlock
+                image={image}
+                riveAnimation={riveAnimation}
+                stateMachines={stateMachines}
+                defaultStateMachine={defaultStateMachine}
+                interactionInputs={interactionInputs}
+              />
+            )}
+          </div>
+        </div>
       </div>
-    </>
+    </Theme>
   );
 };
 
@@ -148,7 +140,7 @@ const ImageBlock: React.FC<{
 }> = ({ image, riveAnimation, stateMachines, defaultStateMachine, interactionInputs }) => {
   if (riveAnimation?.asset?.url && defaultStateMachine) {
     return (
-      <div className="flex flex-col justify-center w-full aspect-square">
+      <div className="flex flex-col justify-center w-full aspect-square m-0 p-0 max-sm:-mx-10 max-sm:w-[calc(100%+5rem)]">
         <RiveComponent
           src={riveAnimation.asset.url}
           stateMachine={defaultStateMachine}
@@ -163,7 +155,7 @@ const ImageBlock: React.FC<{
 
   if (image?.asset?._id) {
     return (
-      <div className="flex flex-col justify-center w-full max-sm:-mx-10 max-sm:w-[calc(100%+5rem)]">
+      <div className="flex flex-col justify-center w-full max-sm:-mx-10 max-sm:w-[calc(100%+5rem)] m-0 p-0">
         <Image
           className="rounded-xl animate-fade-up [animation-delay:500ms] opacity-0"
           src={urlFor(image).url()}

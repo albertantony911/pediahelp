@@ -33,19 +33,17 @@ const RiveWrapper = ({
     src,
     stateMachines: stateMachine ? [stateMachine] : undefined,
     autoplay,
+    isTouchScrollEnabled: true,
     onLoad: () => onLoad?.(rive!),
-    // onError is not a valid property for useRive options
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Store input controllers
   const inputs = interactionInputs.map((input) => ({
     ...input,
     controller: useStateMachineInput(rive, stateMachine, input.inputName),
   }));
 
-  // Handle interactions
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !rive) return;
@@ -60,7 +58,7 @@ const RiveWrapper = ({
         if (typeof controller.fire === 'function') {
           controller.fire();
         } else {
-          controller.value = true; // Fallback for triggers
+          controller.value = true;
         }
       } else if (inputType === 'number') {
         controller.value = value ?? input.value ?? 0;
@@ -70,7 +68,8 @@ const RiveWrapper = ({
     const listeners: Array<() => void> = [];
 
     inputs.forEach((input) => {
-      if (input.event === 'hover') {
+      // Apply hover events on hover-capable devices
+      if (input.event === 'hover' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
         const onMouseEnter = () => handleInteraction(input, true);
         const onMouseLeave = () => handleInteraction(input, false);
         container.addEventListener('mouseenter', onMouseEnter);
@@ -79,7 +78,18 @@ const RiveWrapper = ({
           () => container.removeEventListener('mouseenter', onMouseEnter),
           () => container.removeEventListener('mouseleave', onMouseLeave)
         );
-      } else if (input.event === 'click') {
+      } 
+      // Apply tap events on touch devices for hover inputs
+      else if (input.event === 'hover' && window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+        const onTouchEnd = () => {
+          handleInteraction(input, true); // Trigger the hover state on tap
+          // Optionally reset the state after a short delay to mimic hover-off
+          setTimeout(() => handleInteraction(input, false), 1000);
+        };
+        container.addEventListener('touchend', onTouchEnd);
+        listeners.push(() => container.removeEventListener('touchend', onTouchEnd));
+      } 
+      else if (input.event === 'click') {
         const onClick = () => handleInteraction(input);
         container.addEventListener('click', onClick);
         listeners.push(() => container.removeEventListener('click', onClick));
@@ -87,12 +97,11 @@ const RiveWrapper = ({
         const onScroll = () => {
           const rect = container.getBoundingClientRect();
           const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
-          handleInteraction(input, isInViewport ? 1 : 0); // Example: number input for scroll
+          handleInteraction(input, isInViewport ? 1 : 0);
         };
         window.addEventListener('scroll', onScroll);
         listeners.push(() => window.removeEventListener('scroll', onScroll));
       }
-      // Add support for custom events if needed
     });
 
     return () => listeners.forEach((cleanup) => cleanup());
