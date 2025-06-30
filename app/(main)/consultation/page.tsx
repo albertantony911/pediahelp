@@ -1,135 +1,82 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import algoliasearch from 'algoliasearch/lite';
 import { InstantSearch, Configure } from 'react-instantsearch';
-import { groq } from 'next-sanity';
-import { client } from '@/sanity/lib/client';
-
+import { useDoctors } from '@/components/providers/DoctorsProvider';
 import SpecialtyFilter from '@/components/blocks/doctor/SpecialtyFilter';
 import DoctorList from '@/components/blocks/doctor/DoctorList';
 import DoctorSearchAlgolia from '@/components/blocks/doctor/DoctorSearchAlgolia';
-
 import { Title, Subtitle, Content } from '@/components/ui/theme/typography';
 import { Theme } from '@/components/ui/theme/Theme';
 import Logo from '@/components/logo';
-
-import type { Doctor, Review } from '@/types';
+import type { Doctor } from '@/types';
 
 const searchClient = algoliasearch(
   process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
   process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY!
 );
 
-async function getDoctors(): Promise<Doctor[]> {
-  try {
-    const doctors = await client.fetch<Doctor[]>(
-      groq`*[_type == "doctor"] | order(orderRank asc) {
-        _id,
-        name,
-        specialty,
-        experienceYears,
-        photo { asset->{ _id, url } },
-        slug,
-        languages,
-        appointmentFee,
-        nextAvailableSlot,
-        expertise,
-        searchKeywords,
-        whatsappNumber,
-        qualifications {
-          education,
-          achievements,
-          publications,
-          others
-        }
-      }`
-    );
-
-    const doctorsWithReviews = await Promise.all(
-      doctors.map(async (doctor) => {
-        const reviews = await client.fetch<Review[]>(
-          groq`*[_type == "review" && doctor._ref == $id && approved == true] | order(submittedAt desc) {
-            _id, name, rating, comment, submittedAt
-          }`,
-          { id: doctor._id }
-        );
-        return { ...doctor, reviews };
-      })
-    );
-
-    return doctorsWithReviews;
-  } catch (error) {
-    console.error('Error fetching doctors:', error);
-    return [];
-  }
-}
-
 export default function ConsultationPage() {
-  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const allDoctors = useDoctors(); // Use shared doctors from DoctorsProvider
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchHits, setSearchHits] = useState<{ objectID: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Pre-fetch initial Algolia results like DoctorSearchDrawer
   useEffect(() => {
-    async function loadDoctors() {
-      try {
-        const data = await getDoctors();
-        setAllDoctors(data);
-      } catch (err) {
-        setError('Failed to load doctors. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadDoctors();
+    const index = searchClient.initIndex('doctors_index');
+    index
+      .search('', { hitsPerPage: 12 })
+      .then(({ hits }) => {
+        setSearchHits(hits as { objectID: string }[]);
+        setIsInitialLoad(false);
+      })
+      .catch((err) => {
+        console.error('Failed to pre-fetch Algolia results:', err);
+      });
   }, []);
 
-  const filteredBySpecialty = useMemo(() => {
-    if (!selectedSpecialty) return undefined;
-    return allDoctors.filter(
-      (doc) => doc.specialty.toLowerCase() === selectedSpecialty.toLowerCase()
-    );
-  }, [allDoctors, selectedSpecialty]);
+  // Scroll to top on new search results
+  useEffect(() => {
+    if (!isInitialLoad && scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [searchHits, isInitialLoad]);
 
+  // Handle search filter changes
   const handleFilterChange = useCallback((hits: { objectID: string }[]) => {
     setSearchHits(hits);
+    setIsInitialLoad(hits.length === 0); // Reset to initial load when search is cleared
   }, []);
 
+  // Compute displayed doctors
   const displayedDoctors = useMemo(() => {
-    if (searchHits.length === 0) return filteredBySpecialty || allDoctors;
-    return allDoctors.filter((doc) =>
-      searchHits.some((hit) => hit.objectID === doc.slug.current)
-    );
-  }, [searchHits, filteredBySpecialty, allDoctors]);
+    if (!allDoctors || allDoctors.length === 0) return []; // Handle loading/empty state
+    if (isInitialLoad || (searchHits.length === 0 && !selectedSpecialty)) {
+      return allDoctors; // Show all doctors by default
+    }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-shade text-gray-300 py-8 text-center">
-        <p className="text-gray-600">Loading doctors...</p>
-      </div>
-    );
-  }
+    let filtered = allDoctors;
+    if (selectedSpecialty) {
+      filtered = allDoctors.filter((doc) =>
+        doc.specialty?.toLowerCase() === selectedSpecialty.toLowerCase()
+      );
+    }
 
-  if (error || !allDoctors.length) {
-    return (
-      <div className="min-h-screen bg-dark-shade text-gray-300 py-8 text-center max-w-lg mx-auto">
-        <p className="text-red-400">{error || 'Failed to load doctors. Please try again later.'}</p>
-      </div>
-    );
-  }
+    if (searchHits.length > 0) {
+      const idSet = new Set(searchHits.map((hit) => hit.objectID));
+      filtered = filtered.filter((doc) => doc.slug?.current && idSet.has(doc.slug.current));
+    }
+
+    return filtered;
+  }, [allDoctors, searchHits, selectedSpecialty, isInitialLoad]);
 
   return (
     <>
-      
-
-      {/* Hero section */}
       <Theme variant="dark-shade">
-        {/* Mobile Logo */}
-        <div >
-          <Logo />
-        </div>
+        <div><Logo /></div>
         <div className="pt-10 lg:pt-48 text-gray-300 text-left sm:text-center max-w-3xl mx-auto">
           <Subtitle>Book an Appointment</Subtitle>
           <Title>Find the right pediatric expert for your child</Title>
@@ -139,29 +86,29 @@ export default function ConsultationPage() {
         </div>
       </Theme>
 
-      {/* Search + Filters + Doctors */}
       <div className="bg-dark-shade text-gray-300 px-4 pb-5 pt-5">
         <InstantSearch searchClient={searchClient} indexName="doctors_index">
           <Configure
-            filters={selectedSpecialty ? `keywords:${selectedSpecialty.toLowerCase()}` : ''}
             hitsPerPage={12}
+            filters={selectedSpecialty ? `specialty:${selectedSpecialty.toLowerCase()}` : ''}
           />
 
           <div className="sticky top-0 z-20 pt-3 pb-[1px] sm:pt-5 -mx-4 bg-dark-shade px-4">
-            <DoctorSearchAlgolia onFilterChange={handleFilterChange} />
+            <DoctorSearchAlgolia onFilterChange={handleFilterChange} selectedSpecialty={selectedSpecialty} />
           </div>
 
-          <SpecialtyFilter />
+          <SpecialtyFilter onChange={setSelectedSpecialty} />
 
-          <DoctorList
-            allDoctors={allDoctors}
-            filteredDoctors={displayedDoctors === allDoctors ? undefined : displayedDoctors}
-            loading={loading}
-          />
+          <div ref={scrollRef}>
+            <DoctorList
+              allDoctors={allDoctors}
+              filteredDoctors={displayedDoctors}
+              loading={!allDoctors || allDoctors.length === 0} // Use loading state based on allDoctors
+            />
+          </div>
         </InstantSearch>
       </div>
 
-      {/* Wave Divider */}
       <div className="w-screen h-[100px] relative">
         <img
           src="/waves/dark-to-white-desktop-1.svg"

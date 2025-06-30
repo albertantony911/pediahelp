@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchBox, useInstantSearch } from 'react-instantsearch';
 import { debounce } from 'lodash';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,20 @@ interface Doctor {
 
 interface Props {
   onFilterChange: (filtered: { objectID: string }[]) => void;
+  selectedSpecialty: string | null;
 }
 
-export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
+const specialtyToAlgoliaMap: Record<string, string> = {
+  'pediatric nephrology': 'nephrology',
+  'pediatric gastroenterology': 'gastroenterology',
+  'neonatology': 'neonatology',
+  'pediatric neurology': 'neurology',
+  'lactation consultant': 'lactation',
+  'pediatric respiratory medicine and sleep medicine': 'respiratory_and_sleep',
+  'pediatric endocrinology': 'endocrinology',
+};
+
+export default function DoctorSearchAlgolia({ onFilterChange, selectedSpecialty }: Props) {
   const { refine } = useSearchBox();
   const { results } = useInstantSearch();
 
@@ -28,135 +39,135 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [showResetNotice, setShowResetNotice] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const ulRef = useRef<HTMLUListElement>(null);
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('recentDoctorSearches');
-    if (stored) {
-      setRecentSearches(JSON.parse(stored).slice(0, 4));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (results) {
-      setIsLoading(false);
-      const hits = results.hits as Doctor[];
-      onFilterChange(hits.map(({ objectID }) => ({ objectID })));
-    }
-  }, [results, onFilterChange]);
-
   const debouncedRefine = useRef(
     debounce((value: string) => {
       refine(value);
-      setIsLoading(false);
-    }, 300)
+      setIsSearching(false);
+    }, 200)
   ).current;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    return () => {
+      debouncedRefine.cancel();
+    };
+  }, [debouncedRefine]);
+
+  useEffect(() => {
+    if (selectedSpecialty) {
+      const algoliaSpecialty = specialtyToAlgoliaMap[selectedSpecialty.toLowerCase()] || selectedSpecialty.toLowerCase();
+      setInputValue(algoliaSpecialty);
+      setShowSuggestions(false);
+      setIsSearching(true);
+      debouncedRefine(algoliaSpecialty);
+    } else if (!inputValue.trim()) {
+      refine('');
+      setIsSearching(false);
+      onFilterChange([]);
+    }
+  }, [selectedSpecialty, refine, onFilterChange]);
+
+  useEffect(() => {
+    if (results?.hits && Array.isArray(results.hits)) {
+      const hits = results.hits as Doctor[];
+      onFilterChange(hits.map(hit => ({ objectID: hit.objectID })));
+    }
+  }, [results, onFilterChange]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('recentDoctorSearches');
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse recent searches:', e);
+      }
+    }
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    setActiveIndex(-1);
     setShowSuggestions(!!value.trim());
+    setActiveIndex(-1);
 
     if (value.trim() === '') {
       refine('');
-      setIsLoading(false);
-      return;
+      setIsSearching(false);
+      onFilterChange([]);
+    } else {
+      setIsSearching(true);
+      debouncedRefine(value);
     }
-
-    setIsLoading(true);
-    debouncedRefine(value);
-  };
-
-  const handleSearch = () => {
-    const cleaned = inputValue.trim();
-    if (!cleaned) return;
-    refine(cleaned);
-    updateRecentSearches(cleaned);
-    setShowSuggestions(false);
-    scrollToResults();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hits = (results?.hits as Doctor[]) || [];
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setActiveIndex((prev) => Math.min(prev + 1, hits.length - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setActiveIndex((prev) => Math.max(prev - 1, 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (activeIndex >= 0 && hits[activeIndex]) {
-          selectSuggestion(hits[activeIndex]);
-        } else {
-          handleSearch();
-        }
-        break;
-      case 'Escape':
-        refine('');
-        setInputValue('');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.min(prev + 1, hits.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && hits[activeIndex]) {
+        refine(hits[activeIndex].name);
+        setInputValue(hits[activeIndex].name);
         setShowSuggestions(false);
-        inputRef.current?.blur();
-        break;
+        updateRecentSearches(hits[activeIndex].name);
+        onFilterChange([{ objectID: hits[activeIndex].objectID }]);
+      } else {
+        refine(inputValue);
+        updateRecentSearches(inputValue);
+        setShowSuggestions(false);
+        onFilterChange([]);
+      }
+    } else if (e.key === 'Escape') {
+      refine('');
+      setInputValue('');
+      setShowSuggestions(false);
+      inputRef.current?.blur();
     }
   };
 
   const updateRecentSearches = (term: string) => {
     const cleaned = term.trim();
     if (!cleaned) return;
-    const updated = [cleaned, ...recentSearches.filter((s) => s !== cleaned)].slice(0, 4);
+    const updated = [cleaned, ...recentSearches.filter(s => s !== cleaned)].slice(0, 4);
     setRecentSearches(updated);
     localStorage.setItem('recentDoctorSearches', JSON.stringify(updated));
   };
 
   const clearRecentSearches = () => {
-    localStorage.removeItem('recentDoctorSearches');
     setRecentSearches([]);
+    localStorage.removeItem('recentDoctorSearches');
   };
 
-  const selectSuggestion = (doctor: Doctor) => {
-    refine(doctor.name);
-    setInputValue(doctor.name);
-    updateRecentSearches(doctor.name);
+  const handleClear = () => {
+    refine('');
+    setInputValue('');
     setShowSuggestions(false);
-    scrollToResults();
+    setIsSearching(false);
+    onFilterChange([]);
   };
 
   const selectRecentSearch = (term: string) => {
-    refine(term);
+    setIsSearching(true);
     setInputValue(term);
     updateRecentSearches(term);
-    setShowSuggestions(true);
-    scrollToResults();
-  };
-
-  const handleBlur = () => {
+    setShowSuggestions(false);
     setTimeout(() => {
-      setIsFocused(false);
-      setShowSuggestions(false);
-      const hasNoHits = results && (results.hits as Doctor[]).length === 0;
-      if (inputValue.trim() && hasNoHits) {
-        refine('');
-        setShowResetNotice(true);
-        setTimeout(() => setShowResetNotice(false), 2500);
+      refine(term);
+      if (window.innerWidth < 768 && scrollAnchorRef.current) {
+        scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 200);
-  };
-
-  const scrollToResults = () => {
-    if (window.innerWidth < 768 && scrollAnchorRef.current) {
-      scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    }, 50);
   };
 
   const renderSuggestionItem = (doctor: Doctor, index: number) => {
@@ -167,41 +178,51 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -5 }}
-        onClick={() => selectSuggestion(doctor)}
+        onClick={() => {
+          refine(doctor.name);
+          setInputValue(doctor.name);
+          setShowSuggestions(false);
+          updateRecentSearches(doctor.name);
+          onFilterChange([{ objectID: doctor.objectID }]);
+        }}
         onMouseEnter={() => setActiveIndex(index)}
-        className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
-          isActive ? 'bg-zinc-100' : 'hover:bg-zinc-100'
-        }`}
+        className={cn(
+          'p-2 rounded-md cursor-pointer flex items-center gap-3',
+          isActive ? 'bg-gray-100 dark:bg-zinc-800' : 'hover:bg-gray-100 dark:hover:bg-zinc-800'
+        )}
         role="option"
         aria-selected={isActive}
       >
-        <div className="bg-zinc-200 w-[40px] aspect-[2/3] rounded-md overflow-hidden mr-3 shrink-0">
+        <div className="w-[36px] aspect-[3/4] h-10 rounded-md bg-zinc-200 overflow-hidden shrink-0 border border-zinc-300 dark:border-zinc-700">
           {doctor.photoUrl ? (
             <img src={doctor.photoUrl} alt={doctor.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xl font-semibold text-zinc-800">{doctor.name.charAt(0)}</span>
+            <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+              <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">
+                {doctor.name.charAt(0)}
+              </span>
             </div>
           )}
         </div>
-        <div className="truncate">
-          <div className="font-medium truncate text-zinc-800 max-w-[200px]">{doctor.name}</div>
-          <div className="text-sm text-zinc-500 truncate max-w-[200px]">
-            {doctor.specialty || '—'}
-          </div>
+        <div className="flex flex-col overflow-hidden text-sm">
+          <div className="truncate font-medium max-w-[160px]">{doctor.name}</div>
+          {doctor.specialty && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{doctor.specialty}</div>
+          )}
         </div>
       </motion.li>
     );
   };
 
   return (
-    <div className="relative max-w-sm mx-auto px-4   sm:px-0 ">
+    <div className="relative max-w-sm mx-auto px-4 sm:px-0">
       <div className="relative">
-        <div className={`transition-all duration-200 ${isFocused ? 'my-2' : ''}`}>
+        <div className={cn('transition-all duration-200', { 'my-2': isFocused })}>
           <div
-            className={`flex items-center relative bg-white rounded-full border border-zinc-200 shadow-sm transition-all duration-300 ${
-              isLoading ? 'animate-glow border-[var(--mid-shade)] ring-2 ring-[var(--mid-shade)]' : ''
-            }`}
+            className={cn(
+              'flex items-center relative bg-white rounded-full border border-zinc-200 shadow-sm transition-all duration-300',
+              { 'animate-glow border-[var(--mid-shade)] ring-2 ring-[var(--mid-shade)]': isSearching }
+            )}
           >
             {isFocused && (
               <button
@@ -211,18 +232,18 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
                   setShowSuggestions(false);
                   inputRef.current?.blur();
                 }}
+                aria-label="Back"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
 
-            
             <Input
               ref={inputRef}
               type="text"
               placeholder="Search by name, specialty, or condition"
               value={inputValue}
-              onChange={handleChange}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={() => {
                 setIsFocused(true);
@@ -232,20 +253,23 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
                 setIsFocused(true);
                 setShowSuggestions(!!inputValue.trim() || recentSearches.length > 0);
               }}
-              onBlur={handleBlur}
-              aria-autocomplete="list"
-              aria-controls="suggestions-list"
-              aria-expanded={showSuggestions}
+              onBlur={() => {
+                setTimeout(() => {
+                  setIsFocused(false);
+                  setShowSuggestions(false);
+                }, 200);
+              }}
               className={cn(
                 'w-full text-zinc-800 placeholder-zinc-400 rounded-full',
                 'placeholder:text-sm md:placeholder:text-base',
                 'py-5 transition-all focus:ring-[var(--mid-shade)] focus:ring-2 focus:border-[var(--mid-shade)]',
-                isFocused ? 'pl-12 pr-12 shadow-md' : 'pl-12 pr-4 shadow-sm',
-                isLoading && 'opacity-70'
+                { 'pl-12 pr-12 shadow-md': isFocused, 'pl-12 pr-4 shadow-sm': !isFocused },
+                { 'opacity-70': isSearching }
               )}
+              aria-autocomplete="list"
+              aria-controls="suggestions-list"
+              aria-expanded={showSuggestions}
             />
-
-            
 
             {!isFocused && (
               <div className="absolute left-3 text-zinc-400">
@@ -253,18 +277,14 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
               </div>
             )}
 
-            {isLoading ? (
+            {isSearching ? (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 animate-spin">
                 <Loader2 className="w-5 h-5" />
               </div>
             ) : (
               inputValue.trim() && (
                 <button
-                  onClick={() => {
-                    refine('');
-                    setInputValue('');
-                    setShowSuggestions(false);
-                  }}
+                  onClick={handleClear}
                   className="absolute right-3 text-zinc-400 hover:text-zinc-600 p-2"
                   aria-label="Clear search"
                 >
@@ -275,62 +295,65 @@ export default function DoctorSearchAlgolia({ onFilterChange }: Props) {
           </div>
         </div>
 
-        {showSuggestions && inputValue.trim() && (
-          <div className="w-full mt-3 rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden">
-            <ul ref={ulRef} id="suggestions-list" role="listbox" className="p-2">
-              <AnimatePresence mode="popLayout">
-                {(results?.hits as Doctor[]).length === 0 ? (
+        <AnimatePresence mode="popLayout">
+          {showSuggestions && inputValue.trim() && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-2 text-black dark:text-white border border-gray-200 dark:border-zinc-700"
+            >
+              <ul ref={ulRef} id="suggestions-list" role="listbox" className="p-1">
+                {(results?.hits as Doctor[])?.length === 0 ? (
                   <motion.li
                     key="no-doctors"
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
-                    className="py-4 text-center text-sm text-zinc-500"
+                    className="py-3 text-center text-gray-500 dark:text-gray-400 text-sm"
                   >
                     No matching doctors found.
                   </motion.li>
                 ) : (
-                  (results?.hits as Doctor[]).slice(0, 5).map(renderSuggestionItem)
+                  (results?.hits as Doctor[])?.slice(0, 6).map(renderSuggestionItem)
                 )}
-              </AnimatePresence>
-            </ul>
-          </div>
-        )}
+              </ul>
+            </motion.div>
+          )}
 
-        {isFocused && !inputValue.trim() && recentSearches.length > 0 && (
-          <div className="w-full mt-3 rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 text-sm text-zinc-500 border-b border-zinc-200">
-              <span>Recent Searches</span>
-              <button
-                onClick={clearRecentSearches}
-                className="text-xs text-zinc-500 hover:text-zinc-700 transition"
-              >
-                Clear all
-              </button>
-            </div>
-            <ul ref={ulRef} id="recent-searches-list" role="listbox" className="p-2">
-              {recentSearches.map((term, i) => (
-                <li
-                  key={`recent-${i}`}
-                  onClick={() => selectRecentSearch(term)}
-                  className="px-3 py-2 text-sm text-zinc-700 rounded-md cursor-pointer hover:bg-zinc-100 transition-colors"
-                  role="option"
+          {isFocused && !inputValue.trim() && recentSearches.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-md mt-2 text-black dark:text-white border border-gray-200 dark:border-zinc-700"
+            >
+              <div className="flex items-center justify-between px-3 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-zinc-700">
+                <span>Recent Searches</span>
+                <button
+                  onClick={clearRecentSearches}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition"
                 >
-                  {term}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {showResetNotice && (
-          <div className="mt-2 text-center text-sm text-zinc-400 italic animate-fade-slide-in">
-            Search reset due to no matches.
-          </div>
-        )}
+                  Clear all
+                </button>
+              </div>
+              <ul ref={ulRef} id="recent-searches-list" role="listbox" className="p-1">
+                {recentSearches.map((term, i) => (
+                  <li
+                    key={`recent-${i}`}
+                    onClick={() => selectRecentSearch(term)}
+                    className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    role="option"
+                  >
+                    {term}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Anchor for mobile scroll */}
       <div ref={scrollAnchorRef} className="mt-5" />
     </div>
   );

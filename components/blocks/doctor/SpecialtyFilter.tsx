@@ -14,8 +14,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
-import { useSearchBox } from 'react-instantsearch';
 import { motion, AnimatePresence } from 'framer-motion';
+
+interface Props {
+  onChange: (specialty: string | null) => void;
+}
 
 const specialties: { name: string; label: string; icon: LucideIcon; color: string }[] = [
   { name: 'Pediatric Nephrology', label: 'Nephrology', icon: Tag, color: '#3B82F6' },
@@ -32,14 +35,12 @@ const specialties: { name: string; label: string; icon: LucideIcon; color: strin
   { name: 'Pediatric Endocrinology', label: 'Endocrinology', icon: FlaskConical, color: '#EF4444' },
 ];
 
-export default function SpecialtyFilter() {
-  const { refine } = useSearchBox();
+export default function SpecialtyFilter({ onChange }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [clicked, setClicked] = useState<string | null>(null);
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-
   const alwaysVisible = isDesktop ? specialties : specialties.slice(0, 3);
   const expandable = isDesktop ? [] : specialties.slice(3);
 
@@ -48,7 +49,7 @@ export default function SpecialtyFilter() {
   const handleSelect = (name: string | null) => {
     setClicked(name ?? 'reset');
     setSelected(name);
-    refine(name ?? '');
+    onChange(name);
     setTimeout(() => setClicked(null), 300);
   };
 
@@ -66,7 +67,7 @@ export default function SpecialtyFilter() {
       <motion.button
         key={name}
         onClick={() => handleSelect(name)}
-        className="group flex flex-col items-center justify-center mt-1 sm:mt-5 snap-center "
+        className="group flex flex-col items-center justify-center mt-1 sm:mt-5 snap-center"
         aria-label={`Filter by ${label}`}
         aria-pressed={isActive}
         initial={{ opacity: 0, y: 12 }}
@@ -76,7 +77,7 @@ export default function SpecialtyFilter() {
       >
         <div
           className={clsx(
-            'w-14 h-14 rounded-full  flex items-center justify-center transition-all duration-300 shadow-sm group-hover:scale-105 group-focus:ring-2 group-focus:ring-[var(--mid-shade)]',
+            'w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm group-hover:scale-105 group-focus:ring-2 group-focus:ring-[var(--mid-shade)]',
             isActive
               ? 'bg-[var(--mid-shade)] text-white shadow-md scale-105'
               : 'bg-transparent text-white/70 ring-1 ring-inset ring-[var(--mid-shade)] hover:bg-[var(--mid-shade)]/10 active:scale-95',
@@ -94,7 +95,7 @@ export default function SpecialtyFilter() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative ">
+    <div className="w-full max-w-3xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative">
       {/* Always-visible grid */}
       <div
         className={clsx(
@@ -102,7 +103,7 @@ export default function SpecialtyFilter() {
           'scroll-smooth snap-x snap-mandatory md:snap-none'
         )}
       >
-        {/* Reset button */}
+        {/* Reset */}
         <motion.button
           key="reset"
           onClick={() => handleSelect(null)}
@@ -130,7 +131,7 @@ export default function SpecialtyFilter() {
         )}
       </div>
 
-      {/* Expandable section (mobile only) */}
+      {/* Expandable */}
       <AnimatePresence initial={false}>
         {expanded && !isDesktop && (
           <motion.div
@@ -142,11 +143,7 @@ export default function SpecialtyFilter() {
             transition={{ duration: 0.5, ease: [0.33, 0, 0, 1] }}
             className="overflow-hidden"
           >
-            <div
-              className={clsx(
-                'grid grid-cols-4 px-4 sm:grid-cols-5 md:grid-cols-8 gap-y-4 gap-x-3 md:gap-x-2 mt-2'
-              )}
-            >
+            <div className="grid grid-cols-4 px-4 sm:grid-cols-5 md:grid-cols-8 gap-y-4 gap-x-3 md:gap-x-2 mt-2">
               {expandable.map(({ name, label, icon, color }, index) =>
                 renderButton(name, label, icon, color, index + 3)
               )}
@@ -155,7 +152,7 @@ export default function SpecialtyFilter() {
         )}
       </AnimatePresence>
 
-      {/* Mobile toggle with chevron rotation */}
+      {/* Toggle button */}
       {!isDesktop && (
         <div className="flex justify-center mt-6">
           <button
