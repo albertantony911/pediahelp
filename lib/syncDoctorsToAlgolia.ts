@@ -30,7 +30,7 @@ export async function syncSingleDoctorToAlgolia(doctor: any) {
     slug,
     photoUrl: doctor.photo?.asset?.url || '',
     photoId: doctor.photo?.asset?._id || '',
-    specialty: doctor.specialty || '',
+    specialty: doctor.specialty ? doctor.specialty.toLowerCase() : '', // Normalize to lowercase
     designation: doctor.designation || '',
     location: doctor.location || '',
     languages: doctor.languages || [],
@@ -135,7 +135,7 @@ export async function fullSyncDoctorsToAlgolia() {
       slug,
       photoUrl: doc.photo?.asset?.url || '',
       photoId: doc.photo?.asset?._id || '',
-      specialty: doc.specialty || '',
+      specialty: doc.specialty ? doc.specialty.toLowerCase() : '', // Normalize to lowercase
       designation: doc.designation || '',
       location: doc.location || '',
       languages: doc.languages || [],

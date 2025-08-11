@@ -12,11 +12,12 @@ import {
   XCircle,
   LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
+  selected: string | null;
   onChange: (specialty: string | null) => void;
 }
 
@@ -35,20 +36,18 @@ const specialties: { name: string; label: string; icon: LucideIcon; color: strin
   { name: 'Pediatric Endocrinology', label: 'Endocrinology', icon: FlaskConical, color: '#EF4444' },
 ];
 
-export default function SpecialtyFilter({ onChange }: Props) {
+export default function SpecialtyFilter({ selected, onChange }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const [clicked, setClicked] = useState<string | null>(null);
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
   const alwaysVisible = isDesktop ? specialties : specialties.slice(0, 3);
   const expandable = isDesktop ? [] : specialties.slice(3);
 
-  const handleToggle = () => setExpanded((prev) => !prev);
+  const handleToggle = () => setExpanded(prev => !prev);
 
   const handleSelect = (name: string | null) => {
     setClicked(name ?? 'reset');
-    setSelected(name);
     onChange(name);
     setTimeout(() => setClicked(null), 300);
   };
@@ -96,14 +95,12 @@ export default function SpecialtyFilter({ onChange }: Props) {
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-2 sm:mt-0 mb-10 sm:mb-14 z-10 relative">
-      {/* Always-visible grid */}
       <div
         className={clsx(
           'grid grid-cols-4 px-5 sm:grid-cols-5 md:grid-cols-8 gap-y-4 gap-x-3 md:gap-x-2',
           'scroll-smooth snap-x snap-mandatory md:snap-none'
         )}
       >
-        {/* Reset */}
         <motion.button
           key="reset"
           onClick={() => handleSelect(null)}
@@ -131,7 +128,6 @@ export default function SpecialtyFilter({ onChange }: Props) {
         )}
       </div>
 
-      {/* Expandable */}
       <AnimatePresence initial={false}>
         {expanded && !isDesktop && (
           <motion.div
@@ -152,7 +148,6 @@ export default function SpecialtyFilter({ onChange }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Toggle button */}
       {!isDesktop && (
         <div className="flex justify-center mt-6">
           <button

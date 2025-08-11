@@ -18,60 +18,71 @@ const searchClient = algoliasearch(
 );
 
 export default function ConsultationPage() {
-  const allDoctors = useDoctors(); // Use shared doctors from DoctorsProvider
+  const allDoctors = useDoctors();
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchHits, setSearchHits] = useState<{ objectID: string }[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasActiveSearch, setHasActiveSearch] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Pre-fetch initial Algolia results like DoctorSearchDrawer
   useEffect(() => {
     const index = searchClient.initIndex('doctors_index');
-    index
-      .search('', { hitsPerPage: 12 })
+    index.search('', { hitsPerPage: 12 })
       .then(({ hits }) => {
         setSearchHits(hits as { objectID: string }[]);
         setIsInitialLoad(false);
       })
       .catch((err) => {
         console.error('Failed to pre-fetch Algolia results:', err);
+        setIsInitialLoad(false);
       });
   }, []);
 
-  // Scroll to top on new search results
   useEffect(() => {
     if (!isInitialLoad && scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [searchHits, isInitialLoad]);
 
-  // Handle search filter changes
   const handleFilterChange = useCallback((hits: { objectID: string }[]) => {
     setSearchHits(hits);
-    setIsInitialLoad(hits.length === 0); // Reset to initial load when search is cleared
+    const hasSearch = hits.length > 0;
+    setHasActiveSearch(hasSearch);
+
+    if (hits.length === 0) {
+      setIsInitialLoad(true);
+      const index = searchClient.initIndex('doctors_index');
+      index.search('', { hitsPerPage: 12 })
+        .then(({ hits: initialHits }) => {
+          setSearchHits(initialHits as { objectID: string }[]);
+        })
+        .catch((err) => {
+          console.error('Failed to re-fetch initial results:', err);
+        });
+    } else {
+      setIsInitialLoad(false);
+    }
   }, []);
 
-  // Compute displayed doctors
   const displayedDoctors = useMemo(() => {
-    if (!allDoctors || allDoctors.length === 0) return []; // Handle loading/empty state
-    if (isInitialLoad || (searchHits.length === 0 && !selectedSpecialty)) {
-      return allDoctors; // Show all doctors by default
-    }
+    if (!allDoctors || allDoctors.length === 0) return [];
+    if (!hasActiveSearch && !selectedSpecialty) return allDoctors;
 
     let filtered = allDoctors;
+
     if (selectedSpecialty) {
       filtered = allDoctors.filter((doc) =>
         doc.specialty?.toLowerCase() === selectedSpecialty.toLowerCase()
       );
     }
 
-    if (searchHits.length > 0) {
+    if (hasActiveSearch && searchHits.length > 0) {
       const idSet = new Set(searchHits.map((hit) => hit.objectID));
       filtered = filtered.filter((doc) => doc.slug?.current && idSet.has(doc.slug.current));
     }
 
     return filtered;
-  }, [allDoctors, searchHits, selectedSpecialty, isInitialLoad]);
+  }, [allDoctors, searchHits, selectedSpecialty, hasActiveSearch]);
 
   return (
     <>
@@ -81,7 +92,7 @@ export default function ConsultationPage() {
           <Subtitle>Book an Appointment</Subtitle>
           <Title>Find the right pediatric expert for your child</Title>
           <Content>
-            Connect with trusted pediatric specialists who care about your child’s health and well-being.
+            Connect with trusted pediatric specialists who care about your child's health and well-being.
           </Content>
         </div>
       </Theme>
@@ -97,13 +108,13 @@ export default function ConsultationPage() {
             <DoctorSearchAlgolia onFilterChange={handleFilterChange} selectedSpecialty={selectedSpecialty} />
           </div>
 
-          <SpecialtyFilter onChange={setSelectedSpecialty} />
+          <SpecialtyFilter selected={selectedSpecialty} onChange={setSelectedSpecialty} />
 
           <div ref={scrollRef}>
             <DoctorList
               allDoctors={allDoctors}
               filteredDoctors={displayedDoctors}
-              loading={!allDoctors || allDoctors.length === 0} // Use loading state based on allDoctors
+              loading={!allDoctors || allDoctors.length === 0}
             />
           </div>
         </InstantSearch>

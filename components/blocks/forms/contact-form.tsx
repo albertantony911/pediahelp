@@ -54,7 +54,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [recaptchaToken, setRecaptchaToken] = useState<string>('');
 
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -95,36 +94,28 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         }
       }
   
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
-      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+      // Use standard reCAPTCHA v2 (not Enterprise) to match Firebase Auth
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY || '6Lc3hk4rAAAAAJaeAMZIPpXK_eAVu9vJjLddB0TU';
   
       if (!siteKey) {
         console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
         return;
       }
   
-      if (!projectId) {
-        console.error('Missing Firebase project ID. Please set NEXT_PUBLIC_FIREBASE_PROJECT_ID in environment variables.');
-        return;
-      }
-  
       let verifier: RecaptchaVerifier;
       try {
-        console.log('Initializing RecaptchaVerifier with siteKey:', siteKey, 'and projectId:', projectId);
+        console.log('Initializing RecaptchaVerifier with siteKey:', siteKey);
+        // Remove Enterprise configuration - use standard reCAPTCHA v2
         verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (token: string) => {
-            console.log('Invisible reCAPTCHA passed, token:', token);
+            console.log('reCAPTCHA v2 token received:', token.substring(0, 50) + '...');
+            setRecaptchaToken(token);
           },
           'expired-callback': () => {
             console.log('reCAPTCHA expired');
             toast.error('reCAPTCHA expired, please try again');
-          },
-          // Add reCAPTCHA Enterprise configuration
-          recaptchaConfig: {
-            provider: 'gcp_recaptcha_enterprise',
-            recaptchaEnterpriseSiteKey: siteKey,
-            recaptchaEnterpriseProjectId: projectId,
+            setRecaptchaToken('');
           },
         });
       } catch (error) {
@@ -137,8 +128,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
   
       window.recaptchaVerifier = verifier;
-  
-      console.log('RecaptchaVerifier initialized for Enterprise v2');
+      console.log('RecaptchaVerifier initialized for standard v2');
     };
   
     initializeRecaptcha();
@@ -199,45 +189,70 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       const verifier = window.recaptchaVerifier;
       if (!verifier) throw new Error('reCAPTCHA not initialized');
   
-      // ✅ Execute reCAPTCHA and store token
-      const token = await verifier.verify();
-      setRecaptchaToken(token);
-      console.log('Enterprise reCAPTCHA token:', token);
-  
+      console.log('Attempting to send OTP to:', `+91${phone}`);
       const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+      
       setConfirmationResult(result);
       setOtpSent(true);
       setStep('otp');
       setTimer(30);
       setValue('otp', '');
       toast.success(`OTP sent to +91${phone}`);
+      console.log('OTP sent successfully');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error('Failed to send OTP', {
+      let errorMessage = 'Failed to send OTP';
+      
+      // Handle specific Firebase Auth errors
+      if (error.code === 'auth/captcha-check-failed') {
+        errorMessage = 'reCAPTCHA verification failed. Please try again.';
+      } else if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please try again later.';
+      }
+      
+      toast.error(errorMessage, {
         description: error.message || 'An unexpected error occurred during phone authentication',
       });
+      
+      // Reset reCAPTCHA on failure
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier.render();
+        } catch (e) {
+          console.error('Failed to reset reCAPTCHA:', e);
+        }
+      }
     } finally {
       setIsSendingOtp(false);
     }
   };
-  
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!confirmationResult || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
       return;
     }
+    
     setIsVerifyingOtp(true);
     try {
+      console.log('Verifying OTP:', otpCode);
       const otpResult = await confirmationResult.confirm(otpCode);
+      
       if (!otpResult.user) {
         throw new Error('Phone number verification failed');
       }
+      
+      console.log('OTP verified successfully for user:', otpResult.user.uid);
       setIsVerified(true);
       toast.success('Phone number verified!');
   
+      // Submit form after successful OTP verification
       setIsSubmitting(true);
       const formData = form.getValues();
+      
       const payload = {
         name: formData.name,
         email: formData.email,
@@ -245,10 +260,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         message: formData.message,
         subject: `Contact Form Submission from ${pageSource}`,
         otpVerified: true,
-        recaptchaToken,                  
-        recaptchaAction: 'contact_submit', 
+        // Don't send reCAPTCHA token for Enterprise verification since we're using standard v2
+        userUid: otpResult.user.uid, // Add user UID as verification proof
       };
+      
       console.log('Submitting payload:', payload);
+      
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -269,9 +286,18 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   
       setStep('success');
       toast.success('Message sent successfully!');
+      console.log('Form submitted successfully');
     } catch (error: any) {
       console.error('Error in handleVerifyAndSubmit:', error);
-      toast.error('Failed to verify or submit', {
+      
+      let errorMessage = 'Failed to verify or submit';
+      if (error.code === 'auth/invalid-verification-code') {
+        errorMessage = 'Invalid OTP code. Please check and try again.';
+      } else if (error.code === 'auth/code-expired') {
+        errorMessage = 'OTP code has expired. Please request a new one.';
+      }
+      
+      toast.error(errorMessage, {
         description: error.message || 'An unexpected error occurred',
       });
     } finally {
@@ -287,6 +313,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     setStep('form');
     setIsVerified(false);
     setTimer(30);
+    setRecaptchaToken('');
   };
 
   const renderStatusIcon = (valid: boolean) => (
@@ -503,6 +530,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
                       <button
+                        type="button"
                         onClick={handleSendOtp}
                         disabled={timer > 0 || isSendingOtp}
                         className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}
@@ -512,13 +540,15 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                     </div>
                     {!isVerified && (
                       <Button
+                        type="button"
                         onClick={() => otp && handleVerifyAndSubmit(otp)}
-                        disabled={isVerifyingOtp || !otp || otp.length !== 6}
+                        disabled={isVerifyingOtp || isSubmitting || !otp || otp.length !== 6}
                         className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
                       >
-                        {isVerifyingOtp ? (
+                        {isVerifyingOtp || isSubmitting ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
+                            {isVerifyingOtp ? 'Verifying...' : 'Submitting...'}
                           </>
                         ) : (
                           'Verify & Send'

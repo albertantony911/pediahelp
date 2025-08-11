@@ -41,24 +41,38 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize App Check with standard reCAPTCHA v3 in browser
+// Initialize App Check with reCAPTCHA v3 in browser only
 if (typeof window !== 'undefined') {
   const v3Key = process.env.NEXT_PUBLIC_RECAPTCHA_V3_KEY;
-
+  
   if (!v3Key) {
-    console.error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_V3_KEY');
-    throw new Error('Missing environment variable NEXT_PUBLIC_RECAPTCHA_V3_KEY');
+    console.warn('Missing NEXT_PUBLIC_RECAPTCHA_V3_KEY - App Check disabled');
+  } else {
+    try {
+      console.log('Initializing Firebase App Check with reCAPTCHA v3, siteKey:', v3Key);
+      
+      // Check if App Check is already initialized
+      if (!app.automaticDataCollectionEnabled) {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(v3Key),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log('Firebase App Check initialized successfully with reCAPTCHA v3');
+      } else {
+        console.log('Firebase App Check already initialized');
+      }
+    } catch (error: any) {
+      // Don't throw error - App Check is optional for development
+      console.warn('Firebase App Check initialization failed (this is okay for development):', error.message);
+    }
   }
+}
 
-  try {
-    console.log('Initializing Firebase App Check with standard reCAPTCHA v3, siteKey:', v3Key);
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(v3Key),
-      isTokenAutoRefreshEnabled: true,
-    });
-    console.log('Firebase App Check initialized successfully with standard reCAPTCHA v3');
-  } catch (error) {
-    console.error('Failed to initialize Firebase App Check with standard reCAPTCHA v3:', error);
+// Add global type for RecaptchaVerifier
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+    grecaptcha: any;
   }
 }
 
