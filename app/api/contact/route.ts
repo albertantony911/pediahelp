@@ -6,7 +6,7 @@ import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterp
 
 // ─── Rate limiting config ───
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 50;
 const rateLimits = new Map<string, { count: number; expiresAt: number }>();
 
 // ─── Google reCAPTCHA Enterprise Client ───
