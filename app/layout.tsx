@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { InstantSearchProvider } from "@/components/providers/InstantSearchProvider";
 import { DoctorsProvider } from "@/components/providers/DoctorsProvider";
 import { fetchAllDoctors } from "@/lib/fetchDoctors";
-import ReCaptchaScript from "@/components/ReCaptchaScript"; // Import the new Client Component
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -54,8 +53,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        {/* Use the Client Component to load the reCAPTCHA script */}
-        <ReCaptchaScript />
+        {/* Removed: <ReCaptchaScript /> */}
       </head>
       <body
         className={cn(
