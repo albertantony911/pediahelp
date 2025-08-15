@@ -105,7 +105,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       }
 
       try {
-        console.log('Initializing invisible reCAPTCHA v2 verifier');
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (token: string) => {
@@ -118,7 +117,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
         });
 
         window.recaptchaVerifier = verifier;
-        console.log('Invisible reCAPTCHA v2 verifier initialized successfully');
       } catch (error) {
         console.error('Failed to initialize reCAPTCHA verifier:', {
           message: (error as Error).message,

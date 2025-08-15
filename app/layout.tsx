@@ -53,7 +53,6 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        {/* Removed: <ReCaptchaScript /> */}
       </head>
       <body
         className={cn(
