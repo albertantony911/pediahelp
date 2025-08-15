@@ -44,6 +44,15 @@ interface ContactFormProps {
   pageSource?: string;
 }
 
+// Declare grecaptcha as a global variable for TypeScript
+declare global {
+  interface Window {
+    grecaptcha: any;
+    recaptchaVerifier?: any;
+  }
+}
+declare const grecaptcha: any;
+
 export default function ContactForm({ theme, tagLine, title, successMessage, pageSource = 'Contact Page' }: ContactFormProps) {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
@@ -230,80 +239,76 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
   };
 
-  const handleVerifyAndSubmit = async (otpCode: string) => {
+
+  
+const handleVerifyAndSubmit = async (otpCode: string) => {
   if (!confirmationResult || !otpCode || otpCode.length !== 6) {
-    toast.error('Invalid OTP');
+    toast.error("Invalid OTP");
     return;
   }
 
   setIsVerifyingOtp(true);
+
   try {
-    console.log('Verifying OTP:', otpCode);
+    // ✅ Step 1: Verify OTP with Firebase
     const otpResult = await confirmationResult.confirm(otpCode);
+    if (!otpResult?.user) throw new Error("Phone number verification failed");
 
-    if (!otpResult.user) {
-      throw new Error('Phone number verification failed');
-    }
-
-    console.log('OTP verified successfully for user:', otpResult.user.uid);
-    setIsVerified(true);
-    toast.success('Phone number verified!');
-
-    // 🔹 Force refresh token to ensure it's valid for at least 1h from now
     const idToken = await otpResult.user.getIdToken(true);
+    const userUid = otpResult.user.uid; // ✅ include UID
 
-    // Submit form after successful OTP verification
-    setIsSubmitting(true);
+    setIsVerified(true);
+    toast.success("Phone number verified!");
+
+    // ✅ Step 2: Run reCAPTCHA v2 invisible and get token
+    const recaptchaToken = await new Promise<string>((resolve, reject) => {
+      grecaptcha.ready(() => {
+        grecaptcha
+          .execute(process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY as string, { action: "submit" })
+          .then(resolve)
+          .catch(reject);
+      });
+    });
+
+    // ✅ Step 3: Prepare payload with UID
     const formData = form.getValues();
-
     const payload = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       message: formData.message,
       subject: `Contact Form Submission from ${pageSource}`,
-      otpVerified: true,
-      userUid: otpResult.user.uid,
-      idToken, // ✅ Token is fresh
+      userUid, // ✅ added
     };
 
-    console.log('Submitting payload:', payload);
+    // ✅ Step 4: Send to backend with BOTH tokens
+    setIsSubmitting(true);
 
-    const response = await fetch('/api/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`, // Firebase ID token
+        "x-recaptcha-token": recaptchaToken, // reCAPTCHA token
+      },
       body: JSON.stringify(payload),
     });
 
-    const submitResult = await response.json().catch(() => {
-      throw new Error('Invalid response from server');
-    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Failed to submit");
 
-    if (!response.ok) {
-      throw new Error(submitResult.error || 'Failed to submit the form');
-    }
-
-    setStep('success');
-    toast.success('Message sent successfully!');
-    console.log('Form submitted successfully');
-  } catch (error: any) {
-    console.error('Error in handleVerifyAndSubmit:', error);
-
-    let errorMessage = 'Failed to verify or submit';
-    if (error.code === 'auth/invalid-verification-code') {
-      errorMessage = 'Invalid OTP code. Please check and try again.';
-    } else if (error.code === 'auth/code-expired') {
-      errorMessage = 'OTP code has expired. Please request a new one.';
-    }
-
-    toast.error(errorMessage, {
-      description: error.message || 'An unexpected error occurred',
-    });
+    setStep("success");
+    toast.success("Message sent successfully!");
+  } catch (err: any) {
+    console.error("Error in handleVerifyAndSubmit:", err);
+    toast.error(err.message || "Failed to verify or submit");
   } finally {
     setIsVerifyingOtp(false);
     setIsSubmitting(false);
   }
 };
+
+
 
   
 
