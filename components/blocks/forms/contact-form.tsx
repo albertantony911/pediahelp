@@ -84,72 +84,71 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   }, [timer, otpSent, isVerified]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !auth) {
-      console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
+  if (typeof window === 'undefined' || !auth) {
+    console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
+    return;
+  }
+
+  const initializeRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+        console.log('Cleared existing reCAPTCHA verifier');
+      } catch (error) {
+        console.error('Failed to clear existing reCAPTCHA verifier:', error);
+      }
+    }
+
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
+    if (!siteKey) {
+      console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
+      toast.error('Configuration error: reCAPTCHA key is missing. Please contact support.');
       return;
     }
-  
-    const initializeRecaptcha = () => {
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          console.log('Cleared existing reCAPTCHA verifier');
-        } catch (error) {
-          console.error('Failed to clear existing reCAPTCHA verifier:', error);
-        }
-      }
-  
-      // Use standard reCAPTCHA v2 (not Enterprise) to match Firebase Auth
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY || '6Lc3hk4rAAAAAJaeAMZIPpXK_eAVu9vJjLddB0TU';
-  
-      if (!siteKey) {
-        console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
-        return;
-      }
-  
-      let verifier: RecaptchaVerifier;
+
+    let verifier: RecaptchaVerifier;
+    try {
+      console.log('Initializing RecaptchaVerifier with siteKey:', siteKey);
+      verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: (token: string) => {
+          console.log('reCAPTCHA v2 token received:', token.substring(0, 50) + '...');
+          setRecaptchaToken(token);
+        },
+        'expired-callback': () => {
+          console.log('reCAPTCHA expired');
+          toast.error('reCAPTCHA expired, please try again');
+          setRecaptchaToken('');
+        },
+      });
+    } catch (error) {
+      console.error('Failed to initialize reCAPTCHA verifier:', {
+        message: (error as Error).message,
+        code: (error as any).code,
+        details: (error as any).details,
+      });
+      toast.error('Failed to initialize reCAPTCHA. Please try again or contact support.');
+      return;
+    }
+
+    window.recaptchaVerifier = verifier;
+    console.log('RecaptchaVerifier initialized for standard v2');
+  };
+
+  initializeRecaptcha();
+
+  return () => {
+    if (window.recaptchaVerifier) {
       try {
-        console.log('Initializing RecaptchaVerifier with siteKey:', siteKey);
-        // Remove Enterprise configuration - use standard reCAPTCHA v2
-        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: (token: string) => {
-            console.log('reCAPTCHA v2 token received:', token.substring(0, 50) + '...');
-            setRecaptchaToken(token);
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            toast.error('reCAPTCHA expired, please try again');
-            setRecaptchaToken('');
-          },
-        });
+        window.recaptchaVerifier.clear();
+        console.log('Cleared reCAPTCHA verifier on cleanup');
       } catch (error) {
-        console.error('Failed to initialize reCAPTCHA verifier:', {
-          message: (error as Error).message,
-          code: (error as any).code,
-          details: (error as any).details,
-        });
-        return;
+        console.error('Failed to clear reCAPTCHA verifier on cleanup:', error);
       }
-  
-      window.recaptchaVerifier = verifier;
-      console.log('RecaptchaVerifier initialized for standard v2');
-    };
-  
-    initializeRecaptcha();
-  
-    return () => {
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          console.log('Cleared reCAPTCHA verifier on cleanup');
-        } catch (error) {
-          console.error('Failed to clear reCAPTCHA verifier on cleanup:', error);
-        }
-        window.recaptchaVerifier = undefined;
-      }
-    };
-  }, [auth]);
+      window.recaptchaVerifier = undefined;
+    }
+  };
+}, [auth]);
 
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (value && !/^\d$/.test(value)) return; // Allow only single digits
