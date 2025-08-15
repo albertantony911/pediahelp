@@ -24,6 +24,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
+const MAX_RESENDS = 3;
+
+
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
   email: z.string().email('Invalid email address'),
@@ -52,6 +55,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const [otpSent, setOtpSent] = useState(false);
   const [timer, setTimer] = useState(30);
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendCount, setResendCount] = useState(0);
+
   const [recaptchaToken, setRecaptchaToken] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -177,58 +182,62 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
   };
 
-  const handleSendOtp = async () => {
-    const errors = form.formState.errors;
-    if (errors.name || errors.email || errors.phone || errors.message) {
-      toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
-      return;
+const handleSendOtp = async () => {
+  if (resendCount >= MAX_RESENDS) {
+    toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
+    return;
+  }
+
+  const errors = form.formState.errors;
+  if (errors.name || errors.email || errors.phone || errors.message) {
+    toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
+    return;
+  }
+
+  setIsSendingOtp(true);
+  try {
+    const verifier = window.recaptchaVerifier;
+    if (!verifier) throw new Error('reCAPTCHA not initialized');
+
+    console.log('Attempting to send OTP to:', `+91${phone}`);
+    const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+
+    setConfirmationResult(result);
+    setOtpSent(true);
+    setStep('otp');
+    setTimer(30);
+    setValue('otp', '');
+    setResendCount(c => c + 1); // increment on success
+    toast.success(`OTP sent to +91${phone}`);
+    console.log('OTP sent successfully');
+  } catch (error: any) {
+    console.error('Error sending OTP:', error);
+    let errorMessage = 'Failed to send OTP';
+
+    if (error.code === 'auth/captcha-check-failed') {
+      errorMessage = 'reCAPTCHA verification failed. Please try again.';
+    } else if (error.code === 'auth/invalid-phone-number') {
+      errorMessage = 'Invalid phone number format';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Too many attempts. Please try again later.';
     }
-  
-    setIsSendingOtp(true);
-    try {
-      const verifier = window.recaptchaVerifier;
-      if (!verifier) throw new Error('reCAPTCHA not initialized');
-  
-      console.log('Attempting to send OTP to:', `+91${phone}`);
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
-      
-      setConfirmationResult(result);
-      setOtpSent(true);
-      setStep('otp');
-      setTimer(30);
-      setValue('otp', '');
-      toast.success(`OTP sent to +91${phone}`);
-      console.log('OTP sent successfully');
-    } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      let errorMessage = 'Failed to send OTP';
-      
-      // Handle specific Firebase Auth errors
-      if (error.code === 'auth/captcha-check-failed') {
-        errorMessage = 'reCAPTCHA verification failed. Please try again.';
-      } else if (error.code === 'auth/invalid-phone-number') {
-        errorMessage = 'Invalid phone number format';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many attempts. Please try again later.';
+
+    toast.error(errorMessage, {
+      description: error.message || 'An unexpected error occurred during phone authentication',
+    });
+
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier.render();
+      } catch (e) {
+        console.error('Failed to reset reCAPTCHA:', e);
       }
-      
-      toast.error(errorMessage, {
-        description: error.message || 'An unexpected error occurred during phone authentication',
-      });
-      
-      // Reset reCAPTCHA on failure
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier.render();
-        } catch (e) {
-          console.error('Failed to reset reCAPTCHA:', e);
-        }
-      }
-    } finally {
-      setIsSendingOtp(false);
     }
-  };
+  } finally {
+    setIsSendingOtp(false);
+  }
+};
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!confirmationResult || !otpCode || otpCode.length !== 6) {
