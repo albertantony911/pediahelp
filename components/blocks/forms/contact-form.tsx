@@ -231,79 +231,81 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   };
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
-    if (!confirmationResult || !otpCode || otpCode.length !== 6) {
-      toast.error('Invalid OTP');
-      return;
+  if (!confirmationResult || !otpCode || otpCode.length !== 6) {
+    toast.error('Invalid OTP');
+    return;
+  }
+
+  setIsVerifyingOtp(true);
+  try {
+    console.log('Verifying OTP:', otpCode);
+    const otpResult = await confirmationResult.confirm(otpCode);
+
+    if (!otpResult.user) {
+      throw new Error('Phone number verification failed');
     }
-    
-    setIsVerifyingOtp(true);
-    try {
-      console.log('Verifying OTP:', otpCode);
-      const otpResult = await confirmationResult.confirm(otpCode);
-      
-      if (!otpResult.user) {
-        throw new Error('Phone number verification failed');
-      }
-      
-      console.log('OTP verified successfully for user:', otpResult.user.uid);
-      setIsVerified(true);
-      toast.success('Phone number verified!');
-  
-      // Submit form after successful OTP verification
-      setIsSubmitting(true);
-      const formData = form.getValues();
-      
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        message: formData.message,
-        subject: `Contact Form Submission from ${pageSource}`,
-        otpVerified: true,
-        userUid: otpResult.user.uid, // Firebase user UID as verification proof
-      };
-      
-      console.log('Submitting payload:', payload);
-      
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-  
-      let submitResult;
-      try {
-        submitResult = await response.json();
-      } catch (error) {
-        console.error('Failed to parse response JSON:', error);
-        throw new Error('Invalid response from server');
-      }
-  
-      if (!response.ok) {
-        throw new Error(submitResult.error || 'Failed to submit the form');
-      }
-  
-      setStep('success');
-      toast.success('Message sent successfully!');
-      console.log('Form submitted successfully');
-    } catch (error: any) {
-      console.error('Error in handleVerifyAndSubmit:', error);
-      
-      let errorMessage = 'Failed to verify or submit';
-      if (error.code === 'auth/invalid-verification-code') {
-        errorMessage = 'Invalid OTP code. Please check and try again.';
-      } else if (error.code === 'auth/code-expired') {
-        errorMessage = 'OTP code has expired. Please request a new one.';
-      }
-      
-      toast.error(errorMessage, {
-        description: error.message || 'An unexpected error occurred',
-      });
-    } finally {
-      setIsVerifyingOtp(false);
-      setIsSubmitting(false);
+
+    console.log('OTP verified successfully for user:', otpResult.user.uid);
+    setIsVerified(true);
+    toast.success('Phone number verified!');
+
+    // 🔹 Force refresh token to ensure it's valid for at least 1h from now
+    const idToken = await otpResult.user.getIdToken(true);
+
+    // Submit form after successful OTP verification
+    setIsSubmitting(true);
+    const formData = form.getValues();
+
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      message: formData.message,
+      subject: `Contact Form Submission from ${pageSource}`,
+      otpVerified: true,
+      userUid: otpResult.user.uid,
+      idToken, // ✅ Token is fresh
+    };
+
+    console.log('Submitting payload:', payload);
+
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const submitResult = await response.json().catch(() => {
+      throw new Error('Invalid response from server');
+    });
+
+    if (!response.ok) {
+      throw new Error(submitResult.error || 'Failed to submit the form');
     }
-  };
+
+    setStep('success');
+    toast.success('Message sent successfully!');
+    console.log('Form submitted successfully');
+  } catch (error: any) {
+    console.error('Error in handleVerifyAndSubmit:', error);
+
+    let errorMessage = 'Failed to verify or submit';
+    if (error.code === 'auth/invalid-verification-code') {
+      errorMessage = 'Invalid OTP code. Please check and try again.';
+    } else if (error.code === 'auth/code-expired') {
+      errorMessage = 'OTP code has expired. Please request a new one.';
+    }
+
+    toast.error(errorMessage, {
+      description: error.message || 'An unexpected error occurred',
+    });
+  } finally {
+    setIsVerifyingOtp(false);
+    setIsSubmitting(false);
+  }
+};
+
+  
 
   const resetPhone = () => {
     setOtpSent(false);
