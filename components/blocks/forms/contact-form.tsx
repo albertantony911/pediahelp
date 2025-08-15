@@ -26,7 +26,6 @@ import { Title, Subtitle } from '@/components/ui/theme/typography';
 
 const MAX_RESENDS = 3;
 
-
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
   email: z.string().email('Invalid email address'),
@@ -57,8 +56,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [resendCount, setResendCount] = useState(0);
 
-  const [recaptchaToken, setRecaptchaToken] = useState<string>('');
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -83,72 +80,68 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
 
+  // Initialize invisible v2 reCAPTCHA only
   useEffect(() => {
-  if (typeof window === 'undefined' || !auth) {
-    console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
-    return;
-  }
-
-  const initializeRecaptcha = () => {
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-        console.log('Cleared existing reCAPTCHA verifier');
-      } catch (error) {
-        console.error('Failed to clear existing reCAPTCHA verifier:', error);
-      }
-    }
-
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
-    if (!siteKey) {
-      console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
-      toast.error('Configuration error: reCAPTCHA key is missing. Please contact support.');
+    if (typeof window === 'undefined' || !auth) {
+      console.warn('Skipping reCAPTCHA verifier initialization: window or auth not available');
       return;
     }
 
-    let verifier: RecaptchaVerifier;
-    try {
-      console.log('Initializing RecaptchaVerifier with siteKey:', siteKey);
-      verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (token: string) => {
-          console.log('reCAPTCHA v2 token received:', token.substring(0, 50) + '...');
-          setRecaptchaToken(token);
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-          toast.error('reCAPTCHA expired, please try again');
-          setRecaptchaToken('');
-        },
-      });
-    } catch (error) {
-      console.error('Failed to initialize reCAPTCHA verifier:', {
-        message: (error as Error).message,
-        code: (error as any).code,
-        details: (error as any).details,
-      });
-      toast.error('Failed to initialize reCAPTCHA. Please try again or contact support.');
-      return;
-    }
-
-    window.recaptchaVerifier = verifier;
-    console.log('RecaptchaVerifier initialized for standard v2');
-  };
-
-  initializeRecaptcha();
-
-  return () => {
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-        console.log('Cleared reCAPTCHA verifier on cleanup');
-      } catch (error) {
-        console.error('Failed to clear reCAPTCHA verifier on cleanup:', error);
+    const initializeRecaptcha = () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          console.log('Cleared existing reCAPTCHA verifier');
+        } catch (error) {
+          console.error('Failed to clear existing reCAPTCHA verifier:', error);
+        }
       }
-      window.recaptchaVerifier = undefined;
-    }
-  };
-}, [auth]);
+
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
+      if (!siteKey) {
+        console.error('Missing reCAPTCHA v2 site key. Please set NEXT_PUBLIC_RECAPTCHA_V2_KEY in environment variables.');
+        toast.error('Configuration error: reCAPTCHA key is missing. Please contact support.');
+        return;
+      }
+
+      try {
+        console.log('Initializing invisible reCAPTCHA v2 verifier');
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: (token: string) => {
+            console.log('reCAPTCHA v2 token received');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            toast.error('reCAPTCHA expired, please try again');
+          },
+        });
+
+        window.recaptchaVerifier = verifier;
+        console.log('Invisible reCAPTCHA v2 verifier initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize reCAPTCHA verifier:', {
+          message: (error as Error).message,
+          code: (error as any).code,
+        });
+        toast.error('Failed to initialize reCAPTCHA. Please try again or contact support.');
+      }
+    };
+
+    initializeRecaptcha();
+
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          console.log('Cleared reCAPTCHA verifier on cleanup');
+        } catch (error) {
+          console.error('Failed to clear reCAPTCHA verifier on cleanup:', error);
+        }
+        window.recaptchaVerifier = undefined;
+      }
+    };
+  }, [auth]);
 
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (value && !/^\d$/.test(value)) return; // Allow only single digits
@@ -181,62 +174,63 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
   };
 
-const handleSendOtp = async () => {
-  if (resendCount >= MAX_RESENDS) {
-    toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
-    return;
-  }
-
-  const errors = form.formState.errors;
-  if (errors.name || errors.email || errors.phone || errors.message) {
-    toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
-    return;
-  }
-
-  setIsSendingOtp(true);
-  try {
-    const verifier = window.recaptchaVerifier;
-    if (!verifier) throw new Error('reCAPTCHA not initialized');
-
-    console.log('Attempting to send OTP to:', `+91${phone}`);
-    const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
-
-    setConfirmationResult(result);
-    setOtpSent(true);
-    setStep('otp');
-    setTimer(30);
-    setValue('otp', '');
-    setResendCount(c => c + 1); // increment on success
-    toast.success(`OTP sent to +91${phone}`);
-    console.log('OTP sent successfully');
-  } catch (error: any) {
-    console.error('Error sending OTP:', error);
-    let errorMessage = 'Failed to send OTP';
-
-    if (error.code === 'auth/captcha-check-failed') {
-      errorMessage = 'reCAPTCHA verification failed. Please try again.';
-    } else if (error.code === 'auth/invalid-phone-number') {
-      errorMessage = 'Invalid phone number format';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Too many attempts. Please try again later.';
+  const handleSendOtp = async () => {
+    if (resendCount >= MAX_RESENDS) {
+      toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
+      return;
     }
 
-    toast.error(errorMessage, {
-      description: error.message || 'An unexpected error occurred during phone authentication',
-    });
+    const errors = form.formState.errors;
+    if (errors.name || errors.email || errors.phone || errors.message) {
+      toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
+      return;
+    }
 
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier.render();
-      } catch (e) {
-        console.error('Failed to reset reCAPTCHA:', e);
+    setIsSendingOtp(true);
+    try {
+      const verifier = window.recaptchaVerifier;
+      if (!verifier) throw new Error('reCAPTCHA v2 verifier not initialized');
+
+      console.log('Attempting to send OTP to:', `+91${phone}`);
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+
+      setConfirmationResult(result);
+      setOtpSent(true);
+      setStep('otp');
+      setTimer(30);
+      setValue('otp', '');
+      setResendCount(c => c + 1);
+      toast.success(`OTP sent to +91${phone}`);
+      console.log('OTP sent successfully');
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      let errorMessage = 'Failed to send OTP';
+
+      if (error.code === 'auth/captcha-check-failed') {
+        errorMessage = 'reCAPTCHA verification failed. Please try again.';
+      } else if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please try again later.';
       }
+
+      toast.error(errorMessage, {
+        description: error.message || 'An unexpected error occurred during phone authentication',
+      });
+
+      // Reset reCAPTCHA on error
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier.render();
+        } catch (e) {
+          console.error('Failed to reset reCAPTCHA:', e);
+        }
+      }
+    } finally {
+      setIsSendingOtp(false);
     }
-  } finally {
-    setIsSendingOtp(false);
-  }
-};
+  };
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!confirmationResult || !otpCode || otpCode.length !== 6) {
@@ -268,8 +262,7 @@ const handleSendOtp = async () => {
         message: formData.message,
         subject: `Contact Form Submission from ${pageSource}`,
         otpVerified: true,
-        // Don't send reCAPTCHA token for Enterprise verification since we're using standard v2
-        userUid: otpResult.user.uid, // Add user UID as verification proof
+        userUid: otpResult.user.uid, // Firebase user UID as verification proof
       };
       
       console.log('Submitting payload:', payload);
@@ -321,7 +314,6 @@ const handleSendOtp = async () => {
     setStep('form');
     setIsVerified(false);
     setTimer(30);
-    setRecaptchaToken('');
   };
 
   const renderStatusIcon = (valid: boolean) => (
