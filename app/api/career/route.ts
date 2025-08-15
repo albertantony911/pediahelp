@@ -1,138 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-
-// Simple in-memory rate limiter
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const MAX_REQUESTS = 10;
-
-// Validate environment variables
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-  'NEXT_PUBLIC_SITE_URL',
-  'REVALIDATE_SECRET_TOKEN',
-];
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing environment variables: ${missingEnvVars.join(', ')}`);
-}
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { sendSupportEmail } from '@/lib/email';
+import '@/lib/firebaseAdmin';
 
 interface CareerFormData {
   name: string;
   email: string;
   phone: string;
-  jobTitle: string;
-  coverLetter: string;
-  resumeLink: string;
-  subject: string;
+  position: string;
+  resumeUrl: string;
+  coverLetter?: string;
+  userUid: string;
 }
 
+const rateLimits = new Map<string, { count: number; expiresAt: number }>();
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
+const MAX_REQUESTS = 5;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, limit] of rateLimits) {
+    if (limit.expiresAt < now) rateLimits.delete(ip);
+  }
+}, RATE_LIMIT_WINDOW);
+
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
+
+  const current = rateLimits.get(ip) || { count: 0, expiresAt: Date.now() + RATE_LIMIT_WINDOW };
+  if (current.count >= MAX_REQUESTS) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  let body: CareerFormData;
   try {
-    // Rate limiting
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
-    const now = Date.now();
-    const requests = rateLimitMap.get(ip) || [];
-    const recentRequests = requests.filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW);
-    
-    if (recentRequests.length >= MAX_REQUESTS) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
-    }
-    
-    recentRequests.push(now);
-    rateLimitMap.set(ip, recentRequests);
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
 
-    const body: CareerFormData = await req.json();
-
-    // Validate required fields
-    if (!body.name || !body.email || !body.phone || !body.jobTitle || !body.coverLetter || !body.resumeLink || !body.subject) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      );
+  try {
+    if (!body.name || !body.email || !body.phone || !body.position || !body.resumeUrl || !body.userUid) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
+    const auth = getAuth();
+    const user = await auth.getUser(body.userUid);
+    if (!user.phoneNumber || !user.phoneNumber.endsWith(body.phone)) {
+      return NextResponse.json({ error: 'Phone verification failed' }, { status: 400 });
     }
 
-    // Validate phone format (10 digits)
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(body.phone)) {
-      return NextResponse.json(
-        { error: 'Phone number must be 10 digits' },
-        { status: 400 }
-      );
-    }
-
-    // Validate resume link (Google Drive shareable URL)
-    const driveRegex = /https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+\/view\?usp=sharing/;
-    if (!driveRegex.test(body.resumeLink)) {
-      return NextResponse.json(
-        { error: 'Invalid Google Drive shareable link' },
-        { status: 400 }
-      );
-    }
-
-
-    try {
-      const response = await fetch(body.resumeLink, { method: 'HEAD' });
-      if (response.status !== 200 || response.url.includes('accounts.google.com')) {
-        return NextResponse.json(
-          { error: 'Resume link is not publicly accessible. Set sharing to "Anyone with the link".' },
-          { status: 400 }
-        );
-      }
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Failed to verify resume link accessibility' },
-        { status: 400 }
-      );
-    }
-
-
-    // Store in Firestore
-    const submission = {
-      name: body.name,
-      email: body.email,
+    const db = getFirestore();
+    const docRef = await db.collection('career-applications').add({
+      ...body,
       phone: `+91${body.phone}`,
-      jobTitle: body.jobTitle,
-      coverLetter: body.coverLetter,
-      resumeLink: body.resumeLink,
-      subject: body.subject,
-      submittedAt: serverTimestamp(),
-    };
+      submittedAt: new Date(),
+      ipAddress: ip,
+      otpVerified: true,
+    });
 
-    await addDoc(collection(db, 'career-submissions'), submission);
+    console.log('✅ Career application saved:', docRef.id);
 
-    // Revalidate careers page
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/revalidate?path=/careers&secret=${process.env.REVALIDATE_SECRET_TOKEN}`
-    ).catch((err) => console.warn('⚠️ Revalidation failed:', err.message));
+    await sendSupportEmail({
+      subject: `New Career Application: ${body.position}`,
+      replyTo: body.email,
+      html: `<p>${body.name} applied for ${body.position}</p>`,
+      text: `${body.name} applied for ${body.position}`,
+    });
 
-    return NextResponse.json(
-      { message: 'Application submitted successfully' },
-      { status: 200 }
-    );
+    rateLimits.set(ip, { count: current.count + 1, expiresAt: current.expiresAt });
+    return NextResponse.json({ message: 'Application submitted', id: docRef.id });
   } catch (error) {
-    console.error('Error submitting application:', error);
-    return NextResponse.json(
-      { error: 'Failed to submit application' },
-      { status: 500 }
-    );
+    console.error('❌ Career submission error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
