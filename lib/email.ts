@@ -1,8 +1,8 @@
 // lib/email.ts
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: "smtp.gmail.com",
   port: 465,
   secure: true,
   auth: {
@@ -13,26 +13,51 @@ const transporter = nodemailer.createTransport({
 
 export async function sendSupportEmail({
   subject,
-  replyTo,
+  message,
+  name,
+  email,
+  phone,
   html,
-  text,
+  replyTo,
 }: {
   subject: string;
-  replyTo: string;
-  html: string;
-  text: string;
+  message: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  html?: string;
+  replyTo?: string; // ✅ optional now
 }) {
   if (!process.env.SUPPORT_EMAIL_RECEIVER) {
-    console.warn('⚠️ SUPPORT_EMAIL_RECEIVER not set, skipping email.');
+    console.warn("⚠️ SUPPORT_EMAIL_RECEIVER not set, skipping email.");
     return;
   }
+
+  const text = message || `
+From: ${name || "N/A"}
+Email: ${email || "N/A"}
+Phone: ${phone || "N/A"}
+
+Message:
+${message || ""}
+  `;
+
+  const htmlBody =
+    html ||
+    `
+    <p><strong>From:</strong> ${name || "N/A"}</p>
+    <p><strong>Email:</strong> ${email || "N/A"}</p>
+    <p><strong>Phone:</strong> ${phone || "N/A"}</p>
+    <p><strong>Message:</strong></p>
+    <p>${message || ""}</p>
+  `;
 
   return transporter.sendMail({
     from: process.env.SUPPORT_EMAIL_USER,
     to: process.env.SUPPORT_EMAIL_RECEIVER,
-    replyTo,
+    ...(replyTo ? { replyTo } : {}), // ✅ only include if set
     subject,
-    html,
     text,
+    html: htmlBody,
   });
 }

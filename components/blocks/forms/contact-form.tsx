@@ -240,78 +240,61 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   };
 
   const handleVerifyAndSubmit = async (otpCode: string) => {
-    if (!confirmationResult || !otpCode || otpCode.length !== 6) {
-      toast.error("Invalid OTP");
-      return;
-    }
+  if (!confirmationResult || !otpCode || otpCode.length !== 6) {
+    toast.error("Invalid OTP");
+    return;
+  }
 
-    setIsVerifyingOtp(true);
+  setIsVerifyingOtp(true);
 
-    try {
-      // Step 1: Verify OTP with Firebase
-      const otpResult = await confirmationResult.confirm(otpCode);
-      if (!otpResult?.user) throw new Error("Phone number verification failed");
+  try {
+    // ✅ Step 1: Verify OTP with Firebase
+    const otpResult = await confirmationResult.confirm(otpCode);
+    if (!otpResult?.user) throw new Error("Phone number verification failed");
 
-      const idToken = await otpResult.user.getIdToken(true);
-      const userUid = otpResult.user.uid;
+    const idToken = await otpResult.user.getIdToken(true);
+    const userUid = otpResult.user.uid;
 
-      setIsVerified(true);
-      toast.success("Phone number verified!");
+    setIsVerified(true);
+    toast.success("Phone number verified!");
 
-      // Step 2: Run reCAPTCHA Enterprise invisible & get token
-      let recaptchaToken;
-      try {
-        recaptchaToken = await new Promise<string>((resolve, reject) => {
-          grecaptcha.enterprise.ready(() => {
-            grecaptcha.enterprise
-              .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string, {
-                action: "CONTACT_FORM",
-              })
-              .then(resolve)
-              .catch(reject);
-          });
-        });
-      } catch (err) {
-        throw new Error("reCAPTCHA Enterprise failed. Please try again.");
-      }
+    // ✅ Step 2: Prepare payload (no reCAPTCHA token anymore)
+    const formData = form.getValues();
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      message: formData.message,
+      subject: `Contact Form Submission from ${pageSource}`,
+      userUid,
+    };
 
-      // Step 3: Prepare payload with UID (no tokens in body)
-      const formData = form.getValues();
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        message: formData.message,
-        subject: `Contact Form Submission from ${pageSource}`,
-        userUid,
-      };
+    // ✅ Step 3: Send to backend with Firebase ID token in header
+    setIsSubmitting(true);
 
-      // Step 4: Send to backend with tokens in headers
-      setIsSubmitting(true);
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-          "x-recaptcha-token": recaptchaToken,
-        },
-        body: JSON.stringify(payload),
-      });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Failed to submit");
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to submit");
+    setStep("success");
+    toast.success("Message sent successfully!");
+  } catch (err: any) {
+    console.error("Error in handleVerifyAndSubmit:", err);
+    toast.error(err.message || "Failed to verify or submit");
+  } finally {
+    setIsVerifyingOtp(false);
+    setIsSubmitting(false);
+  }
+};
 
-      setStep("success");
-      toast.success("Message sent successfully!");
-    } catch (err: any) {
-      console.error("Error in handleVerifyAndSubmit:", err);
-      toast.error(err.message || "Failed to verify or submit");
-    } finally {
-      setIsVerifyingOtp(false);
-      setIsSubmitting(false);
-    }
-  };
 
   const resetPhone = () => {
     setOtpSent(false);

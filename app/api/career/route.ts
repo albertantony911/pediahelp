@@ -67,9 +67,13 @@ export async function POST(req: NextRequest) {
 
     await sendSupportEmail({
       subject: `New Career Application: ${body.position}`,
-      replyTo: body.email,
-      html: `<p>${body.name} applied for ${body.position}</p>`,
-      text: `${body.name} applied for ${body.position}`,
+      message: `${body.name} applied for ${body.position}`,
+      html: `<p>${body.name} applied for ${body.position}</p>
+             <p>Email: ${body.email}</p>
+             <p>Phone: ${body.phone}</p>
+             <p>Resume: <a href="${body.resumeUrl}">${body.resumeUrl}</a></p>
+             <p>Cover Letter: ${body.coverLetter || 'N/A'}</p>`,
+      replyTo: body.email, // ✅ ensure HR replies to applicant
     });
 
     rateLimits.set(ip, { count: current.count + 1, expiresAt: current.expiresAt });
