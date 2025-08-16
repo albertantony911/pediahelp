@@ -1,71 +1,92 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { adminAuth, db } from "@/lib/firebaseAdmin";
 import { sendSupportEmail } from "@/lib/email";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 
-// Rate limiting config
-const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
-const MAX_REQUESTS = 5;
-const ipRequests = new Map<string, { count: number; lastRequest: number }>();
+// Rate limiter: max 5 submissions per user (UID) per hour
+const rateLimiter = new RateLimiterMemory({
+  points: 50,
+  duration: 3600, // 1 hour in seconds
+});
+
+// Simple spam check function
+const isPotentialSpam = (message: string): boolean => {
+  const spamKeywords = ['viagra', 'cialis', 'free money', 'win prize', 'click here', 'http://', 'https://'];
+  const hasSpamKeywords = spamKeywords.some(keyword => message.toLowerCase().includes(keyword));
+  const hasExcessiveCaps = message.toUpperCase().length / message.length > 0.7;
+  const hasSuspiciousLength = message.length > 1000 || message.length < 10;
+
+  return hasSpamKeywords || hasExcessiveCaps || hasSuspiciousLength;
+};
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-    const now = Date.now();
-    const record = ipRequests.get(ip);
-
-    if (record && now - record.lastRequest < RATE_LIMIT_WINDOW) {
-      if (record.count >= MAX_REQUESTS) {
-        return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-      }
-      record.count++;
-    } else {
-      ipRequests.set(ip, { count: 1, lastRequest: now });
+    const token = req.headers.get("authorization")?.split("Bearer ")[1];
+    if (!token) {
+      return NextResponse.json({ error: "Missing auth token" }, { status: 401 });
     }
 
-    // Verify Firebase ID token
-    const idToken = req.headers.get("authorization")?.split("Bearer ")[1];
-    if (!idToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let decoded;
+    try {
+      decoded = await adminAuth.verifyIdToken(token);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
     }
 
-    const decoded = await getAuth().verifyIdToken(idToken).catch((err) => {
-      console.error("Token verification failed:", err);
-      throw new Error("Invalid token");
-    });
+    // Apply rate limiting based on user UID
+    try {
+      await rateLimiter.consume(decoded.uid);
+    } catch (rateLimiterError) {
+      return NextResponse.json({ error: "Too many requests, please try again later" }, { status: 429 });
+    }
 
-    // Parse form data
-    const { name, email, phone, message, subject } = await req.json();
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const { name, email, phone, message, subject, userUid } = await req.json();
+    if (!name || !email || !phone || !message || !subject || !userUid) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+
+    // Validate input data
+    if (name.length > 50 || message.length > 500) {
+      return NextResponse.json({ error: "Input exceeds maximum length" }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    if (!/^[0-9]{10}$/.test(phone)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
+
+    // Spam check
+    if (isPotentialSpam(message)) {
+      return NextResponse.json({ error: "Message flagged as potential spam" }, { status: 400 });
     }
 
     // Save to Firestore
-    const db = getFirestore();
-    await db.collection("contactMessages").add({
-      uid: decoded.uid,
+    await db.collection("contact_submissions").add({
       name,
       email,
       phone,
       message,
       subject,
+      userId: userUid,
       createdAt: new Date(),
+      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
+      status: "pending",
     });
 
-    // Send support email
+    // Send email notification with individual fields
     await sendSupportEmail({
+      subject,
+      message,
       name,
       email,
       phone,
-      message,
-      subject: subject || `New contact form submission`,
-      replyTo: email,
+      replyTo: email, // Set replyTo to the user's email
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error in contact form API:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    console.error("Contact API error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

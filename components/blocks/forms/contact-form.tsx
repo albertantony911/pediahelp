@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { auth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from '@/lib/firebase';
+import { auth, signInWithPhoneNumber, ConfirmationResult } from '@/lib/firebase';
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
 import {
   Form,
@@ -54,7 +54,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const [timer, setTimer] = useState(30);
   const [resendCount, setResendCount] = useState(0);
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
-  const recaptchaInitialized = useRef(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,60 +78,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !auth || recaptchaInitialized.current) {
-      console.warn('Skipping reCAPTCHA initialization: conditions not met or already initialized');
-      return;
-    }
-
-    const initializeRecaptcha = async () => {
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V2_KEY;
-      if (!siteKey) {
-        console.error('Missing reCAPTCHA v2 site key');
-        toast.error('Configuration error: reCAPTCHA key is missing');
-        return;
-      }
-
-      try {
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = undefined;
-        }
-
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => console.log('reCAPTCHA v2 verified'),
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            toast.error('reCAPTCHA expired, please try again');
-          },
-        });
-
-        window.recaptchaVerifier = verifier;
-        recaptchaInitialized.current = true;
-        console.log('reCAPTCHA v2 initialized');
-      } catch (error) {
-        console.error('Failed to initialize reCAPTCHA:', error);
-        toast.error('Failed to initialize reCAPTCHA');
-      }
-    };
-
-    initializeRecaptcha();
-
-    return () => {
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = undefined;
-          recaptchaInitialized.current = false;
-          console.log('reCAPTCHA cleaned up');
-        } catch (error) {
-          console.error('Failed to clean up reCAPTCHA:', error);
-        }
-      }
-    };
-  }, [auth]);
 
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
@@ -180,10 +125,8 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
     setIsSendingOtp(true);
     try {
-      const verifier = window.recaptchaVerifier;
-      if (!verifier) throw new Error('reCAPTCHA verifier not initialized');
-
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+      // Use Firebase's default invisible reCAPTCHA for phone auth
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier || undefined);
       setConfirmationResult(result);
       setOtpSent(true);
       setStep('otp');
@@ -194,9 +137,9 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       let errorMessage = 'Failed to send OTP';
-      if (error.code === 'auth/captcha-check-failed') errorMessage = 'reCAPTCHA verification failed';
-      else if (error.code === 'auth/invalid-phone-number') errorMessage = 'Invalid phone number';
+      if (error.code === 'auth/invalid-phone-number') errorMessage = 'Invalid phone number';
       else if (error.code === 'auth/too-many-requests') errorMessage = 'Too many attempts';
+      else if (error.code === 'auth/captcha-check-failed') errorMessage = 'reCAPTCHA verification failed';
       toast.error(errorMessage);
     } finally {
       setIsSendingOtp(false);
@@ -331,7 +274,6 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <div id="recaptcha-container" />
                     <Button type="submit" disabled={isSendingOtp} className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm">
                       {isSendingOtp ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...</> : 'Send Message'}
                     </Button>
