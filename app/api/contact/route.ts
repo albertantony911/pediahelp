@@ -3,19 +3,15 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendSupportEmail } from "@/lib/email";
 
-// ─── Rate limiting config ───
+// Rate limiting config
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
 const MAX_REQUESTS = 5;
 const ipRequests = new Map<string, { count: number; lastRequest: number }>();
 
 export async function POST(req: NextRequest) {
   try {
-    // ─── Step 1: Rate limiting ───
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
-
+    // Rate limiting
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
     const now = Date.now();
     const record = ipRequests.get(ip);
 
@@ -28,21 +24,24 @@ export async function POST(req: NextRequest) {
       ipRequests.set(ip, { count: 1, lastRequest: now });
     }
 
-    // ─── Step 2: Verify Firebase ID token ───
+    // Verify Firebase ID token
     const idToken = req.headers.get("authorization")?.split("Bearer ")[1];
     if (!idToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = await getAuth().verifyIdToken(idToken);
+    const decoded = await getAuth().verifyIdToken(idToken).catch((err) => {
+      console.error("Token verification failed:", err);
+      throw new Error("Invalid token");
+    });
 
-    // ─── Step 3: Parse form data ───
+    // Parse form data
     const { name, email, phone, message, subject } = await req.json();
     if (!name || !email || !message) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    // ─── Step 4: Save to Firestore ───
+    // Save to Firestore
     const db = getFirestore();
     await db.collection("contactMessages").add({
       uid: decoded.uid,
@@ -54,14 +53,14 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
     });
 
-    // ─── Step 5: Send support email ───
+    // Send support email
     await sendSupportEmail({
       name,
       email,
       phone,
       message,
       subject: subject || `New contact form submission`,
-      replyTo: email, // ✅ ensure replies go to user
+      replyTo: email,
     });
 
     return NextResponse.json({ success: true });
