@@ -44,15 +44,30 @@ export async function POST(req: Request) {
         req.headers.get('x-forwarded-for') ||
         'ip') as string;
 
-    // Run reCAPTCHA + rate limits in parallel
+    // -------- DEV/PREVIEW reCAPTCHA BYPASS (for manual tests) --------
+    const host = (req.headers.get('host') || '').toLowerCase();
+    const isPreviewHost = host.includes('vercel.app') || host.includes('localhost');
+
+    const allowBypass = process.env.RECAPTCHA_BYPASS === 'true';
+    const bypassHeader = (process.env.RECAPTCHA_BYPASS_HEADER || '').trim();
+    const incomingBypass = (req.headers.get('x-dev-bypass') || '').trim();
+
+    const bypassActive =
+      allowBypass && bypassHeader && incomingBypass === bypassHeader && isPreviewHost;
+
+    // Run reCAPTCHA + rate limits in parallel (unless bypass)
     tick('guards_start');
     await Promise.all([
       (async () => {
+        if (bypassActive) {
+          console.log('[verify/start] reCAPTCHA bypass active for', host);
+          return;
+        }
         const ok = await verifyRecaptcha(recaptchaToken);
         if (!ok) throw new Error('recaptcha_failed');
       })(),
       (async () => {
-        const ipMax = Number(process.env.RL_IP_MAX || 50); // dev-friendly default
+        const ipMax = Number(process.env.RL_IP_MAX || 50); // dev-friendly defaults
         const idMax = Number(process.env.RL_ID_MAX || 50);
         await bumpRateOrThrow(`ip:${ip}`, 3600, ipMax);
         await bumpRateOrThrow(`id:${identifier}`, 3600, idMax);
@@ -72,16 +87,14 @@ export async function POST(req: Request) {
       expiresAt,
       ip,
     });
-    await setPlainCode(sessionId, code, 120); // short-lived for internal sender
+    await setPlainCode(sessionId, code, 120); // short-lived for internal sender to pick up
     tick('session_created');
 
     // Queue async send on the same origin (preview/prod safe). Don't await.
     try {
-      const host = req.headers.get('host') || '';
-      const proto = host.startsWith('localhost') ? 'http' : 'https';
-      const base = host
-        ? `${proto}://${host}`
-        : (process.env.SITE_URL || '').replace(/\/$/, '');
+      const hostHdr = req.headers.get('host') || '';
+      const proto = hostHdr.startsWith('localhost') ? 'http' : 'https';
+      const base = hostHdr ? `${proto}://${hostHdr}` : (process.env.SITE_URL || '').replace(/\/$/, '');
       const url = `${base}/api/internal/send-otp`;
 
       fetch(url, {
@@ -101,10 +114,10 @@ export async function POST(req: Request) {
         });
     } catch (e: any) {
       console.error('[verify/start] queue failed:', e?.message || e);
-      // it's okay — user can hit "Resend" to create a new session
+      // ok — user can hit "Resend" to create a new session
     }
 
-    // Return immediately; user proceeds to OTP input screen
+    // Return immediately; UI proceeds to OTP input
     return NextResponse.json({ sessionId, queued: true });
   } catch (e: any) {
     console.error('[verify/start] error:', e?.message || e);
