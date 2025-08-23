@@ -1,12 +1,13 @@
 import { kv } from './kv';
 import { sha256 } from './crypto';
 
-type Channel = 'email' | 'sms' | 'whatsapp';
-type Session = {
+export type Channel = 'email' | 'sms' | 'whatsapp';
+
+export type Session = {
   identifier: string;
   scope: string;
   otpHash: string;
-  expiresAt: number; // unix sec
+  expiresAt: number; // unix seconds
   tries: number;
   verified: boolean;
   used: boolean;
@@ -14,15 +15,19 @@ type Session = {
   channelUsed?: Channel;
 };
 
-const k = (id: string) => `otp:s:${id}`;
+const sessionKey = (id: string) => `otp:s:${id}`;
+const codeKey = (id: string) => `otp:c:${id}`;
 
+/**
+ * Create a new OTP session as a Redis HASH (so we can HSET/HINCRBY later).
+ */
 export async function createSession(
   sessionId: string,
   data: Omit<Session, 'tries' | 'verified' | 'used'>
 ) {
   const ttl = Math.max(1, data.expiresAt - Math.floor(Date.now() / 1000));
-  // Store as a HASH (so we can HSET/HINCRBY later)
-  await kv.hset(k(sessionId), {
+
+  await kv.hset(sessionKey(sessionId), {
     identifier: data.identifier,
     scope: data.scope,
     otpHash: data.otpHash,
@@ -33,19 +38,31 @@ export async function createSession(
     ip: data.ip || '',
     channelUsed: '',
   });
-  await kv.expire(k(sessionId), ttl);
+
+  await kv.expire(sessionKey(sessionId), ttl);
+}
+
+/** Store plain OTP for a short time so the async sender can fetch it. */
+export async function setPlainCode(sessionId: string, code: string, ttlSec = 120) {
+  await kv.set(codeKey(sessionId), code, { ex: ttlSec });
+}
+
+/** Fetch (and optionally consume) the plain OTP code. */
+export async function getPlainCode(sessionId: string, consume = false) {
+  const k = codeKey(sessionId);
+  const code = await kv.get<string>(k);
+  if (consume && code) await kv.del(k);
+  return code || null;
 }
 
 export async function setChannelUsed(sessionId: string, channel: Channel) {
-  await kv.hset(k(sessionId), { channelUsed: channel });
+  await kv.hset(sessionKey(sessionId), { channelUsed: channel });
 }
 
 export async function getSession(sessionId: string): Promise<Session | null> {
-  // Read the entire HASH
-  const h = await kv.hgetall<Record<string, unknown>>(k(sessionId));
+  const h = await kv.hgetall<Record<string, unknown>>(sessionKey(sessionId));
   if (!h) return null;
 
-  // Coerce types (hash fields are strings)
   const asBool = (v: unknown) => v === 1 || v === '1' || v === true || v === 'true';
   const asNum = (v: unknown, d = 0) => (typeof v === 'number' ? v : Number(v ?? d));
 
@@ -63,7 +80,7 @@ export async function getSession(sessionId: string): Promise<Session | null> {
 }
 
 export async function verifyCode(sessionId: string, code: string) {
-  const key = k(sessionId);
+  const key = sessionKey(sessionId);
   const s = await getSession(sessionId);
   if (!s) return { ok: false as const, err: 'invalid_session' as const };
 
@@ -84,5 +101,5 @@ export async function verifyCode(sessionId: string, code: string) {
 }
 
 export async function markUsed(sessionId: string) {
-  await kv.hset(k(sessionId), { used: 1 });
+  await kv.hset(sessionKey(sessionId), { used: 1 });
 }
