@@ -34,18 +34,18 @@ export async function POST(req: Request) {
     if (s.used) return NextResponse.json({ error: 'already_used' }, { status: 400 });
     if (s.scope !== 'contact') return NextResponse.json({ error: 'wrong_scope' }, { status: 403 });
 
-    // Mark used *before* sending mail so a page unload doesn’t duplicate
+    // Mark used before archiving/sending to avoid dupes on reload
     await ref.update({ used: true, usedAt: nowSec() });
     tick('session_marked_used');
 
-    // Archive first; respond to client fast even if mail later fails
+    // Archive first (no-loss)
     await db.collection('contactMessages').add({
       sessionId, name, email, phone: phone || null, message,
       pageSource, subject: subject || null, createdAt: nowSec(),
     });
     tick('archived');
 
-    // Send email (log errors but don’t fail the request)
+    // Send email (best effort)
     try {
       await sendContactNotification(
         process.env.MAIL_RECEIVER || process.env.MAIL_USER!,
@@ -54,7 +54,6 @@ export async function POST(req: Request) {
       tick('mail_sent');
     } catch (e: any) {
       console.error('[contact/submit] mailer_error:', e?.message || e);
-      // Still return ok — we archived; you can re-deliver later if needed
       return NextResponse.json({ ok: true, mail: 'failed' });
     }
 

@@ -17,13 +17,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
-/** ---------- TUNABLES (for debugging) ---------- */
+/** ---------- TUNABLES ---------- */
 const MAX_RESENDS = 3;
 const RESEND_COOLDOWN_BASE = 30;
-// During debugging, set to false so we AWAIT submit and surface errors.
-// When stable, set to true for snappy “respond early, archive/send later”.
-const USE_BACKGROUND_SUBMIT = false;
-/** --------------------------------------------- */
+// Now that mail delivery is working reliably, use snappy mode:
+const USE_BACKGROUND_SUBMIT = true;
+/** ------------------------------ */
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
@@ -257,7 +256,7 @@ export default function ContactForm({
     }
   };
 
-  // Verify & Submit: during debug await submit; otherwise background it
+  // Verify & Submit: background for snappy UX
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!sessionId || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
@@ -280,7 +279,6 @@ export default function ContactForm({
       // Optimistic success immediately
       setStep('success');
 
-      // Build payload
       const formData = form.getValues();
       const payload = {
         sessionId,
@@ -295,7 +293,7 @@ export default function ContactForm({
       const json = JSON.stringify(payload);
 
       if (!USE_BACKGROUND_SUBMIT) {
-        // ---------- Foreground (debug): await, surface errors ----------
+        // Foreground (synchronous)
         setIsSubmitting(true);
         const submitRes = await fetch(submitUrl, {
           method: 'POST',
@@ -312,7 +310,7 @@ export default function ContactForm({
           toast.success('Message delivered');
         }
       } else {
-        // ---------- Background path (snappy) ----------
+        // Background (snappy)
         let queued = false;
         if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
           try {
@@ -613,8 +611,11 @@ export default function ContactForm({
                   {successMessage || 'Message Sent Successfully!'}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-2">
-                  We’ve received your message. You can close this page — a confirmation is on its way.
+                  We’ve received your message. You can close this page — we’ll follow up soon.
                 </p>
+                <Button variant="ghost" className="mt-3" onClick={resetPhone}>
+                  Send another message
+                </Button>
               </motion.div>
             )}
           </CardContent>
