@@ -30,8 +30,8 @@ export async function POST(req: Request) {
         if (!ok) throw new Error('recaptcha_failed');
       })(),
       (async () => {
-        await bumpRateOrThrow(`ip:${ip}`, 3600, 5);
-        await bumpRateOrThrow(`id:${identifier}`, 3600, 3);
+        await bumpRateOrThrow(`ip:${ip}`, 3600, 50);
+        await bumpRateOrThrow(`id:${identifier}`, 3600, 30);
       })(),
     ]);
     tick('guards_ok');
