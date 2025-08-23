@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { sendSupportEmail } from '@/lib/email';
-import '@/lib/firebaseAdmin';
+import '@/lib/firebase-admin';
 
 interface CareerFormData {
   name: string;

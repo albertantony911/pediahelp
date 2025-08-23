@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { auth, signInWithPhoneNumber, ConfirmationResult } from '@/lib/firebase';
+// ⬇️ Removed Firebase Phone Auth imports. We keep the exact UI and wire to new endpoints.
+// import { auth, signInWithPhoneNumber, ConfirmationResult } from '@/lib/firebase';
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
 import {
   Form,
@@ -24,6 +25,7 @@ import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } 
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
 const MAX_RESENDS = 3;
+const RESEND_COOLDOWN = 30; // seconds
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
@@ -31,6 +33,8 @@ const formSchema = z.object({
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   message: z.string().min(6, 'Message must be at least 6 characters').max(500, 'Message must be less than 500 characters'),
   otp: z.string().length(6, 'OTP must be 6 digits').optional(),
+  // honeypot
+  website: z.string().optional(),
 });
 
 interface ContactFormProps {
@@ -43,16 +47,21 @@ interface ContactFormProps {
   pageSource?: string;
 }
 
+type ChannelUsed = 'email' | 'sms' | 'whatsapp' | null;
+
 export default function ContactForm({ theme, tagLine, title, successMessage, pageSource = 'Contact Page' }: ContactFormProps) {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(RESEND_COOLDOWN);
   const [resendCount, setResendCount] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [channelUsed, setChannelUsed] = useState<ChannelUsed>(null);
+  const [startedAt, setStartedAt] = useState<number>(Date.now());
+
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,6 +72,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
       phone: '',
       message: '',
       otp: '',
+      website: '', // honeypot
     },
   });
 
@@ -73,12 +83,14 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const otp = watch('otp');
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // Resend countdown
   useEffect(() => {
     if (!otpSent || isVerified || timer === 0) return;
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
 
+  // Focus helpers for OTP inputs
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
     const arr = (otp || '').split('');
@@ -110,6 +122,23 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
   };
 
+  // Get reCAPTCHA token (Invisible v2/v3 compatible). If not loaded, we'll proceed and let server reject (shows a toast).
+  const getRecaptchaToken = async (): Promise<string> => {
+    try {
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      if (typeof window !== 'undefined' && (window as any).grecaptcha && siteKey) {
+        const grecaptcha = (window as any).grecaptcha;
+        await grecaptcha.ready?.();
+        const token = await grecaptcha.execute(siteKey, { action: 'submit' });
+        return token as string;
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  // Send OTP via new verification service (email -> sms -> whatsapp fallback on server policy)
   const handleSendOtp = async () => {
     if (resendCount >= MAX_RESENDS) {
       toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
@@ -118,68 +147,102 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
     const isValid = await trigger(['name', 'email', 'phone', 'message']);
     if (!isValid) {
-      const errors = form.formState.errors;
-      toast.error(Object.values(errors)[0]?.message || 'Please fill all fields correctly');
+      const errors = form.formState.errors as any;
+      const firstError = Object.values(errors)[0];
+      toast.error(
+        typeof firstError === 'object' && firstError && 'message' in firstError
+          ? (firstError as { message?: string }).message
+          : 'Please fill all fields correctly'
+      );
       return;
     }
 
     setIsSendingOtp(true);
     try {
-      // Use Firebase's default invisible reCAPTCHA for phone auth
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier || undefined);
-      setConfirmationResult(result);
+      const token = await getRecaptchaToken();
+      const identifier = email?.trim() || '';
+      const phoneId = `+91${phone}`;
+
+      // Preferred order: email then sms then whatsapp → channel: 'auto' and server policy handles fallback.
+      // We still display the UI text according to the channelUsed returned by the server.
+      const res = await fetch('/api/verify/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: identifier || phoneId,
+          channel: 'auto',
+          scope: 'contact',
+          recaptchaToken: token,
+          honeypot: form.getValues('website'),
+          startedAt: startedAt,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+      setSessionId(data.sessionId);
+      setChannelUsed(data.channelUsed as ChannelUsed);
       setOtpSent(true);
       setStep('otp');
-      setTimer(30);
+      setTimer(RESEND_COOLDOWN);
       setValue('otp', '');
       setResendCount((c) => c + 1);
-      toast.success(`OTP sent to +91${phone}`);
+
+      const dest = data.channelUsed === 'email' ? email : `+91${phone}`;
+      toast.success(`OTP sent to ${dest}`);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      let errorMessage = 'Failed to send OTP';
-      if (error.code === 'auth/invalid-phone-number') errorMessage = 'Invalid phone number';
-      else if (error.code === 'auth/too-many-requests') errorMessage = 'Too many attempts';
-      else if (error.code === 'auth/captcha-check-failed') errorMessage = 'reCAPTCHA verification failed';
-      toast.error(errorMessage);
+      const msg =
+        error?.message === 'recaptcha_failed' ? 'reCAPTCHA verification failed' :
+        error?.message === 'RATE_LIMITED' ? 'Too many attempts. Please try later.' :
+        error?.message || 'Failed to send OTP';
+      toast.error(msg);
     } finally {
       setIsSendingOtp(false);
+      setStartedAt(Date.now());
     }
   };
 
+  // Verify and submit
   const handleVerifyAndSubmit = async (otpCode: string) => {
-    if (!confirmationResult || !otpCode || otpCode.length !== 6) {
+    if (!sessionId || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
       return;
     }
 
     setIsVerifyingOtp(true);
     try {
-      const otpResult = await confirmationResult.confirm(otpCode);
-      if (!otpResult?.user) throw new Error('Phone verification failed');
+      const verifyRes = await fetch('/api/verify/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, otp: otpCode }),
+      });
+      const verifyJson = await verifyRes.json();
+      if (!verifyRes.ok || !verifyJson.ok) throw new Error(verifyJson.error || 'OTP verification failed');
 
-      const idToken = await otpResult.user.getIdToken(true);
       setIsVerified(true);
-      toast.success('Phone verified');
+      toast.success('Verified');
 
       setIsSubmitting(true);
       const formData = form.getValues();
       const payload = {
+        sessionId,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         message: formData.message,
         subject: `Contact Form Submission from ${pageSource}`,
-        userUid: otpResult.user.uid,
       };
 
-      const response = await fetch('/api/contact', {
+      const submitRes = await fetch('/api/contact/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to submit');
+      const submitJson = await submitRes.json();
+      if (!submitRes.ok) throw new Error(submitJson.error || 'Failed to submit');
 
       setStep('success');
       toast.success('Message sent successfully');
@@ -195,10 +258,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   const resetPhone = () => {
     setOtpSent(false);
     setValue('otp', '');
-    setConfirmationResult(null);
-    setStep('form');
+    setSessionId(null);
     setIsVerified(false);
-    setTimer(30);
+    setTimer(RESEND_COOLDOWN);
+    setChannelUsed(null);
+    setStep('form');
+    setStartedAt(Date.now());
   };
 
   const renderStatusIcon = (valid: boolean) => (
@@ -211,7 +276,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: 'easeIn' } },
-  };
+  } as const;
 
   return (
     <Theme variant={theme || 'white'}>
@@ -227,55 +292,128 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
             {step === 'form' && (
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
                 <Form {...form}>
-                  <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }}>
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300"><User className="w-4 h-4" /> Name</FormLabel>
-                        <div className="relative">
+                  <form
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendOtp();
+                    }}
+                  >
+                    {/* Honeypot */}
+                    <input type="text" {...form.register('website')} className="hidden" tabIndex={-1} autoComplete="off" />
+
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <User className="w-4 h-4" /> Name
+                          </FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Your Name"
+                                disabled={otpSent}
+                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
+                              />
+                            </FormControl>
+                            {name && !otpSent && renderStatusIcon(!!name.trim())}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <Mail className="w-4 h-4" /> Email
+                          </FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Your Email"
+                                type="email"
+                                disabled={otpSent}
+                                className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all"
+                              />
+                            </FormControl>
+                            {email && !otpSent && renderStatusIcon(isEmailValid)}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <Phone className="w-4 h-4" /> Phone Number
+                          </FormLabel>
+                          <div className="relative flex items-center border border-gray-200/50 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm">
+                            <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">🇮🇳 +91</div>
+                            <FormControl>
+                              <input
+                                {...field}
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                disabled={otpSent}
+                                placeholder="Enter 10-digit mobile number"
+                                className="w-full px-3 py-2 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100"
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                              />
+                            </FormControl>
+                            {otpSent && (
+                              <Button type="button" variant="ghost" size="sm" onClick={resetPhone} className="rounded-lg">
+                                Edit
+                              </Button>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <MessageSquare className="w-4 h-4" /> Message
+                          </FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Your Name" disabled={otpSent} className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all" />
+                            <Textarea
+                              {...field}
+                              placeholder="Your Message"
+                              rows={4}
+                              disabled={otpSent}
+                              className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all resize-none"
+                            />
                           </FormControl>
-                          {name && !otpSent && renderStatusIcon(!!name.trim())}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300"><Mail className="w-4 h-4" /> Email</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input {...field} placeholder="Your Email" type="email" disabled={otpSent} className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all" />
-                          </FormControl>
-                          {email && !otpSent && renderStatusIcon(isEmailValid)}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300"><Phone className="w-4 h-4" /> Phone Number</FormLabel>
-                        <div className="relative flex items-center border border-gray-200/50 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm">
-                          <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">🇮🇳 +91</div>
-                          <FormControl>
-                            <input {...field} type="tel" inputMode="numeric" pattern="[0-9]*" disabled={otpSent} placeholder="Enter 10-digit mobile number" className="w-full px-3 py-2 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100" onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))} />
-                          </FormControl>
-                          {otpSent && <Button type="button" variant="ghost" size="sm" onClick={resetPhone} className="rounded-lg">Edit</Button>}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="message" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300"><MessageSquare className="w-4 h-4" /> Message</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} placeholder="Your Message" rows={4} disabled={otpSent} className="rounded-lg border-gray-200/50 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-primary focus:ring-0 transition-all resize-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <Button type="submit" disabled={isSendingOtp} className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm">
-                      {isSendingOtp ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...</> : 'Send Message'}
+                      {isSendingOtp ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...
+                        </>
+                      ) : (
+                        'Send Message'
+                      )}
                     </Button>
                   </form>
                 </Form>
@@ -286,27 +424,72 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
               <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
                 <Form {...form}>
                   <form className="space-y-4">
-                    <FormField control={form.control} name="otp" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300"><Phone className="w-4 h-4" /> Enter OTP</FormLabel>
-                        <p className="text-sm text-muted-foreground mb-2">OTP sent to <span className="font-semibold">+91{phone}</span></p>
-                        <FormControl>
-                          <div className="flex justify-center gap-2">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                              <motion.input key={i} type="text" inputMode="numeric" maxLength={1} className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50" ref={(el) => { otpInputsRef.current[i] = el; }} value={otp?.[i] || ''} onChange={(e) => handleOtpChange(i, e.target.value, e)} onKeyDown={(e) => handleOtpKeyDown(i, e)} disabled={isVerifyingOtp || isVerified} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3, delay: i * 0.1 }} />
-                            ))}
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <FormField
+                      control={form.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <Phone className="w-4 h-4" /> Enter OTP
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            OTP sent to{' '}
+                            <span className="font-semibold">
+                              {channelUsed === 'email' ? email : `+91${phone}`}
+                            </span>
+                          </p>
+                          <FormControl>
+                            <div className="flex justify-center gap-2">
+                              {Array.from({ length: 6 }).map((_, i) => (
+                                <motion.input
+                                  key={i}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm disabled:opacity-50"
+                                  ref={(el) => {
+                                    otpInputsRef.current[i] = el;
+                                  }}
+                                  value={otp?.[i] || ''}
+                                  onChange={(e) => handleOtpChange(i, e.target.value, e)}
+                                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                  disabled={isVerifyingOtp || isVerified}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                                />
+                              ))}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
-                      <button type="button" onClick={handleSendOtp} disabled={timer > 0 || isSendingOtp} className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}>Resend OTP</button>
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={timer > 0 || isSendingOtp}
+                        className={timer > 0 ? 'opacity-50 cursor-not-allowed text-primary' : 'text-primary'}
+                      >
+                        Resend OTP
+                      </button>
                     </div>
                     {!isVerified && (
-                      <Button type="button" onClick={() => otp && handleVerifyAndSubmit(otp)} disabled={isVerifyingOtp || isSubmitting || !otp || otp.length !== 6} className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm">
-                        {isVerifyingOtp || isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isVerifyingOtp ? 'Verifying...' : 'Submitting...'}</> : 'Verify & Send'}
+                      <Button
+                        type="button"
+                        onClick={() => otp && handleVerifyAndSubmit(otp)}
+                        disabled={isVerifyingOtp || isSubmitting || !otp || otp.length !== 6}
+                        className="w-full rounded-lg bg-primary/90 hover:bg-primary transition-all backdrop-blur-sm"
+                      >
+                        {isVerifyingOtp || isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isVerifyingOtp ? 'Verifying...' : 'Submitting...'}
+                          </>
+                        ) : (
+                          'Verify & Send'
+                        )}
                       </Button>
                     )}
                   </form>
