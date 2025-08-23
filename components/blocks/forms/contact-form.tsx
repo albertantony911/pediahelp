@@ -8,12 +8,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,8 +17,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } from 'lucide-react';
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
+/** ---------- TUNABLES (for debugging) ---------- */
 const MAX_RESENDS = 3;
 const RESEND_COOLDOWN_BASE = 30;
+// During debugging, set to false so we AWAIT submit and surface errors.
+// When stable, set to true for snappy “respond early, archive/send later”.
+const USE_BACKGROUND_SUBMIT = false;
+/** --------------------------------------------- */
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
@@ -47,9 +47,10 @@ interface ContactFormProps {
 type ChannelUsed = 'email' | 'sms' | 'whatsapp' | null;
 
 /**
- * IMPORTANT: Read the reCAPTCHA site key at module scope so Next.js replaces it
- * with a string *at build time*. This avoids referencing `process` at runtime.
- * If you rotate keys at runtime, also add a <meta name="recaptcha-site-key" content="..."> in layout.tsx.
+ * Read the reCAPTCHA site key at module scope, so Next injects it at build time.
+ * If you need runtime rotation, also add:
+ *   <meta name="recaptcha-site-key" content="...">
+ * in your root layout and we’ll fall back to that.
  */
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string | undefined;
 
@@ -74,7 +75,6 @@ export default function ContactForm({
 
   // Cache reCAPTCHA token briefly to avoid rapid re-generation
   const recaptchaCacheRef = useRef<{ token: string; ts: number } | null>(null);
-
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -96,12 +96,14 @@ export default function ContactForm({
   const otp = watch('otp');
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // Resend countdown
   useEffect(() => {
     if (!otpSent || isVerified || timer === 0) return;
     const interval = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
 
+  // Focus helpers for OTP inputs
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
     const arr = (otp || '').split('');
@@ -111,7 +113,12 @@ export default function ContactForm({
 
     if (value && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
-    } else if (!value && index > 0 && event.target.selectionStart === 0 && (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward') {
+    } else if (
+      !value &&
+      index > 0 &&
+      event.target.selectionStart === 0 &&
+      (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward'
+    ) {
       otpInputsRef.current[index - 1]?.focus();
     }
 
@@ -134,8 +141,8 @@ export default function ContactForm({
   };
 
   /**
-   * Get a v3 token. We try build-time key, then window-injected global, then a <meta> tag.
-   * No `process.env` reads at runtime.
+   * Get a v3 token. Try build-time key, then window-injected global, then <meta>.
+   * No process.env reads at runtime on the client.
    */
   const getRecaptchaToken = async (): Promise<string> => {
     try {
@@ -158,15 +165,13 @@ export default function ContactForm({
       const grecaptcha = (window as any)?.grecaptcha;
 
       if (!siteKey || !grecaptcha || typeof grecaptcha.execute !== 'function' || typeof grecaptcha.ready !== 'function') {
-        console.warn('reCAPTCHA not ready');
+        console.warn('reCAPTCHA not ready', { hasKey: !!siteKey, hasGrecaptcha: !!grecaptcha });
         return '';
       }
 
       await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()));
       const token = await grecaptcha.execute(siteKey, { action: 'submit' });
-      if (token) {
-        recaptchaCacheRef.current = { token, ts: now };
-      }
+      if (token) recaptchaCacheRef.current = { token, ts: now };
       return token || '';
     } catch (e) {
       console.warn('reCAPTCHA: token generation failed', e);
@@ -174,6 +179,7 @@ export default function ContactForm({
     }
   };
 
+  // Send OTP (server policy handles fallback; with EMAIL_ONLY it uses email)
   const handleSendOtp = async () => {
     if (resendCount >= MAX_RESENDS) {
       toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
@@ -251,6 +257,7 @@ export default function ContactForm({
     }
   };
 
+  // Verify & Submit: during debug await submit; otherwise background it
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!sessionId || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
@@ -270,9 +277,10 @@ export default function ContactForm({
       setIsVerified(true);
       toast.success('Verified');
 
-      // Optimistic success
+      // Optimistic success immediately
       setStep('success');
 
+      // Build payload
       const formData = form.getValues();
       const payload = {
         sessionId,
@@ -286,32 +294,52 @@ export default function ContactForm({
       const submitUrl = '/api/contact/submit';
       const json = JSON.stringify(payload);
 
-      let queued = false;
-      if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
-        try {
-          const blob = new Blob([json], { type: 'application/json' });
-          queued = navigator.sendBeacon(submitUrl, blob);
-        } catch {
-          queued = false;
-        }
-      }
-
-      if (!queued) {
-        fetch(submitUrl, {
+      if (!USE_BACKGROUND_SUBMIT) {
+        // ---------- Foreground (debug): await, surface errors ----------
+        setIsSubmitting(true);
+        const submitRes = await fetch(submitUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: json,
-          keepalive: true,
-        }).catch((e) => {
-          console.error('Background submit failed:', e);
-          toast.message('We’re delivering your message…', {
-            description: 'If this persists, please try again.',
-          });
         });
+        const submitJson = await submitRes.json();
+        setIsSubmitting(false);
+
+        if (!submitRes.ok) throw new Error(submitJson.error || 'Failed to submit');
+        if (submitJson.mail === 'failed') {
+          toast.message('Message saved. Email delivery will retry shortly.');
+        } else {
+          toast.success('Message delivered');
+        }
       } else {
-        toast.message('We’re delivering your message…', {
-          description: 'You can close this page anytime.',
-        });
+        // ---------- Background path (snappy) ----------
+        let queued = false;
+        if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+          try {
+            const blob = new Blob([json], { type: 'application/json' });
+            queued = navigator.sendBeacon(submitUrl, blob);
+          } catch {
+            queued = false;
+          }
+        }
+
+        if (!queued) {
+          fetch(submitUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: json,
+            keepalive: true,
+          }).catch((e) => {
+            console.error('Background submit failed:', e);
+            toast.message('We’re delivering your message…', {
+              description: 'If this persists, please try again.',
+            });
+          });
+        } else {
+          toast.message('We’re delivering your message…', {
+            description: 'You can close this page anytime.',
+          });
+        }
       }
     } catch (err: any) {
       console.error('Error in verify/submit:', err);
@@ -355,6 +383,7 @@ export default function ContactForm({
             {title && <Title>{title}</Title>}
           </motion.div>
         )}
+
         <Card className="border-none shadow-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-3xl">
           <CardContent className="p-6">
             {step === 'form' && (
@@ -573,7 +602,12 @@ export default function ContactForm({
             )}
 
             {step === 'success' && (
-              <motion.div variants={formVariants} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+              <motion.div
+                variants={formVariants}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center"
+              >
                 <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {successMessage || 'Message Sent Successfully!'}
