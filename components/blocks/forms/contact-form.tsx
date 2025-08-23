@@ -127,18 +127,22 @@ const getRecaptchaToken = async (): Promise<string> => {
   try {
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
     if (!siteKey) {
-      console.warn('reCAPTCHA: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is missing');
+      console.warn('reCAPTCHA: missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY');
       return '';
     }
+
     const grecaptcha = (window as any)?.grecaptcha;
-    if (!grecaptcha || !grecaptcha.execute) {
+    if (!grecaptcha || typeof grecaptcha.execute !== 'function' || typeof grecaptcha.ready !== 'function') {
       console.warn('reCAPTCHA: grecaptcha not loaded yet');
       return '';
     }
-    await grecaptcha.ready?.();
-    const t = await grecaptcha.execute(siteKey, { action: 'submit' });
-    if (!t) console.warn('reCAPTCHA: execute returned empty token');
-    return t || '';
+
+    // ✅ v3: ready takes a callback (not a promise)
+    await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()));
+
+    const token = await grecaptcha.execute(siteKey, { action: 'submit' });
+    if (!token) console.warn('reCAPTCHA: execute returned empty token');
+    return token || '';
   } catch (e) {
     console.warn('reCAPTCHA: token generation failed', e);
     return '';
