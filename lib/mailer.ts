@@ -1,17 +1,20 @@
 import nodemailer from 'nodemailer';
 import { otpEmailHtml, otpEmailText, contactNotifyHtml, contactNotifyText } from './email-templates';
 
+const USE_STARTTLS = process.env.MAIL_PORT ? Number(process.env.MAIL_PORT) === 587 : true;
+
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST!,
-  port: Number(process.env.MAIL_PORT || 465),
-  secure: process.env.MAIL_SECURE === 'true',
+  host: process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.MAIL_PORT || (USE_STARTTLS ? 587 : 465)),
+  secure: !USE_STARTTLS,                 // false for 587 (STARTTLS), true for 465
   auth: { user: process.env.MAIL_USER!, pass: process.env.MAIL_PASS! },
   pool: true,
-  maxConnections: 2,
-  maxMessages: 20,
-  connectionTimeout: 5000,
-  greetingTimeout: 3000,
-  socketTimeout: 7000,
+  maxConnections: 3,
+  maxMessages: 30,
+  // slightly relaxed timeouts to reduce random timeouts
+  connectionTimeout: 8000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
   tls: { servername: 'smtp.gmail.com' },
 });
 
