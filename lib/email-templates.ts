@@ -30,28 +30,64 @@ const baseStyles = (accent: string) => ({
   `,
 });
 
+// Replace your existing otpEmailHtml with this:
 export function otpEmailHtml(code: string, minutes = 10) {
-  const b = brand();
-  const s = baseStyles(b.color);
+  const BRAND_NAME = process.env.BRAND_NAME || 'PediaHelp';
+  const SITE_URL = (process.env.SITE_URL || '').replace(/\/$/, '');
+  const SUPPORT = process.env.BRAND_SUPPORT_EMAIL || process.env.MAIL_USER || '';
+
+  // Brand palette (from your CSS vars)
+  const DARK = '#264E53';      // --dark-shade
+  const LIGHT = '#CAD76E';     // --light-shade
+  const MID = '#1C947B';       // --mid-shade
+  const BG = '#ffffff';        // --background
+  const FG = '#0b0d11';        // approx of your hsl foreground
+
+  const copyLink = SITE_URL ? `${SITE_URL}/otp?code=${encodeURIComponent(code)}&next=/contact` : '';
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]!));
+
+  const wrap = `
+    width:100%;background:${BG};margin:0;padding:24px 0;
+    font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:${FG};line-height:1.6;
+  `;
+  const card = `
+    max-width:560px;margin:0 auto;background:#fff;border:1px solid ${LIGHT};
+    border-radius:14px;overflow:hidden;
+  `;
+  const head = `
+    padding:16px 20px;font-weight:600;font-size:14px;color:#fff;background:${MID};
+  `;
+  const body = `padding:20px 20px 8px 20px;`;
+  const foot = `padding:14px 20px;font-size:12px;background:${DARK};color:#fff;`;
+  const meta = `color:#6b7280;font-size:12px;margin-top:8px;`;
+  const codeBox = `
+    font-family:ui-monospace,Menlo,Monaco,Consolas,monospace;
+    font-size:24px;letter-spacing:6px;font-weight:700;background:${DARK};color:#fff;border-radius:12px;
+    padding:10px 14px;display:inline-block;user-select:all;
+  `;
+
   return `
-  <div style="${s.wrapper}">
-    <div style="${s.card}">
-      <div style="${s.header}">${b.name} — Verification Code</div>
-      <div style="${s.body}">
-        <p style="margin:0 0 10px 0">Hi there,</p>
-        <p style="margin:0 0 16px 0">
-          Use the code below to verify your request. This code expires in <strong>${minutes} minutes</strong>.
-        </p>
-        <div style="margin:16px 0 8px 0"><span style="${s.codeBox}">${code}</span></div>
-        <p style="${s.meta}">Didn’t request this? Ignore this email and no changes will be made.</p>
-        ${b.site ? `<p style="${s.meta}">Request originated from <a href="${b.site}" style="color:${b.color};text-decoration:none">${b.site}</a></p>` : ''}
+  <div style="${wrap}">
+    <div style="${card}">
+      <div style="${head}">${esc(BRAND_NAME)} · Verification</div>
+      <div style="${body}">
+        <p style="margin:0 0 8px 0">Use this code to continue. It expires in <strong>${minutes} minutes</strong>.</p>
+        <div style="margin:12px 0 6px 0"><span style="${codeBox}">${esc(code)}</span></div>
+        ${copyLink
+          ? `<p style="${meta}">Tip: <a href="${copyLink}" style="color:${MID};text-decoration:none">Click here to copy the code</a> (opens a small helper page).</p>`
+          : ''
+        }
+        <p style="${meta}">Didn’t request this? You can ignore this email.</p>
       </div>
-      <div style="${s.footer}">
-        <div>${b.name} • ${b.support ? `<a href="mailto:${b.support}" style="color:${b.color};text-decoration:none">${b.support}</a>` : ''}</div>
-        <div style="margin-top:6px;color:#94a3b8">
-          This site is protected by reCAPTCHA and the Google
-          <a href="https://policies.google.com/privacy" style="color:${b.color};text-decoration:none">Privacy Policy</a> and
-          <a href="https://policies.google.com/terms" style="color:${b.color};text-decoration:none">Terms of Service</a> apply.
+      <div style="${foot}">
+        <div>${esc(BRAND_NAME)}${SUPPORT ? ` • <a href="mailto:${SUPPORT}" style="color:${LIGHT};text-decoration:none">${SUPPORT}</a>`:''}</div>
+        <div style="margin-top:6px;color:#e6f0f0">
+          Protected by reCAPTCHA ·
+          <a href="https://policies.google.com/privacy" style="color:${LIGHT};text-decoration:none">Privacy</a> ·
+          <a href="https://policies.google.com/terms" style="color:${LIGHT};text-decoration:none">Terms</a>
         </div>
       </div>
     </div>
@@ -76,19 +112,51 @@ type ContactPayload = {
   scope?: string;
 };
 
-export function contactNotifyHtml(p: ContactPayload) {
-  const b = brand();
-  const s = baseStyles(b.color);
-  const row = (label: string, value?: string) =>
-    value
-      ? `<tr><td style="padding:8px 0;color:#64748b;width:120px">${label}</td><td style="padding:8px 0;color:#0f172a">${value}</td></tr>`
-      : '';
+// Replace your existing contactNotifyHtml with this:
+export function contactNotifyHtml(p: {
+  name: string; email: string; phone?: string; message: string;
+  pageSource?: string; sessionId?: string; scope?: string;
+}) {
+  const BRAND_NAME = process.env.BRAND_NAME || 'PediaHelp';
+
+  // Brand palette (from your CSS vars)
+  const DARK = '#264E53';      // --dark-shade
+  const LIGHT = '#CAD76E';     // --light-shade
+  const MID = '#1C947B';       // --mid-shade
+  const BG = '#ffffff';        // --background
+  const FG = '#0b0d11';        // approx of your hsl foreground
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]!));
+
+  const wrap = `
+    width:100%;background:${BG};margin:0;padding:24px 0;
+    font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:${FG};line-height:1.6;
+  `;
+  const card = `
+    max-width:560px;margin:0 auto;background:#fff;border:1px solid ${LIGHT};
+    border-radius:14px;overflow:hidden;
+  `;
+  const head = `
+    padding:16px 20px;font-weight:600;font-size:14px;color:#fff;background:${MID};
+  `;
+  const body = `padding:20px 20px 8px 20px;`;
+  const foot = `padding:14px 20px;font-size:12px;background:${DARK};color:#fff;`;
+  const hr = `border:none;height:1px;background:${LIGHT};margin:16px 0;`;
+
+  const row = (label: string, value?: string) => value ? `
+    <tr>
+      <td style="padding:6px 0;color:#6b7280;width:120px">${esc(label)}</td>
+      <td style="padding:6px 0;color:${FG}">${esc(value)}</td>
+    </tr>` : '';
+
   return `
-  <div style="${s.wrapper}">
-    <div style="${s.card}">
-      <div style="${s.header}">${b.name} — New Contact Submission</div>
-      <div style="${s.body}">
-        <table style="width:100%;border-collapse:collapse">
+  <div style="${wrap}">
+    <div style="${card}">
+      <div style="${head}">${esc(BRAND_NAME)} · New contact</div>
+      <div style="${body}">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
           ${row('Name', p.name)}
           ${row('Email', p.email)}
           ${row('Phone', p.phone || '—')}
@@ -96,15 +164,14 @@ export function contactNotifyHtml(p: ContactPayload) {
           ${row('Scope', p.scope || 'contact')}
           ${row('Session', p.sessionId || '—')}
         </table>
-        <div style="${s.hr}"></div>
+        <div style="${hr}"></div>
         <div>
-          <div style="font-size:12px;color:#64748b;margin-bottom:6px">Message</div>
-          <div style="white-space:pre-wrap;line-height:1.6">${escapeHtml(p.message)}</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:6px">Message</div>
+          <div style="white-space:pre-wrap">${esc(p.message)}</div>
         </div>
       </div>
-      <div style="${s.footer}">
-        <div>Reply to the sender directly: <a href="mailto:${p.email}" style="color:${b.color};text-decoration:none">${p.email}</a></div>
-        ${b.support ? `<div style="margin-top:6px;color:#94a3b8">Forwarded by ${b.name} • <a href="mailto:${b.support}" style="color:${b.color};text-decoration:none">${b.support}</a></div>` : ''}
+      <div style="${foot}">
+        <div>Reply: <a href="mailto:${esc(p.email)}" style="color:${LIGHT};text-decoration:none">${esc(p.email)}</a></div>
       </div>
     </div>
   </div>`;
