@@ -123,20 +123,27 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   };
 
   // Get reCAPTCHA token (Invisible v2/v3 compatible). If not loaded, we'll proceed and let server reject (shows a toast).
-  const getRecaptchaToken = async (): Promise<string> => {
-    try {
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-      if (typeof window !== 'undefined' && (window as any).grecaptcha && siteKey) {
-        const grecaptcha = (window as any).grecaptcha;
-        await grecaptcha.ready?.();
-        const token = await grecaptcha.execute(siteKey, { action: 'submit' });
-        return token as string;
-      }
-      return '';
-    } catch {
+const getRecaptchaToken = async (): Promise<string> => {
+  try {
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (!siteKey) {
+      console.warn('reCAPTCHA: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is missing');
       return '';
     }
-  };
+    const grecaptcha = (window as any)?.grecaptcha;
+    if (!grecaptcha || !grecaptcha.execute) {
+      console.warn('reCAPTCHA: grecaptcha not loaded yet');
+      return '';
+    }
+    await grecaptcha.ready?.();
+    const t = await grecaptcha.execute(siteKey, { action: 'submit' });
+    if (!t) console.warn('reCAPTCHA: execute returned empty token');
+    return t || '';
+  } catch (e) {
+    console.warn('reCAPTCHA: token generation failed', e);
+    return '';
+  }
+};
 
   // Send OTP via new verification service (email -> sms -> whatsapp fallback on server policy)
   const handleSendOtp = async () => {
@@ -160,8 +167,14 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     setIsSendingOtp(true);
     try {
       const token = await getRecaptchaToken();
+if (!token) {
+  toast.error('reCAPTCHA not ready — please wait 1–2 seconds and try again.');
+  return;
+}
       const identifier = email?.trim() || '';
       const phoneId = `+91${phone}`;
+
+      
 
       // Preferred order: email then sms then whatsapp → channel: 'auto' and server policy handles fallback.
       // We still display the UI text according to the channelUsed returned by the server.
