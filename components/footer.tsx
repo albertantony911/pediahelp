@@ -55,14 +55,14 @@ export default function Footer() {
     <footer
       className={cn(
         'w-full bg-white px-10 py-10 max-sm:mb-20',
-        ' text-sm text-zinc-500',
+        'text-sm text-zinc-500',
         '[padding-bottom:calc(env(safe-area-inset-bottom)+2rem)]'
       )}
     >
       <div className="max-w-7xl mx-auto space-y-10 lg:pr-10">
-        {/* Top Row: Logo and Links */}
+        {/* Top Row */}
         <div className="flex flex-col lg:flex-row justify-between gap-10 lg:gap-0">
-          {/* Left: Logo Block */}
+          {/* Left: Logo */}
           <div className="flex-1 max-w-sm">
             <Link
               href="/"
@@ -93,8 +93,7 @@ export default function Footer() {
           </div>
 
           {/* Right: Link Blocks */}
-          <div className=" flex flex-row lg:justify-between gap-10 flex-wrap max-sm:border-t border-zinc-200 pt-6 lg:pt-0">
-            {/* Explore & Resources */}
+          <div className="flex flex-row lg:justify-between gap-10 flex-wrap max-sm:border-t border-zinc-200 pt-6 lg:pt-0">
             {[...footerSections].map(({ heading, links }) => (
               <div key={heading} className="min-w-[120px]">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-800 mb-3">
@@ -116,7 +115,6 @@ export default function Footer() {
             ))}
 
             <div className="flex-row lg:flex-row-reverse flex gap-10">
-              {/* Specialities - 2-column layout */}
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-800 mb-3">
                   Specialities
@@ -133,8 +131,6 @@ export default function Footer() {
                   ))}
                 </div>
               </div>
-
-              {/* Company block (with Cookies trigger) */}
               <div className="min-w-[120px]">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-800 mb-3">
                   Company
@@ -166,19 +162,42 @@ export default function Footer() {
         </div>
 
         {/* Bottom Row */}
-        <div className="pt-6 flex flex-col sm:flex-row justify-between items-start gap-4 text-xs text-zinc-500 border-t border-zinc-200 ">
+        <div className="pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs text-zinc-500 border-t border-zinc-200">
           <p>© {new Date().getFullYear()} PediaHelp. All rights reserved.</p>
-          <p>
-            Powered by{' '}
-            <Link
-              href="https://blackwoodbox.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-[var(--primary)] transition"
-            >
-              Blackwoodbox.com
-            </Link>
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-[11px] text-zinc-400">
+            <span>
+              This site is protected by reCAPTCHA and the{' '}
+              <Link
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[var(--primary)]"
+              >
+                Privacy Policy
+              </Link>{' '}
+              and{' '}
+              <Link
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[var(--primary)]"
+              >
+                Terms of Service
+              </Link>{' '}
+              apply.
+            </span>
+            <p>
+              Powered by{' '}
+              <Link
+                href="https://blackwoodbox.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[var(--primary)] transition"
+              >
+                Blackwoodbox.com
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
