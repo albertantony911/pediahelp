@@ -48,6 +48,7 @@
     "@sanity/webhook": "^4.0.4",
     "@types/lodash.debounce": "^4.0.9",
     "@types/validator": "^13.15.0",
+    "@upstash/redis": "^1.35.3",
     "algoliasearch": "^4.24.0",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
