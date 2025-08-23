@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { InstantSearchProvider } from "@/components/providers/InstantSearchProvider";
 import { DoctorsProvider } from "@/components/providers/DoctorsProvider";
 import { fetchAllDoctors } from "@/lib/fetchDoctors";
+import Script from "next/script";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -53,9 +54,10 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        
-        <script
-        src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+
+<Script
+          src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+          strategy="afterInteractive"
         />
 
       </head>
