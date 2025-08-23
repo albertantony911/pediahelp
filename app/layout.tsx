@@ -54,11 +54,10 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
-
-<Script
-          src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
-          strategy="afterInteractive"
-        />
+        {/* expose site-key to the client WITHOUT using process in the client */}
+        <meta name="recaptcha-site-key" content={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY} />
+        {/* v3 script (already added earlier) */}
+        <script async defer src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`} />
 
       </head>
       <body

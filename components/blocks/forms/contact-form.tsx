@@ -23,7 +23,6 @@ import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } 
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
 const MAX_RESENDS = 3;
-// base cooldown; it will grow a bit with each resend (to discourage hammering)
 const RESEND_COOLDOWN_BASE = 30;
 
 const formSchema = z.object({
@@ -32,8 +31,7 @@ const formSchema = z.object({
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   message: z.string().min(6, 'Message must be at least 6 characters').max(500, 'Message must be less than 500 characters'),
   otp: z.string().length(6, 'OTP must be 6 digits').optional(),
-  // honeypot
-  website: z.string().optional(),
+  website: z.string().optional(), // honeypot
 });
 
 interface ContactFormProps {
@@ -47,6 +45,13 @@ interface ContactFormProps {
 }
 
 type ChannelUsed = 'email' | 'sms' | 'whatsapp' | null;
+
+/**
+ * IMPORTANT: Read the reCAPTCHA site key at module scope so Next.js replaces it
+ * with a string *at build time*. This avoids referencing `process` at runtime.
+ * If you rotate keys at runtime, also add a <meta name="recaptcha-site-key" content="..."> in layout.tsx.
+ */
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string | undefined;
 
 export default function ContactForm({
   theme,
@@ -67,7 +72,7 @@ export default function ContactForm({
   const [channelUsed, setChannelUsed] = useState<ChannelUsed>(null);
   const [startedAt, setStartedAt] = useState<number>(Date.now());
 
-  // reCAPTCHA token cache (avoid regenerating for quick resends)
+  // Cache reCAPTCHA token briefly to avoid rapid re-generation
   const recaptchaCacheRef = useRef<{ token: string; ts: number } | null>(null);
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -80,7 +85,7 @@ export default function ContactForm({
       phone: '',
       message: '',
       otp: '',
-      website: '', // honeypot
+      website: '',
     },
   });
 
@@ -91,14 +96,12 @@ export default function ContactForm({
   const otp = watch('otp');
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // Resend countdown
   useEffect(() => {
     if (!otpSent || isVerified || timer === 0) return;
     const interval = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
 
-  // Focus helpers for OTP inputs
   const handleOtpChange = (index: number, value: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
     const arr = (otp || '').split('');
@@ -108,12 +111,7 @@ export default function ContactForm({
 
     if (value && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
-    } else if (
-      !value &&
-      index > 0 &&
-      event.target.selectionStart === 0 &&
-      (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward'
-    ) {
+    } else if (!value && index > 0 && event.target.selectionStart === 0 && (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward') {
       otpInputsRef.current[index - 1]?.focus();
     }
 
@@ -135,7 +133,10 @@ export default function ContactForm({
     }
   };
 
-  // Get/cached reCAPTCHA token (Invisible v3). Cache ~30s.
+  /**
+   * Get a v3 token. We try build-time key, then window-injected global, then a <meta> tag.
+   * No `process.env` reads at runtime.
+   */
   const getRecaptchaToken = async (): Promise<string> => {
     try {
       const now = Date.now();
@@ -143,7 +144,17 @@ export default function ContactForm({
         return recaptchaCacheRef.current.token;
       }
 
-      const siteKey = (process as any).env?.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || (window as any)?.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      const keyFromMeta =
+        typeof document !== 'undefined'
+          ? document.querySelector<HTMLMetaElement>('meta[name="recaptcha-site-key"]')?.content
+          : '';
+
+      const siteKey =
+        RECAPTCHA_SITE_KEY ||
+        (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_RECAPTCHA_SITE_KEY : '') ||
+        keyFromMeta ||
+        '';
+
       const grecaptcha = (window as any)?.grecaptcha;
 
       if (!siteKey || !grecaptcha || typeof grecaptcha.execute !== 'function' || typeof grecaptcha.ready !== 'function') {
@@ -163,7 +174,6 @@ export default function ContactForm({
     }
   };
 
-  // Send OTP (server will choose email→sms→whatsapp; you have EMAIL_ONLY=true now)
   const handleSendOtp = async () => {
     if (resendCount >= MAX_RESENDS) {
       toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
@@ -213,13 +223,11 @@ export default function ContactForm({
       setChannelUsed((data.channelUsed as ChannelUsed) ?? null);
       setOtpSent(true);
       setStep('otp');
-      // exponential-ish backoff: +10s per resend
       const nextCooldown = RESEND_COOLDOWN_BASE + resendCount * 10;
       setTimer(nextCooldown);
       setValue('otp', '');
       setResendCount((c) => c + 1);
 
-      // When FAST_SEND=true on server, channelUsed may be null (queued)
       const dest =
         data.channelUsed === 'email'
           ? email
@@ -243,7 +251,6 @@ export default function ContactForm({
     }
   };
 
-  // Verify and submit (optimistic UI: show success immediately, then submit in background)
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!sessionId || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
@@ -255,7 +262,6 @@ export default function ContactForm({
       const verifyRes = await fetch('/api/verify/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // server accepts { otp } or { code }
         body: JSON.stringify({ sessionId, otp: otpCode }),
       });
       const verifyJson = await verifyRes.json();
@@ -264,10 +270,9 @@ export default function ContactForm({
       setIsVerified(true);
       toast.success('Verified');
 
-      // 🚀 Optimistic success — switch view now
+      // Optimistic success
       setStep('success');
 
-      // Build payload
       const formData = form.getValues();
       const payload = {
         sessionId,
@@ -278,7 +283,6 @@ export default function ContactForm({
         subject: `Contact Form Submission from ${pageSource}`,
       };
 
-      // Try background submit with sendBeacon first (non-blocking)
       const submitUrl = '/api/contact/submit';
       const json = JSON.stringify(payload);
 
@@ -293,7 +297,6 @@ export default function ContactForm({
       }
 
       if (!queued) {
-        // Fallback non-blocking fetch with keepalive; do NOT await
         fetch(submitUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -301,13 +304,11 @@ export default function ContactForm({
           keepalive: true,
         }).catch((e) => {
           console.error('Background submit failed:', e);
-          // Optional: show a subtle info toast; user already saw success
           toast.message('We’re delivering your message…', {
             description: 'If this persists, please try again.',
           });
         });
       } else {
-        // Friendly info toast
         toast.message('We’re delivering your message…', {
           description: 'You can close this page anytime.',
         });
