@@ -6,8 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-// ⬇️ Removed Firebase Phone Auth imports. We keep the exact UI and wire to new endpoints.
-// import { auth, signInWithPhoneNumber, ConfirmationResult } from '@/lib/firebase';
 import { Theme, ThemeVariant } from '@/components/ui/theme/Theme';
 import {
   Form,
@@ -25,7 +23,8 @@ import { CheckCircle2, AlertCircle, Loader2, Mail, User, MessageSquare, Phone } 
 import { Title, Subtitle } from '@/components/ui/theme/typography';
 
 const MAX_RESENDS = 3;
-const RESEND_COOLDOWN = 30; // seconds
+// base cooldown; it will grow a bit with each resend (to discourage hammering)
+const RESEND_COOLDOWN_BASE = 30;
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be less than 50 characters'),
@@ -49,18 +48,27 @@ interface ContactFormProps {
 
 type ChannelUsed = 'email' | 'sms' | 'whatsapp' | null;
 
-export default function ContactForm({ theme, tagLine, title, successMessage, pageSource = 'Contact Page' }: ContactFormProps) {
+export default function ContactForm({
+  theme,
+  tagLine,
+  title,
+  successMessage,
+  pageSource = 'Contact Page',
+}: ContactFormProps) {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [isVerified, setIsVerified] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const [timer, setTimer] = useState(RESEND_COOLDOWN);
+  const [timer, setTimer] = useState(RESEND_COOLDOWN_BASE);
   const [resendCount, setResendCount] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [channelUsed, setChannelUsed] = useState<ChannelUsed>(null);
   const [startedAt, setStartedAt] = useState<number>(Date.now());
+
+  // reCAPTCHA token cache (avoid regenerating for quick resends)
+  const recaptchaCacheRef = useRef<{ token: string; ts: number } | null>(null);
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -86,7 +94,7 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
   // Resend countdown
   useEffect(() => {
     if (!otpSent || isVerified || timer === 0) return;
-    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    const interval = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(interval);
   }, [timer, otpSent, isVerified]);
 
@@ -100,7 +108,12 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
 
     if (value && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
-    } else if (!value && index > 0 && event.target.selectionStart === 0 && (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward') {
+    } else if (
+      !value &&
+      index > 0 &&
+      event.target.selectionStart === 0 &&
+      (event.nativeEvent as InputEvent).inputType === 'deleteContentBackward'
+    ) {
       otpInputsRef.current[index - 1]?.focus();
     }
 
@@ -122,34 +135,35 @@ export default function ContactForm({ theme, tagLine, title, successMessage, pag
     }
   };
 
-  // Get reCAPTCHA token (Invisible v2/v3 compatible). If not loaded, we'll proceed and let server reject (shows a toast).
-const getRecaptchaToken = async (): Promise<string> => {
-  try {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    if (!siteKey) {
-      console.warn('reCAPTCHA: missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY');
+  // Get/cached reCAPTCHA token (Invisible v3). Cache ~30s.
+  const getRecaptchaToken = async (): Promise<string> => {
+    try {
+      const now = Date.now();
+      if (recaptchaCacheRef.current && now - recaptchaCacheRef.current.ts < 30_000) {
+        return recaptchaCacheRef.current.token;
+      }
+
+      const siteKey = (process as any).env?.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || (window as any)?.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      const grecaptcha = (window as any)?.grecaptcha;
+
+      if (!siteKey || !grecaptcha || typeof grecaptcha.execute !== 'function' || typeof grecaptcha.ready !== 'function') {
+        console.warn('reCAPTCHA not ready');
+        return '';
+      }
+
+      await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()));
+      const token = await grecaptcha.execute(siteKey, { action: 'submit' });
+      if (token) {
+        recaptchaCacheRef.current = { token, ts: now };
+      }
+      return token || '';
+    } catch (e) {
+      console.warn('reCAPTCHA: token generation failed', e);
       return '';
     }
+  };
 
-    const grecaptcha = (window as any)?.grecaptcha;
-    if (!grecaptcha || typeof grecaptcha.execute !== 'function' || typeof grecaptcha.ready !== 'function') {
-      console.warn('reCAPTCHA: grecaptcha not loaded yet');
-      return '';
-    }
-
-    // ✅ v3: ready takes a callback (not a promise)
-    await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()));
-
-    const token = await grecaptcha.execute(siteKey, { action: 'submit' });
-    if (!token) console.warn('reCAPTCHA: execute returned empty token');
-    return token || '';
-  } catch (e) {
-    console.warn('reCAPTCHA: token generation failed', e);
-    return '';
-  }
-};
-
-  // Send OTP via new verification service (email -> sms -> whatsapp fallback on server policy)
+  // Send OTP (server will choose email→sms→whatsapp; you have EMAIL_ONLY=true now)
   const handleSendOtp = async () => {
     if (resendCount >= MAX_RESENDS) {
       toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
@@ -171,17 +185,14 @@ const getRecaptchaToken = async (): Promise<string> => {
     setIsSendingOtp(true);
     try {
       const token = await getRecaptchaToken();
-if (!token) {
-  toast.error('reCAPTCHA not ready — please wait 1–2 seconds and try again.');
-  return;
-}
-      const identifier = email?.trim() || '';
+      if (!token) {
+        toast.error('reCAPTCHA not ready — please wait 1–2 seconds and try again.');
+        return;
+      }
+
+      const identifier = (email || '').trim();
       const phoneId = `+91${phone}`;
 
-      
-
-      // Preferred order: email then sms then whatsapp → channel: 'auto' and server policy handles fallback.
-      // We still display the UI text according to the channelUsed returned by the server.
       const res = await fetch('/api/verify/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -199,21 +210,32 @@ if (!token) {
       if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
 
       setSessionId(data.sessionId);
-      setChannelUsed(data.channelUsed as ChannelUsed);
+      setChannelUsed((data.channelUsed as ChannelUsed) ?? null);
       setOtpSent(true);
       setStep('otp');
-      setTimer(RESEND_COOLDOWN);
+      // exponential-ish backoff: +10s per resend
+      const nextCooldown = RESEND_COOLDOWN_BASE + resendCount * 10;
+      setTimer(nextCooldown);
       setValue('otp', '');
       setResendCount((c) => c + 1);
 
-      const dest = data.channelUsed === 'email' ? email : `+91${phone}`;
-      toast.success(`OTP sent to ${dest}`);
+      // When FAST_SEND=true on server, channelUsed may be null (queued)
+      const dest =
+        data.channelUsed === 'email'
+          ? email
+          : data.channelUsed === 'sms' || data.channelUsed === 'whatsapp'
+          ? `+91${phone}`
+          : (email || `+91${phone}`);
+
+      toast.success(data.queued ? `OTP is being sent to ${dest}` : `OTP sent to ${dest}`);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       const msg =
-        error?.message === 'recaptcha_failed' ? 'reCAPTCHA verification failed' :
-        error?.message === 'RATE_LIMITED' ? 'Too many attempts. Please try later.' :
-        error?.message || 'Failed to send OTP';
+        error?.message === 'recaptcha_failed'
+          ? 'reCAPTCHA verification failed'
+          : error?.message === 'RATE_LIMITED'
+          ? 'Too many attempts. Please try later.'
+          : error?.message || 'Failed to send OTP';
       toast.error(msg);
     } finally {
       setIsSendingOtp(false);
@@ -221,7 +243,7 @@ if (!token) {
     }
   };
 
-  // Verify and submit
+  // Verify and submit (optimistic UI: show success immediately, then submit in background)
   const handleVerifyAndSubmit = async (otpCode: string) => {
     if (!sessionId || !otpCode || otpCode.length !== 6) {
       toast.error('Invalid OTP');
@@ -233,6 +255,7 @@ if (!token) {
       const verifyRes = await fetch('/api/verify/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // server accepts { otp } or { code }
         body: JSON.stringify({ sessionId, otp: otpCode }),
       });
       const verifyJson = await verifyRes.json();
@@ -241,7 +264,10 @@ if (!token) {
       setIsVerified(true);
       toast.success('Verified');
 
-      setIsSubmitting(true);
+      // 🚀 Optimistic success — switch view now
+      setStep('success');
+
+      // Build payload
       const formData = form.getValues();
       const payload = {
         sessionId,
@@ -252,20 +278,44 @@ if (!token) {
         subject: `Contact Form Submission from ${pageSource}`,
       };
 
-      const submitRes = await fetch('/api/contact/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      // Try background submit with sendBeacon first (non-blocking)
+      const submitUrl = '/api/contact/submit';
+      const json = JSON.stringify(payload);
 
-      const submitJson = await submitRes.json();
-      if (!submitRes.ok) throw new Error(submitJson.error || 'Failed to submit');
+      let queued = false;
+      if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+        try {
+          const blob = new Blob([json], { type: 'application/json' });
+          queued = navigator.sendBeacon(submitUrl, blob);
+        } catch {
+          queued = false;
+        }
+      }
 
-      setStep('success');
-      toast.success('Message sent successfully');
+      if (!queued) {
+        // Fallback non-blocking fetch with keepalive; do NOT await
+        fetch(submitUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: json,
+          keepalive: true,
+        }).catch((e) => {
+          console.error('Background submit failed:', e);
+          // Optional: show a subtle info toast; user already saw success
+          toast.message('We’re delivering your message…', {
+            description: 'If this persists, please try again.',
+          });
+        });
+      } else {
+        // Friendly info toast
+        toast.message('We’re delivering your message…', {
+          description: 'You can close this page anytime.',
+        });
+      }
     } catch (err: any) {
       console.error('Error in verify/submit:', err);
       toast.error(err.message || 'Failed to verify or submit');
+      setIsVerified(false);
     } finally {
       setIsVerifyingOtp(false);
       setIsSubmitting(false);
@@ -277,7 +327,7 @@ if (!token) {
     setValue('otp', '');
     setSessionId(null);
     setIsVerified(false);
-    setTimer(RESEND_COOLDOWN);
+    setTimer(RESEND_COOLDOWN_BASE);
     setChannelUsed(null);
     setStep('form');
     setStartedAt(Date.now());
@@ -377,7 +427,9 @@ if (!token) {
                             <Phone className="w-4 h-4" /> Phone Number
                           </FormLabel>
                           <div className="relative flex items-center border border-gray-200/50 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm">
-                            <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">🇮🇳 +91</div>
+                            <div className="flex items-center px-3 py-2 bg-gray-100/50 dark:bg-gray-600/50 text-sm gap-1 shrink-0 text-gray-700 dark:text-gray-300">
+                              🇮🇳 +91
+                            </div>
                             <FormControl>
                               <input
                                 {...field}
@@ -423,7 +475,11 @@ if (!token) {
                       )}
                     />
 
-                    <Button type="submit" disabled={isSendingOtp} className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm">
+                    <Button
+                      type="submit"
+                      disabled={isSendingOtp}
+                      className="w-full rounded-lg bg-primary/90 hover:bg-primary hover:scale-105 transition-all backdrop-blur-sm"
+                    >
                       {isSendingOtp ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...
@@ -454,6 +510,7 @@ if (!token) {
                             <span className="font-semibold">
                               {channelUsed === 'email' ? email : `+91${phone}`}
                             </span>
+                            {channelUsed === null && ' (sending…)'}
                           </p>
                           <FormControl>
                             <div className="flex justify-center gap-2">
@@ -515,9 +572,14 @@ if (!token) {
             )}
 
             {step === 'success' && (
-              <motion.div variants={formVariants} initial="hidden" animate="visible" className="text-center">
+              <motion.div variants={formVariants} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{successMessage || 'Message Sent Successfully!'}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  {successMessage || 'Message Sent Successfully!'}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-2">
+                  We’ve received your message. You can close this page — a confirmation is on its way.
+                </p>
               </motion.div>
             )}
           </CardContent>
