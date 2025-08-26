@@ -1,9 +1,11 @@
+// app/api/contact/submit/route.ts
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import { nowSec } from '@/lib/crypto';
 import { sendContactNotification } from '@/lib/mailer';
+import { getSession, markUsed } from '@/lib/otp-store-redis';
 
 export async function POST(req: Request) {
   const t0 = Date.now();
@@ -13,7 +15,6 @@ export async function POST(req: Request) {
     tick('begin');
     const body = await req.json();
     const { sessionId, name, email, phone, message, subject, pageSource = 'Contact Page' } = body || {};
-
     console.log('[contact/submit] payload:', { sessionId, name, email, hasMsg: !!message });
 
     if (!sessionId || !name || !email || !message) {
@@ -21,34 +22,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'bad_request' }, { status: 400 });
     }
 
-    const ref = db.collection('otpSessions').doc(sessionId);
-    const snap = await ref.get();
-    if (!snap.exists) {
-      console.warn('[contact/submit] invalid_session');
-      return NextResponse.json({ error: 'invalid_session' }, { status: 400 });
-    }
+    // Validate OTP session in Redis
+    const s = await getSession(sessionId);
+    if (!s)                         return NextResponse.json({ error: 'invalid_session' }, { status: 400 });
+    if (s.expiresAt < nowSec())     return NextResponse.json({ error: 'expired' }, { status: 400 });
+    if (!s.verified)                return NextResponse.json({ error: 'not_verified' }, { status: 400 });
+    if (s.used)                     return NextResponse.json({ error: 'already_used' }, { status: 400 });
+    if (s.scope !== 'contact')      return NextResponse.json({ error: 'wrong_scope' }, { status: 403 });
 
-    const s = snap.data()!;
-    if (s.expiresAt < nowSec()) return NextResponse.json({ error: 'expired' }, { status: 400 });
-    if (!s.verified) return NextResponse.json({ error: 'not_verified' }, { status: 400 });
-    if (s.used) return NextResponse.json({ error: 'already_used' }, { status: 400 });
-    if (s.scope !== 'contact') return NextResponse.json({ error: 'wrong_scope' }, { status: 403 });
-
-    // Mark used before archiving/sending to avoid dupes on reload
-    await ref.update({ used: true, usedAt: nowSec() });
+    // Mark used BEFORE archive/send (avoid dupes on reload)
+    await markUsed(sessionId);
     tick('session_marked_used');
 
-    // Archive first (no-loss)
+    // Archive (Firestore) for durability
     await db.collection('contactMessages').add({
       sessionId, name, email, phone: phone || null, message,
       pageSource, subject: subject || null, createdAt: nowSec(),
     });
     tick('archived');
 
-    // Send email (best effort)
+    // Send mail (Resend)
     try {
       await sendContactNotification(
-        process.env.MAIL_RECEIVER || process.env.MAIL_USER!,
+        process.env.MAIL_RECEIVER || process.env.MAIL_USER || email, // fallback (or set explicit receiver env)
         { name, email, phone, message }
       );
       tick('mail_sent');

@@ -1,3 +1,4 @@
+// app/api/internal/send-contact/route.ts
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
@@ -12,8 +13,8 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
-    // expected payload shape:
-    // { to, name, email, phone, message, pageSource, sessionId, scope }
+    // expected payload shape (for this endpoint):
+    // { to, name, email, phone?, message }
     if (!payload?.to || !payload?.name || !payload?.email || !payload?.message) {
       return NextResponse.json({ error: 'bad_request' }, { status: 400 });
     }
@@ -23,9 +24,6 @@ export async function POST(req: Request) {
       email: payload.email,
       phone: payload.phone,
       message: payload.message,
-      pageSource: payload.pageSource,
-      sessionId: payload.sessionId,
-      scope: payload.scope || 'contact',
     });
 
     return NextResponse.json({ ok: true });

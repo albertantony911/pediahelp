@@ -1,11 +1,12 @@
+// app/api/verify/start/route.ts
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
 import { verifyRecaptcha } from '@/lib/recaptcha';
 import { bumpRateOrThrow } from '@/lib/ratelimit';
 import { randomOtp, sha256, randomId, nowSec } from '@/lib/crypto';
 import { sendWithPolicy, Channel } from '@/lib/otp-channels';
+import { createSession, setChannelUsed } from '@/lib/otp-store-redis';
 
 export async function POST(req: Request) {
   const t0 = Date.now();
@@ -22,11 +23,10 @@ export async function POST(req: Request) {
 
     const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'ip') as string;
 
-    // ✅ Parallelize reCAPTCHA + rate limits (faster than serial)
+    // guards
     tick('guards_start');
     await Promise.all([
       (async () => {
-        // 4s cap for Google, don’t hang the function
         const ok = await Promise.race([
           verifyRecaptcha(recaptchaToken),
           new Promise<boolean>((_,rej)=>setTimeout(()=>rej(new Error('RECAPTCHA_TIMEOUT')), 4000)),
@@ -41,36 +41,30 @@ export async function POST(req: Request) {
           await bumpRateOrThrow(`otp:id:${identifier}`, 3600, idMax);
         } catch (e:any) {
           if (e?.message === 'RATE_LIMITED') throw e;
-          // Soft-fail rate limiter if backend is slow
           tick('ratelimit_soft_fail');
         }
       })(),
     ]);
     tick('guards_ok');
 
-    // Prepare session + code
+    // session + code
     const sessionId = randomId(12);
     const code = randomOtp();
     const expiresAt = nowSec() + 600;
     const effectiveChannel: Channel = process.env.EMAIL_ONLY === 'true' ? 'email' : (channel as Channel);
 
-    // Save session BEFORE sending (so we can switch to fast mode cleanly)
-    await db.collection('otpSessions').doc(sessionId).set({
-      identifier, scope,
-      otpHash: sha256(code),
-      expiresAt,
-      tries: 0, verified: false, used: false,
-      createdAt: nowSec(), ip,
+    // save session in Redis
+    await createSession(sessionId, {
+      identifier, scope, otpHash: sha256(code), expiresAt, ip,
     });
     tick('session_saved');
 
-    // ---------- TWO MODES ----------
+    // FAST mode -> queue send
     if (process.env.FAST_SEND === 'true') {
-      // 🚀 Respond immediately; send in background
-      ;(async () => {
+      (async () => {
         try {
           const chUsed = await sendWithPolicy(identifier, code, effectiveChannel);
-          await db.collection('otpSessions').doc(sessionId).update({ channelUsed: chUsed });
+          await setChannelUsed(sessionId, chUsed);
           console.log('[verify/start:bg] sent ok via', chUsed);
         } catch (e:any) {
           console.error('[verify/start:bg] send failed:', e?.message || e);
@@ -79,7 +73,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ sessionId, channelUsed: null, queued: true });
     }
 
-    // Default: synchronous send (existing behavior)
+    // Synchronous send
     tick('otp_send_start');
     const channelUsed = await Promise.race([
       sendWithPolicy(identifier, code, effectiveChannel),
@@ -87,7 +81,7 @@ export async function POST(req: Request) {
     ]);
     tick('otp_sent');
 
-    await db.collection('otpSessions').doc(sessionId).update({ channelUsed });
+    await setChannelUsed(sessionId, channelUsed);
     tick('session_updated');
 
     return NextResponse.json({ sessionId, channelUsed });
@@ -95,7 +89,7 @@ export async function POST(req: Request) {
     const msg = e?.message || 'start_failed';
     console.error('[verify/start] error:', msg);
     if (msg === 'OTP_SEND_TIMEOUT') return NextResponse.json({ error:'otp_delivery_timeout' }, { status: 504 });
-    if (msg === 'RATE_LIMITED') return NextResponse.json({ error:'RATE_LIMITED' }, { status: 429 });
+    if (msg === 'RATE_LIMITED')     return NextResponse.json({ error:'RATE_LIMITED' }, { status: 429 });
     if (msg === 'recaptcha_failed') return NextResponse.json({ error:'recaptcha_failed' }, { status: 400 });
     return NextResponse.json({ error: msg }, { status: 400 });
   } finally {
