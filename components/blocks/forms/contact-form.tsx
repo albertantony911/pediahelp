@@ -268,10 +268,7 @@ export default function ContactForm({
         <span className="flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-green-500" />
           <span>OTP Sent</span>
-        </span>,
-        {
-          description: 'Please check your messages and enter the 6-digit code.',
-        }
+        </span>
       );
     } catch (error: any) {
       toast.error(error?.message || 'Failed to send OTP');
@@ -582,106 +579,95 @@ export default function ContactForm({
 
             {/* ───────────────── OTP STEP ───────────────── */}
             {step === 'otp' && (
-              <motion.div variants={formVariants} initial="hidden" animate={{ opacity: 1, y: 0 }} exit="exit" layout>
-                <Form {...form}>
-                  <form className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="otp"
-                      render={() => {
-                        const canResend = timer === 0 && !isSendingOtp;
-                        return (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                                <Phone className="w-4 h-4" /> Enter OTP
-                              </FormLabel>
+            <motion.div variants={formVariants} initial="hidden" animate={{ opacity: 1, y: 0 }} exit="exit" layout>
+              <Form {...form}>
+                <form className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="otp"
+                    render={() => {
+                      const canResend = timer === 0 && !isSendingOtp;
+                      return (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                              <Phone className="w-4 h-4" /> Enter OTP
+                            </FormLabel>
 
-                              {/* Timer → Resend button */}
-                              <div className="text-xs">
-                                {canResend ? (
-                                  <button
-                                    type="button"
-                                    onClick={handleSendOtp}
-                                    className="text-primary hover:underline font-medium"
-                                  >
-                                    Resend OTP
-                                  </button>
-                                ) : (
-                                  <span className="text-muted-foreground">0:{timer.toString().padStart(2, '0')}</span>
-                                )}
-                              </div>
+                            {/* Timer → Resend button */}
+                            <div className="text-xs">
+                              {canResend ? (
+                                <button
+                                  type="button"
+                                  onClick={handleSendOtp}
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  Resend OTP
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground">0:{timer.toString().padStart(2, '0')}</span>
+                              )}
                             </div>
+                          </div>
 
-                            <FormControl>
-                              <div
-                                id="otp-row"
-                                className="flex justify-center gap-2 rounded-xl p-2"
-                                aria-label="One-time password inputs"
-                                onPaste={handleOtpPaste}
-                              >
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                  <div key={i} className="relative">
-                                    {/* subtle spinner ring while verifying */}
-                                    {isVerifyingOtp && !isVerified && (
-                                      <span
-                                        aria-hidden
-                                        className="pointer-events-none absolute -inset-1 rounded-md border-2 border-transparent 
-                                                  border-t-primary/30 border-r-primary/30 animate-spin"
-                                        style={{ animationDuration: '900ms' }}
-                                      />
-                                    )}
+                          <FormControl>
+                            <div
+                              id="otp-row"
+                              className="flex justify-center gap-2 rounded-xl p-2"
+                              aria-label="One-time password inputs"
+                              onPaste={handleOtpPaste}
+                            >
+                              {Array.from({ length: 6 }).map((_, i) => (
+                                <motion.input
+                                  key={i}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  aria-label={`Digit ${i + 1}`}
+                                  className={OTP_BASE}
+                                  ref={(el) => { otpInputsRef.current[i] = el; }}
+                                  defaultValue={otp?.[i] || ''}
+                                  onChange={(e) => handleOtpChange(i, e.target.value, e as any)}
+                                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                  disabled={isVerifyingOtp || isVerified}
+                                  readOnly={isVerified}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ duration: 0.18, delay: i * 0.02 }}
+                                />
+                              ))}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
 
-                                    <motion.input
-                                      type="text"
-                                      inputMode="numeric"
-                                      maxLength={1}
-                                      aria-label={`Digit ${i + 1}`}
-                                      className={OTP_BASE}
-                                      ref={(el) => { otpInputsRef.current[i] = el; }}
-                                      defaultValue={otp?.[i] || ''}
-                                      onChange={(e) => handleOtpChange(i, e.target.value, e as any)}
-                                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                                      disabled={isVerifyingOtp || isVerified}
-                                      readOnly={isVerified}
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      transition={{ duration: 0.18, delay: i * 0.02 }}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    {/* full-width button */}
-                    <Button
-                      type="button"
-                      onClick={() => otp && otp.length === 6 && handleVerifyAndSubmit(otp)}
-                      disabled={isVerifyingOtp || isSubmitting || !otp || otp.length !== 6 || isVerified}
-                      className={[
-                        'w-full rounded-xl transition-all',
-                        isVerifyingOtp
-                          ? 'bg-primary/90 ring-2 ring-primary/40 shadow-lg'
-                          : 'bg-primary/90 hover:bg-primary',
-                      ].join(' ')}
-                    >
-                      {isVerifyingOtp || isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…
-                        </>
-                      ) : (
-                        'Verify now'
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </motion.div>
-            )}
+                  {/* full-width button */}
+                  <Button
+                    type="button"
+                    onClick={() => otp && otp.length === 6 && handleVerifyAndSubmit(otp)}
+                    disabled={isVerifyingOtp || isSubmitting || !otp || otp.length !== 6 || isVerified}
+                    className={[
+                      'w-full rounded-xl transition-all',
+                      isVerifyingOtp
+                        ? 'bg-primary/90 ring-2 ring-primary/40 shadow-lg'
+                        : 'bg-primary/90 hover:bg-primary',
+                    ].join(' ')}
+                  >
+                    {isVerifyingOtp || isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…
+                      </>
+                    ) : (
+                      'Verify now'
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </motion.div>
+          )}
 
             {/* ───────────────── SUCCESS STEP (animated, simple) ───────────────── */}
             {step === 'success' && (
@@ -696,7 +682,7 @@ export default function ContactForm({
                 <motion.svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 52 52"
-                  className="w-20 h-20 mx-auto text-green-500"
+                  className="w-20 h-20 mx-auto"
                   initial="hidden"
                   animate="visible"
                 >
@@ -704,8 +690,8 @@ export default function ContactForm({
                     cx="26"
                     cy="26"
                     r="25"
-                    fill="none"
-                    stroke="currentColor"
+                    fill="green"
+                    stroke="green"
                     strokeWidth="2"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
@@ -713,7 +699,7 @@ export default function ContactForm({
                   />
                   <motion.path
                     fill="none"
-                    stroke="currentColor"
+                    stroke="white"   // ✅ white check mark
                     strokeWidth="4"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -728,19 +714,15 @@ export default function ContactForm({
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     {successMessage || 'Message sent!'}
                   </h3>
-                  <p className="text-sm text-300">
+                  <p className="text-sm text-muted-foreground">
                     Thanks
                     {name && (
                       <>
-                        , <span className="text-primary font-medium">
-                          {name.split(' ')[0]}
-                        </span>
+                        , <span className="text-primary font-medium">{name.split(' ')[0]}</span>
                       </>
                     )}
                   </p>
-                  <p className="text-sm text-300">
-                    We’ll be in touch shortly.
-                  </p>
+                  <p className="text-sm text-muted-foreground">We’ll be in touch shortly.</p>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-2">
