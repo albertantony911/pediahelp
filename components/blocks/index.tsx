@@ -18,6 +18,7 @@ const BLOCK_TYPES = [
   "section-block",
   "specialty-card",
   "contact-form",
+  "career-form",
   "waveDivider",
 ] as const;
 
@@ -47,6 +48,7 @@ import AllPosts from "@/components/blocks/all-posts";
 import SectionBlock from "@/components/ui/section-block";
 import SpecialtyCard from "@/components/blocks/specialty-card";
 import ContactForm from "@/components/blocks/forms/contact-form";
+import CareerForm from "@/components/blocks/forms/career-form";
 import WaveDivider from "@/components/blocks/wave-divider";
 
 // 4. Component mapping with type-safe keys
@@ -67,6 +69,7 @@ const componentMap: Record<BlockType, React.ComponentType<any>> = {
   "section-block": SectionBlock,
   "specialty-card": SpecialtyCard,
   "contact-form": ContactForm,
+  "career-form": CareerForm,
   waveDivider: WaveDivider,
 };
 

@@ -12,10 +12,11 @@ import { logoCloud1Query } from "./logo-cloud/logo-cloud-1";
 import { faqsQuery } from "./faqs";
 import { formNewsletterQuery } from "./forms/newsletter";
 import { allPostsQuery } from "./all-posts";
-import { sectionBlockQuery } from './section-block';
+import { sectionBlockQuery } from "./section-block";
 import { specialtyCardQuery } from "./specialty-card";
 import { contactFormQuery } from "./forms/contact-form";
-import { waveDividerQuery } from "./wave-divider"; // Import the waveDivider query
+import { waveDividerQuery } from "./wave-divider";
+import { careerFormQuery } from "./forms/career-form";  // 👈 add this
 
 export const PAGE_QUERY = groq`
   *[_type == "page" && slug.current == $slug][0]{
@@ -36,7 +37,8 @@ export const PAGE_QUERY = groq`
       ${sectionBlockQuery},
       ${specialtyCardQuery},
       ${contactFormQuery},
-      ${waveDividerQuery}, // Add the waveDivider query
+      ${careerFormQuery},     
+      ${waveDividerQuery},
     },
     meta_title,
     meta_description,
@@ -45,13 +47,8 @@ export const PAGE_QUERY = groq`
       asset->{
         _id,
         url,
-        metadata {
-          dimensions {
-            width,
-            height
-          }
-        }
-      },
+        metadata { dimensions { width, height } }
+      }
     }
   }
 `;
