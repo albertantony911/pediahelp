@@ -264,8 +264,15 @@ export default function ContactForm({
       setResendCount((c) => c + 1);
 
       // 🔔 minimal toast (moved from inline), nothing else noisy
-      const dest = channelUsed === 'email' ? email : `+91${phone}`;
-      toast.message('OTP sent', { description: dest || 'Check your inbox/phone' });
+      toast.success(
+        <span className="flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5 text-green-500" />
+          <span>OTP Sent</span>
+        </span>,
+        {
+          description: 'Please check your messages and enter the 6-digit code.',
+        }
+      );
     } catch (error: any) {
       toast.error(error?.message || 'Failed to send OTP');
     } finally {
@@ -577,12 +584,11 @@ export default function ContactForm({
             {step === 'otp' && (
               <motion.div variants={formVariants} initial="hidden" animate={{ opacity: 1, y: 0 }} exit="exit" layout>
                 <Form {...form}>
-                  <form className="space-y-4" aria-describedby="otp-row">
+                  <form className="space-y-4">
                     <FormField
                       control={form.control}
                       name="otp"
                       render={() => {
-                        const digitsEntered = (otp || '').replace(/\D/g, '').length;
                         const canResend = timer === 0 && !isSendingOtp;
                         return (
                           <FormItem>
@@ -591,7 +597,7 @@ export default function ContactForm({
                                 <Phone className="w-4 h-4" /> Enter OTP
                               </FormLabel>
 
-                              {/* Right-side: timer → Resend button */}
+                              {/* Timer → Resend button */}
                               <div className="text-xs">
                                 {canResend ? (
                                   <button
@@ -610,42 +616,39 @@ export default function ContactForm({
                             <FormControl>
                               <div
                                 id="otp-row"
-                                className={[
-                                  'flex justify-center gap-2 rounded-xl p-2',
-                                  pulseRow && !prefersReducedMotion
-                                    ? 'shadow-xl ring-2 ring-primary/25 brightness-110'
-                                    : 'shadow-none',
-                                ].join(' ')}
+                                className="flex justify-center gap-2 rounded-xl p-2"
                                 aria-label="One-time password inputs"
                                 onPaste={handleOtpPaste}
                               >
                                 {Array.from({ length: 6 }).map((_, i) => (
-                                  <motion.input
-                                    key={i}
-                                    type="text"
-                                    inputMode="numeric"
-                                    maxLength={1}
-                                    aria-label={`Digit ${i + 1}`}
-                                    className={
-                                      OTP_BASE +
-                                      (pulseRow && !prefersReducedMotion ? ' shadow-lg border-primary/60' : '')
-                                    }
-                                    ref={(el) => { otpInputsRef.current[i] = el; }}
-                                    defaultValue={otp?.[i] || ''}
-                                    onChange={(e) => handleOtpChange(i, e.target.value, e as any)}
-                                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                                    disabled={isVerifyingOtp || isVerified}
-                                    readOnly={isVerified}
-                                    initial={{ y: 0, opacity: prefersReducedMotion ? 1 : 0 }}
-                                    animate={{
-                                      opacity: 1,
-                                      y: pulseRow && !prefersReducedMotion ? [-2, 0] : 0,
-                                    }}
-                                    transition={{
-                                      duration: pulseRow ? 0.22 : 0.18,
-                                      delay: pulseRow ? i * 0.04 : 0,
-                                    }}
-                                  />
+                                  <div key={i} className="relative">
+                                    {/* subtle spinner ring while verifying */}
+                                    {isVerifyingOtp && !isVerified && (
+                                      <span
+                                        aria-hidden
+                                        className="pointer-events-none absolute -inset-1 rounded-md border-2 border-transparent 
+                                                  border-t-primary/30 border-r-primary/30 animate-spin"
+                                        style={{ animationDuration: '900ms' }}
+                                      />
+                                    )}
+
+                                    <motion.input
+                                      type="text"
+                                      inputMode="numeric"
+                                      maxLength={1}
+                                      aria-label={`Digit ${i + 1}`}
+                                      className={OTP_BASE}
+                                      ref={(el) => { otpInputsRef.current[i] = el; }}
+                                      defaultValue={otp?.[i] || ''}
+                                      onChange={(e) => handleOtpChange(i, e.target.value, e as any)}
+                                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                      disabled={isVerifyingOtp || isVerified}
+                                      readOnly={isVerified}
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      transition={{ duration: 0.18, delay: i * 0.02 }}
+                                    />
+                                  </div>
                                 ))}
                               </div>
                             </FormControl>
@@ -655,7 +658,7 @@ export default function ContactForm({
                       }}
                     />
 
-                    {/* Full-width action that turns into glowing spinner during auto-verify */}
+                    {/* full-width button */}
                     <Button
                       type="button"
                       onClick={() => otp && otp.length === 6 && handleVerifyAndSubmit(otp)}
@@ -689,41 +692,54 @@ export default function ContactForm({
                 className="text-center space-y-6"
                 layout
               >
-                {/* Burst animation */}
-                <div className="relative flex items-center justify-center py-4">
-                  {/* central check */}
-                  <motion.div
-                    initial={{ scale: prefersReducedMotion ? 1 : 0.7, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30"
-                  >
-                    <CheckCircle2 className="w-9 h-9 text-green-600 dark:text-green-400" />
-                  </motion.div>
+                {/* Animated checkmark */}
+                <motion.svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 52 52"
+                  className="w-20 h-20 mx-auto text-green-500"
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.circle
+                    cx="26"
+                    cy="26"
+                    r="25"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  />
+                  <motion.path
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14 27l7 7 17-17"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.6, ease: 'easeInOut' }}
+                  />
+                </motion.svg>
 
-                  {/* confetti dots (pure motion, no deps) */}
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <motion.span
-                      key={i}
-                      initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-                      animate={{
-                        opacity: [0, 1, 0],
-                        scale: [0.5, 1, 0.5],
-                        x: (Math.cos((i / 10) * Math.PI * 2) * 50),
-                        y: (Math.sin((i / 10) * Math.PI * 2) * 24),
-                      }}
-                      transition={{ duration: prefersReducedMotion ? 0 : 0.9, delay: i * 0.03, ease: 'easeOut' }}
-                      className="absolute w-2 h-2 rounded-full bg-primary/70"
-                    />
-                  ))}
-                </div>
-
-                <div>
+                <div className="space-y-1">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     {successMessage || 'Message sent!'}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Thanks{ name ? `, ${name}` : '' }. We’ll be in touch shortly.
+                  <p className="text-sm text-300">
+                    Thanks
+                    {name && (
+                      <>
+                        , <span className="text-primary font-medium">
+                          {name.split(' ')[0]}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  <p className="text-sm text-300">
+                    We’ll be in touch shortly.
                   </p>
                 </div>
 
@@ -735,7 +751,9 @@ export default function ContactForm({
                     variant="ghost"
                     className="rounded-xl"
                     onClick={() => {
-                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+                      }
                     }}
                   >
                     Close
