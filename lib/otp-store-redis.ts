@@ -21,7 +21,10 @@ export type Session = {
 
 const key = (id: string) => `otp:sess:${id}`;
 
-export async function createSession(sessionId: string, s: Omit<Session, 'tries'|'verified'|'used'|'createdAt'>) {
+export async function createSession(
+  sessionId: string,
+  s: Omit<Session, 'tries' | 'verified' | 'used' | 'createdAt'>
+) {
   const now = nowSec();
   const ttl = Math.max(s.expiresAt - now + 900, 900); // keep ~15m after expiry
   const payload: Session = {
@@ -31,17 +34,23 @@ export async function createSession(sessionId: string, s: Omit<Session, 'tries'|
     used: false,
     createdAt: now,
   };
-  await redis.set(key(sessionId), JSON.stringify(payload), { ex: ttl });
+  // Store as an object (Upstash serializes JSON automatically)
+  await redis.set(key(sessionId), payload, { ex: ttl });
 }
 
 export async function getSession(sessionId: string): Promise<Session | null> {
-  const val = await redis.get<string>(key(sessionId));
-  return val ? JSON.parse(val) as Session : null;
+  // Upstash may return string OR object depending on client/settings
+  const val = await redis.get<unknown>(key(sessionId));
+  if (!val) return null;
+  if (typeof val === 'string') {
+    return JSON.parse(val) as Session;
+  }
+  return val as Session;
 }
 
 async function save(sessionId: string, s: Session) {
   const ttl = Math.max(s.expiresAt - nowSec() + 900, 900);
-  await redis.set(key(sessionId), JSON.stringify(s), { ex: ttl });
+  await redis.set(key(sessionId), s, { ex: ttl });
 }
 
 export async function setChannelUsed(sessionId: string, ch: Channel) {
