@@ -266,7 +266,6 @@ export default function ContactForm({
       // 🔔 minimal toast (moved from inline), nothing else noisy
       toast.success(
         <span className="flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-green-500" />
           <span>OTP Sent</span>
         </span>
       );
@@ -605,7 +604,7 @@ export default function ContactForm({
                                   Resend OTP
                                 </button>
                               ) : (
-                                <span className="text-muted-foreground">0:{timer.toString().padStart(2, '0')}</span>
+                                <span className="text-gray-300">0:{timer.toString().padStart(2, '0')}</span>
                               )}
                             </div>
                           </div>
@@ -714,19 +713,19 @@ export default function ContactForm({
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     {successMessage || 'Message sent!'}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-300">
                     Thanks
                     {name && (
                       <>
-                        , <span className="text-primary font-medium">{name.split(' ')[0]}</span>
+                        , <span className="text-gray-300 font-medium">{name.split(' ')[0]}</span>
                       </>
                     )}
                   </p>
-                  <p className="text-sm text-muted-foreground">We’ll be in touch shortly.</p>
+                  <p className="text-sm text-gray-300">We’ll be in touch shortly.</p>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button variant="secondary" onClick={resetFlow} className="rounded-xl">
+                  <Button variant="default" onClick={resetFlow} className="rounded-xl">
                     Send another message
                   </Button>
                   <Button
