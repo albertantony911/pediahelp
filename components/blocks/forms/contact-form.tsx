@@ -375,54 +375,62 @@ export default function ContactForm({
     exit: { opacity: 0, y: prefersReducedMotion ? 0 : -20, transition: { duration: prefersReducedMotion ? 0 : 0.3, ease: 'easeIn' } },
   } as const;
 
-  const Stepper = () => (
-  <div className="mb-6" aria-label="Form progress">
-    <div className="flex items-center justify-center gap-3 text-xs">
-      {['Details', 'Verify', 'Done'].map((label, i) => {
-        const idx = (['form', 'otp', 'success'] as const).indexOf(step);
-        const active = i <= idx;
-        const current = i === idx;
-        return (
-          <div key={label} className="flex items-center gap-2">
-            <div className="relative flex items-center justify-center">
-              {/* subtle animated glow only on the current step */}
-              {current && (
-                <motion.span
-                  className="absolute inline-block h-5 w-5 rounded-full bg-primary/30 blur-sm"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: [0.6, 0.3, 0.6], scale: [1, 1.15, 1] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 2,
-                    ease: 'easeInOut',
-                  }}
-                  aria-hidden
-                />
-              )}
+    const Stepper = () => (
+      <div className="mb-6" aria-label="Form progress">
+        <div className="flex items-center justify-center gap-3 text-xs">
+          {['Details', 'Verify', 'Done'].map((label, i) => {
+            const idx = (['form', 'otp', 'success'] as const).indexOf(step);
+            const state =
+              i < idx ? 'done' : i === idx ? 'current' : 'upcoming';
 
-              <div
-                className={[
-                  'h-2.5 w-2.5 rounded-full transition-all relative z-10',
-                  active
-                    ? 'bg-primary ring-4 ring-primary/15'
-                    : 'bg-gray-300 dark:bg-gray-600',
-                ].join(' ')}
-              />
-            </div>
-            <span
-              className={current ? 'text-primary/90 font-medium' : active ? 'text-gray-500' : 'text-gray-300'}
-            >
-              {label}
-            </span>
-            {i < 2 && (
-              <div className="w-8 h-px bg-gradient-to-r from-transparent via-gray-300/70 to-transparent dark:via-gray-600/70" />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  </div>
-);
+            return (
+              <div key={label} className="flex items-center gap-2">
+                <div className="relative flex items-center justify-center">
+                  {/* Dot with subtle animated glow on current step */}
+                  {state === 'current' && (
+                    <motion.span
+                      className="absolute inline-block h-5 w-5 rounded-full bg-primary/30 blur-sm"
+                      initial={{ opacity: 0.3, scale: 0.9 }}
+                      animate={{ opacity: [0.6, 0.3, 0.6], scale: [1, 1.15, 1] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                      aria-hidden
+                    />
+                  )}
+
+                  <div
+                    className={[
+                      'h-2.5 w-2.5 rounded-full relative z-10 transition-all',
+                      state === 'done'
+                        ? 'bg-primary/90 ring-4 ring-primary/30' // darker completed
+                        : state === 'current'
+                        ? 'bg-primary ring-4 ring-primary/15' // active with glow
+                        : 'bg-gray-200 dark:bg-gray-700', // lighter incomplete
+                    ].join(' ')}
+                  />
+                </div>
+
+                <span
+                  className={[
+                    'transition-colors',
+                    state === 'done'
+                      ? 'text-primary/90 font-medium'
+                      : state === 'current'
+                      ? 'text-primary font-semibold'
+                      : 'text-gray-400 dark:text-gray-600',
+                  ].join(' ')}
+                >
+                  {label}
+                </span>
+
+                {i < 2 && (
+                  <div className="w-8 h-px bg-gradient-to-r from-transparent via-gray-300/50 to-transparent dark:via-gray-600/50" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
 
   return (
     <Theme variant={theme || 'white'}>
