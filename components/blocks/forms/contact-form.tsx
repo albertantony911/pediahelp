@@ -726,7 +726,7 @@ export default function ContactForm({
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button variant="default" onClick={resetFlow} className="rounded-xl">
+                  <Button variant="secondary" onClick={resetFlow} className="rounded-xl">
                     Send another message
                   </Button>
                   <Button
