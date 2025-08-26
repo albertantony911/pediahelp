@@ -416,7 +416,7 @@ export default function ContactForm({
                       ? 'text-primary/90 font-medium'
                       : state === 'current'
                       ? 'text-primary font-semibold'
-                      : 'text-gray-400 dark:text-gray-600',
+                      : 'text-gray-300 dark:text-gray-600',
                   ].join(' ')}
                 >
                   {label}

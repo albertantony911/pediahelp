@@ -365,7 +365,7 @@ export default function CareerForm({
                   'transition-colors',
                   state === 'done' ? 'text-primary/90 font-medium' :
                   state === 'current' ? 'text-primary font-semibold' :
-                  'text-gray-400 dark:text-gray-600',
+                  'text-gray-300 dark:text-gray-600',
                 ].join(' ')}
               >
                 {label}
@@ -483,7 +483,7 @@ export default function CareerForm({
                             <Briefcase className="w-4 h-4" /> Role (optional)
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="e.g., Frontend Engineer" disabled={otpSent} className={INPUT_BASE} />
+                            <Input {...field} placeholder="e.g., Pediatric Nephrologist" disabled={otpSent} className={INPUT_BASE} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -502,7 +502,7 @@ export default function CareerForm({
                           <FormControl>
                             <Textarea
                               {...field}
-                              placeholder="Why you’re a great fit, notice period, current CTC, etc."
+                              placeholder="Why you’re a great fit, experience, location, availability, etc."
                               rows={4}
                               disabled={otpSent}
                               className={INPUT_BASE + ' resize-none'}
@@ -533,8 +533,8 @@ export default function CareerForm({
                               className={INPUT_BASE}
                             />
                           </FormControl>
-                          <p className="text-[11px] text-gray-500">
-                            Set sharing to <strong>Anyone with the link (Viewer)</strong>. Files over 100 MB may show a Drive virus-scan warning.
+                          <p className="text-[11px] text-gray-300">
+                            Set sharing to <strong>Anyone with the link (Viewer)</strong>
                           </p>
                           <FormMessage />
                         </FormItem>
