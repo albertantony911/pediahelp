@@ -51,6 +51,7 @@ import allPosts from "./schemas/blocks/all-posts";
 import sectionBlock from './schemas/blocks/section-block';
 import specialtyCard from "./schemas/blocks/specialty-card";
 import contactForm from './schemas/blocks/forms/contact-form';
+import careerForm from './schemas/blocks/forms/career-form';
 import waveDivider from './schemas/blocks/wave-divider';
 import waveDividerVariant from './schemas/blocks/wave-divider-variant';
 
@@ -108,6 +109,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     sectionBlock,
     specialtyCard,
     contactForm,
+    careerForm,
     waveDivider,
   ],
 };

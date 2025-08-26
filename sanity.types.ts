@@ -56,6 +56,14 @@ export type WaveDivider = {
   };
 };
 
+export type CareerForm = {
+  _type: "career-form";
+  theme?: "dark-shade" | "mid-shade" | "light-shade" | "white";
+  tagLine?: string;
+  title?: string;
+  successMessage?: string;
+};
+
 export type ContactForm = {
   _type: "contact-form";
   theme?: "dark-shade" | "mid-shade" | "light-shade" | "white";
@@ -1324,6 +1332,8 @@ export type Page = {
     _key: string;
   } & ContactForm | {
     _key: string;
+  } & CareerForm | {
+    _key: string;
   } & AllPosts | {
     _key: string;
   } & SectionBlock | {
@@ -1442,7 +1452,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | CareerForm | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery
@@ -2461,7 +2471,7 @@ export type PAGE_QUERYResult = {
         } | null;
       } | null;
     } | null;
-  }> | null;
+  } | {}> | null;
   meta_title: string | null;
   meta_description: string | null;
   noindex: boolean | null;
