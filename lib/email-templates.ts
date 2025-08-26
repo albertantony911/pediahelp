@@ -75,8 +75,8 @@ export function contactNotifyHtml(p: ContactPayload) {
       <hr style="border:none;height:1px;background:${COLOR_LIGHT};margin:20px 0" />
       <p style="font-size:12px;color:${COLOR_LIGHT};margin:0">
         Reply: <a href="mailto:${esc(p.email)}" style="color:${COLOR_TEAL};text-decoration:none">${esc(p.email)}</a>
-        ${BRAND_SUPPORT ? ` · Support: <a href="mailto:${esc(BRAND_SUPPORT)}" style="color:${COLOR_TEAL};text-decoration:none">${esc(BRAND_SUPPORT)}</a>` : ''}
       </p>
+
     </div>
   </div>`;
 }
