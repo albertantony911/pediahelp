@@ -376,22 +376,53 @@ export default function ContactForm({
   } as const;
 
   const Stepper = () => (
-    <div className="mb-6" aria-label="Form progress">
-      <div className="flex items-center justify-center gap-3 text-xs">
-        {['Details', 'Verify', 'Done'].map((label, i) => {
-          const idx = (['form', 'otp', 'success'] as const).indexOf(step);
-          const active = i <= idx;
-          return (
-            <div key={label} className="flex items-center gap-2">
-              <div className={['h-2.5 w-2.5 rounded-full transition-all', active ? 'bg-primary ring-4 ring-primary/15' : 'bg-gray-300 dark:bg-gray-600'].join(' ')} />
-              <span className={active ? 'text-primary/90' : 'text-gray-300'}>{label}</span>
-              {i < 2 && <div className="w-8 h-px bg-gradient-to-r from-transparent via-gray-300/70 to-transparent dark:via-gray-600/70" />}
+  <div className="mb-6" aria-label="Form progress">
+    <div className="flex items-center justify-center gap-3 text-xs">
+      {['Details', 'Verify', 'Done'].map((label, i) => {
+        const idx = (['form', 'otp', 'success'] as const).indexOf(step);
+        const active = i <= idx;
+        const current = i === idx;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <div className="relative flex items-center justify-center">
+              {/* subtle animated glow only on the current step */}
+              {current && (
+                <motion.span
+                  className="absolute inline-block h-5 w-5 rounded-full bg-primary/30 blur-sm"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: [0.6, 0.3, 0.6], scale: [1, 1.15, 1] }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2,
+                    ease: 'easeInOut',
+                  }}
+                  aria-hidden
+                />
+              )}
+
+              <div
+                className={[
+                  'h-2.5 w-2.5 rounded-full transition-all relative z-10',
+                  active
+                    ? 'bg-primary ring-4 ring-primary/15'
+                    : 'bg-gray-300 dark:bg-gray-600',
+                ].join(' ')}
+              />
             </div>
-          );
-        })}
-      </div>
+            <span
+              className={current ? 'text-primary/90 font-medium' : active ? 'text-gray-500' : 'text-gray-300'}
+            >
+              {label}
+            </span>
+            {i < 2 && (
+              <div className="w-8 h-px bg-gradient-to-r from-transparent via-gray-300/70 to-transparent dark:via-gray-600/70" />
+            )}
+          </div>
+        );
+      })}
     </div>
-  );
+  </div>
+);
 
   return (
     <Theme variant={theme || 'white'}>
@@ -710,18 +741,18 @@ export default function ContactForm({
                 </motion.svg>
 
                 <div className="space-y-1">
-                  <h3 className="text-xl font-semibold text-gray-300 dark:text-gray-100">
+                  <h3 className="text-xl font-semibold text-gray-200 dark:text-gray-100">
                     {successMessage || 'Message sent!'}
                   </h3>
-                  <p className="text-sm text-gray-300">
+                  <p className="text-sm text-gray-200">
                     Thanks
                     {name && (
                       <>
-                        , <span className="text-gray-400 font-medium">{name.split(' ')[0]}</span>
+                        , <span className="text-gray-200 font-medium">{name.split(' ')[0]}</span>
                       </>
                     )}
                   </p>
-                  <p className="text-sm text-gray-400">We’ll be in touch shortly.</p>
+                  <p className="text-sm text-gray-200">We’ll be in touch shortly.</p>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-2">
