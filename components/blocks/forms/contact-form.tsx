@@ -689,8 +689,8 @@ export default function ContactForm({
                     cx="26"
                     cy="26"
                     r="25"
-                    fill="green"
-                    stroke="green"
+                    fill="#264E53"
+                    stroke="white"
                     strokeWidth="2"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
@@ -710,18 +710,18 @@ export default function ContactForm({
                 </motion.svg>
 
                 <div className="space-y-1">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-xl font-semibold text-gray-300 dark:text-gray-100">
                     {successMessage || 'Message sent!'}
                   </h3>
                   <p className="text-sm text-gray-300">
                     Thanks
                     {name && (
                       <>
-                        , <span className="text-gray-300 font-medium">{name.split(' ')[0]}</span>
+                        , <span className="text-gray-400 font-medium">{name.split(' ')[0]}</span>
                       </>
                     )}
                   </p>
-                  <p className="text-sm text-gray-300">We’ll be in touch shortly.</p>
+                  <p className="text-sm text-gray-400">We’ll be in touch shortly.</p>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-2">
