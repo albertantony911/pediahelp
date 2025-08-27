@@ -251,11 +251,19 @@ export default function StepSlot() {
             <div className="block md:hidden text-center text-sm font-semibold text-white mb-2">
               Available Slots
             </div>
+
             {loading && (
               <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                <div className="text-sm text-white animate-pulse">Updating slots...</div>
+                <div className="text-sm text-gray-700 animate-pulse">Updating slots...</div>
               </div>
             )}
+
+            {!loading && slotAvailability.every(s => !s.available) && (
+              <div className="text-center text-sm text-gray-400 py-6">
+                No slots for this day. Try another date.
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedDate.toISOString()}
@@ -263,7 +271,7 @@ export default function StepSlot() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0 } }}
                 transition={{ duration: 0.2 }}
-                className="grid grid-cols-4  gap-3"
+                className="grid grid-cols-4 gap-3"
                 aria-busy={loading}
               >
                 {slotAvailability.map((slot, index) => (
