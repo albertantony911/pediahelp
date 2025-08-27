@@ -13,16 +13,16 @@ const IST = '+05:30';
 
 /**
  * Given a local date string "yyyy-MM-dd" and time "HH:mm",
- * returns the true UTC instant as ISO string using IST offset.
+ * return the true UTC instant as ISO string using IST offset.
+ * Example: "2025-01-02T09:00:00+05:30" -> toISOString() -> UTC instant
  */
 function istLocalToUtcIso(ymd: string, hhmm: string): string {
-  // Example: "2025-01-02T09:00:00+05:30" -> toISOString() -> UTC instant
   return new Date(`${ymd}T${hhmm}:00${IST}`).toISOString();
 }
 
 /**
  * Start of local (IST) day as a UTC ISO string.
- * "2025-01-02" -> "2025-01-01T18:30:00.000Z" (depending on DST-none for IST)
+ * "2025-01-02" -> (roughly) "2025-01-01T18:30:00.000Z"
  */
 function startOfIstDayUtcIso(ymd: string): string {
   return new Date(`${ymd}T00:00:00${IST}`).toISOString();
@@ -34,7 +34,7 @@ function startOfIstDayUtcIso(ymd: string): string {
  */
 function endOfIstDayExclusiveUtcIso(ymd: string): string {
   // Compute next local day 00:00 IST by adding 24h to the local instant, then toISOString
-  const startLocal = new Date(`${ymd}T00:00:00${IST}`); // local instant with +05:30 suffix
+  const startLocal = new Date(`${ymd}T00:00:00${IST}`);
   const nextLocalMs = startLocal.getTime() + 24 * 60 * 60 * 1000;
   return new Date(nextLocalMs).toISOString();
 }
@@ -71,20 +71,20 @@ export async function getAvailableSlots({
   const booked = new Set<string>((bookings || []).map((b: any) => String(b.slot)));
   const out: string[] = [];
 
-  // Build the local (calendar) range; we only use y-m-d from these dates
+  // Build the calendar range (we only use y-m-d from these dates)
   const range = eachDayOfInterval({
-    start: new Date(`${startDate}T00:00:00.000Z`), // just a container date; we’ll format y-m-d
+    start: new Date(`${startDate}T00:00:00.000Z`), // container dates; we'll format to y-m-d
     end: new Date(`${endDate}T00:00:00.000Z`),
   });
 
   for (const day of range) {
     const dow = format(day, 'EEEE').toLowerCase();  // monday..sunday
-    const ymd = format(day, 'yyyy-MM-dd');          // local calendar date string
+    const ymd = format(day, 'yyyy-MM-dd');          // "yyyy-MM-dd"
 
     // Base weekly slots (e.g. ["09:00","10:00",...])
     let baseSlots: string[] = appointment?.weeklyAvailability?.[dow] || [];
 
-    // Apply overrides
+    // Apply overrides for this exact date
     const dayOverrides = (appointment.overrides || []).filter((o: any) => o.date === ymd);
     if (dayOverrides.length) {
       if (dayOverrides.some((o: any) => o.isFullDay)) {
