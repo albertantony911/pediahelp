@@ -32,12 +32,7 @@ export async function getDoctorBySlug(slug: string): Promise<any | null> {
       _id,
       name,
       slug,
-      photo {
-        asset -> {
-          _id,
-          url
-        }
-      },
+      photo { asset->{ _id, url } },
       specialty,
       designation,
       location,
@@ -47,21 +42,14 @@ export async function getDoctorBySlug(slug: string): Promise<any | null> {
       about,
       ratings,
       reviews,
-      authoredArticles[]->{
-        title,
-        slug
-      },
+      authoredArticles[]->{ title, slug },
       bookingId,
       externalApiId,
-      // 👇 Weekly Availability linked via reverse lookup
-      "availability": *[_type == "availability" && references(^._id)][0]{
-        monday,
-        tuesday,
-        wednesday,
-        thursday,
-        friday,
-        saturday,
-        sunday
+      timezone,
+
+      // ✅ NEW: pull appointment doc (reverse lookup) and expose weeklyAvailability
+      "appointment": *[_type == "appointment" && references(^._id)][0]{
+        weeklyAvailability
       }
     }`,
     { slug }

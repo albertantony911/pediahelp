@@ -859,9 +859,9 @@ export type BlockContent = Array<{
   _key: string;
 } & Code>;
 
-export type Leave = {
+export type Appointment = {
   _id: string;
-  _type: "leave";
+  _type: "appointment";
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
@@ -871,30 +871,21 @@ export type Leave = {
     _weak?: boolean;
     [internalGroqTypeReferenceTo]?: "doctor";
   };
-  date?: string;
-  isFullDay?: boolean;
-  partialLeaveSlots?: Array<string>;
-};
-
-export type Availability = {
-  _id: string;
-  _type: "availability";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  doctor?: {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "doctor";
+  weeklyAvailability?: {
+    monday?: Array<string>;
+    tuesday?: Array<string>;
+    wednesday?: Array<string>;
+    thursday?: Array<string>;
+    friday?: Array<string>;
+    saturday?: Array<string>;
+    sunday?: Array<string>;
   };
-  monday?: Array<string>;
-  tuesday?: Array<string>;
-  wednesday?: Array<string>;
-  thursday?: Array<string>;
-  friday?: Array<string>;
-  saturday?: Array<string>;
-  sunday?: Array<string>;
+  overrides?: Array<{
+    date?: string;
+    isFullDay?: boolean;
+    partialSlots?: Array<string>;
+    _key: string;
+  }>;
 };
 
 export type Booking = {
@@ -1454,7 +1445,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | CareerForm | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Leave | Availability | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | CareerForm | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Appointment | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery

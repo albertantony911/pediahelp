@@ -14,8 +14,7 @@ import { blogQuestion } from './schemas/documents/blogQuestion';
 import specialities from './schemas/documents/specialities';
 import specialtyCards from './schemas/documents/specialtyCards';
 import { booking } from './schemas/documents/booking';
-import availability from './schemas/documents/availability';
-import  leave  from './schemas/documents/leave';
+
 
 // Schema UI shared objects
 import blockContent from "./schemas/blocks/shared/block-content";
@@ -54,6 +53,8 @@ import contactForm from './schemas/blocks/forms/contact-form';
 import careerForm from './schemas/blocks/forms/career-form';
 import waveDivider from './schemas/blocks/wave-divider';
 import waveDividerVariant from './schemas/blocks/wave-divider-variant';
+import appointment from './schemas/documents/appointment';
+import { app } from "@/lib/firebase";
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -72,8 +73,8 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     specialities,
     specialtyCards,
     booking,
-    availability,
-    leave,
+    appointment,
+
     
     // shared objects
     blockContent,

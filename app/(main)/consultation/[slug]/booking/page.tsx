@@ -1,3 +1,4 @@
+// app/(main)/consultation/[slug]/booking/page.tsx
 'use client';
 
 import { useEffect } from 'react';
@@ -6,7 +7,6 @@ import { getDoctorBySlug } from '@/sanity/queries/doctor';
 import { useBookingStore } from '@/store/bookingStore';
 import BookingLayout from '@/components/booking-flow/BookingLayout';
 import Logo from '@/components/logo';
-
 
 export default function BookingPage() {
   const { slug } = useParams();
@@ -19,20 +19,18 @@ export default function BookingPage() {
       const doctor = await getDoctorBySlug(slug as string);
       if (doctor) {
         setSelectedDoctor(doctor);
-        setAvailability(doctor.availability || null);
+        // ✅ Weekly availability now lives under doctor.appointment.weeklyAvailability
+        setAvailability(doctor.appointment?.weeklyAvailability || null);
       }
     }
-
     loadDoctor();
   }, [slug, setSelectedDoctor, setAvailability]);
 
   return (
-    
-    <main className=" bg-dark-shade">
-      {/* Mobile-only SVG Logo */}
-            <div className="w-full flex justify-center items-center bg-dark-shade lg:hidden">
-              <Logo />
-            </div>
+    <main className="bg-dark-shade">
+      <div className="w-full flex justify-center items-center bg-dark-shade lg:hidden">
+        <Logo />
+      </div>
       <BookingLayout />
       <div className="w-screen h-[100px] relative">
         <img
