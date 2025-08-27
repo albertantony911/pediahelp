@@ -331,7 +331,7 @@ export default function ReviewForm({
                   'transition-colors',
                   state === 'done' ? 'text-primary/90 font-medium' :
                   state === 'current' ? 'text-primary font-semibold' :
-                  'text-gray-400 dark:text-gray-600',
+                  'text-gray-300 dark:text-gray-600',
                 ].join(' ')}
               >
                 {label}
@@ -345,12 +345,11 @@ export default function ReviewForm({
   );
 
   return (
-    <Theme variant={theme || 'white'}>
-      <div className="py-10 max-w-lg mx-auto px-4">
+      <div className="py-5 px-6 max-w-xl mx-auto">
         {step !== 'success' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-8">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white mb-8">
             {tagLine && <Subtitle>{tagLine}</Subtitle>}
-            {title ? <Title>{title}</Title> : <Title>Share Your Feedback</Title>}
+            {title ? <Title className="text-white">{title}</Title> : <Title className="text-white">Share Your Feedback</Title>}
           </motion.div>
         )}
 
@@ -496,7 +495,7 @@ export default function ReviewForm({
                       )}
                     />
 
-                    <Button type="submit" disabled={isSendingOtp} className="w-full rounded-xl bg-primary/90 hover:bg-primary transition-all">
+                    <Button type="submit" disabled={isSendingOtp} className="w-full rounded-xl bg-primary/90 hover:bg-primary hover:scale-[1.01] active:scale-[.99] transition-all backdrop-blur-sm">
                       {isSendingOtp ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…</>) : ('Submit Feedback')}
                     </Button>
                   </form>
@@ -588,6 +587,5 @@ export default function ReviewForm({
           </CardContent>
         </Card>
       </div>
-    </Theme>
   );
 }
