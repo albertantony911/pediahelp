@@ -624,7 +624,7 @@ export default function CareerForm({
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {successMessage || 'Application submitted!'}
                 </h3>
-                <p className="text-xs text-muted-foreground">Thanks{name && <> <span className="font-medium">{name.split(' ')[0]}</span></>} — we’ll review and get back to you.</p>
+                <p className="text-xs text-gray-300">Thanks{name && <> <span className="font-medium">{name.split(' ')[0]}</span></>} — we’ll review and get back to you.</p>
                 <div className="flex items-center justify-center gap-2 pt-2">
                   <Button variant="default" onClick={() => { setStep('form'); setSessionId(null); setOtpSent(false); setValue('otp', ''); }} className="rounded-xl">
                     Send another
