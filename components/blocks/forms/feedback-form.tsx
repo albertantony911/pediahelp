@@ -255,7 +255,7 @@ export default function ReviewForm({
         rating: v.rating,
         comment: v.comment,
         phone: v.phone,
-        subject: `New review for doctor ${doctorId}`,
+        
       };
       const submitUrl = '/api/reviews/submit';
       const json = JSON.stringify(payload);

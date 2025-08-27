@@ -34,6 +34,8 @@ const getDoctorBySlug = async (slug: string): Promise<Doctor | null> => {
         _id,
         name,
         slug,
+        email,
+        phone,
         photo { asset->{ _id, url } },
         specialty,
         location,

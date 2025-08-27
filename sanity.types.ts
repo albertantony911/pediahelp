@@ -1104,6 +1104,8 @@ export type Review = {
   _updatedAt: string;
   _rev: string;
   name?: string;
+  email?: string;
+  phone?: string;
   rating?: number;
   comment?: string;
   doctor?: {

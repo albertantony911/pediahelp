@@ -14,11 +14,11 @@ import {
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const BRAND = process.env.BRAND_NAME || 'Pediahelp';
-const FROM_ADDR = process.env.RESEND_FROM!; // e.g. 'Blackwoodbox <no-reply@mail.blackwoodbox.com>'
+const FROM_ADDR = process.env.RESEND_FROM!; // e.g. 'Pediahelp <hello@send.pediahelp.in>'
 const REPLY_TO = process.env.RESEND_REPLY_TO || undefined;
 
 /* -------------------------------------------------------
- * Core sender
+ * Core sender (unchanged)
  * -----------------------------------------------------*/
 type SendEmailOpts = {
   to: string;
@@ -44,7 +44,7 @@ async function sendEmail({ to, subject, text, html }: SendEmailOpts) {
 }
 
 /* -------------------------------------------------------
- * OTP (email channel)
+ * OTP (email channel)  — unchanged
  * -----------------------------------------------------*/
 export async function sendOtpEmail(to: string, code: string, minutes = 10) {
   await sendEmail({
@@ -56,7 +56,7 @@ export async function sendOtpEmail(to: string, code: string, minutes = 10) {
 }
 
 /* -------------------------------------------------------
- * Contact notification (to you)
+ * Contact notification (to you) — unchanged
  * -----------------------------------------------------*/
 export async function sendContactNotification(to: string, payload: {
   name: string;
@@ -73,7 +73,7 @@ export async function sendContactNotification(to: string, payload: {
 }
 
 /* -------------------------------------------------------
- * Careers: link-based application
+ * Careers: link-based application — unchanged
  * -----------------------------------------------------*/
 type CareerBasics = {
   name: string;
@@ -101,23 +101,41 @@ export async function sendCareerApplicationLink(
 
 /* -------------------------------------------------------
  * Doctor Review notification (to you)
+ *   - Backward compatible with old callers that send doctorId
+ *   - Emails use doctorName; reviewId is never shown
  * -----------------------------------------------------*/
 export type DoctorReviewPayload = {
-  doctorId: string;
+  doctorName?: string;      // ✅ preferred
+  doctorId?: string;        // (legacy) tolerated for subject fallback only
   name: string;
   email: string;
   rating: number;
   comment: string;
-  phone: string;
-  reviewId?: string;
+  phone: string;            // 10 digits (we show +91 in template text)
   subject?: string;
 };
 
 export async function sendDoctorReviewNotification(to: string, payload: DoctorReviewPayload) {
+  const doctorName =
+    (payload.doctorName && payload.doctorName.trim()) ||
+    (payload.doctorId ? `Doctor ${payload.doctorId}` : 'Doctor');
+
+  const subject = payload.subject || `${BRAND} — New review for Dr. ${doctorName}`;
+
+  // Templates expect doctorName (not ID), and we never pass a reviewId.
+  const tmplPayload = {
+    doctorName,
+    name: payload.name,
+    email: payload.email,
+    phone: payload.phone,
+    rating: payload.rating,
+    comment: payload.comment,
+  };
+
   await sendEmail({
     to,
-    subject: payload.subject || `${BRAND} — New doctor review for ${payload.doctorId}`,
-    text: doctorReviewNotifyText(payload),
-    html: doctorReviewNotifyHtml(payload),
+    subject,
+    text: doctorReviewNotifyText(tmplPayload),
+    html: doctorReviewNotifyHtml(tmplPayload),
   });
 }

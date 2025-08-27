@@ -163,25 +163,23 @@ export function careerApplicationLinkHtml(p: CareerBasics, resume: ResumeLink) {
   </div>`;
 }
 
-
 // ---------- DOCTOR REVIEW NOTIFY EMAIL ----------
 
 type DoctorReviewPayload = {
-  doctorId: string;
-  name: string;
-  email: string;
-  rating: number;
-  comment: string;
-  phone: string;
-  reviewId?: string;
-  subject?: string;
+  doctorName: string;    // ✅ use doctor name (not ID)
+  name: string;          // reviewer name
+  email: string;         // reviewer email
+  phone: string;         // reviewer phone (10 digits, you format with +91 outside if you like)
+  rating: number;        // 1..5
+  comment: string;       // review body
+  subject?: string;      // optional, if you want a custom subject somewhere
 };
 
 export function doctorReviewNotifyText(p: DoctorReviewPayload) {
   return `${BRAND_NAME} — New Doctor Review
 
-Doctor: ${p.doctorId}
-${p.reviewId ? `Review ID: ${p.reviewId}\n` : ''}Name: ${p.name}
+Doctor: ${p.doctorName}
+Name: ${p.name}
 Email: ${p.email}
 Phone: +91${p.phone}
 Rating: ${p.rating}/5
@@ -196,13 +194,12 @@ export function doctorReviewNotifyHtml(p: DoctorReviewPayload) {
   <div style="background:#ffffff;margin:0;padding:0;width:100%">
     <div style="max-width:640px;margin:0 auto;padding:24px 20px;
       font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${COLOR_INK};line-height:1.6;">
-      
+
       <div style="font-size:14px;font-weight:700;color:${COLOR_TEAL};margin-bottom:12px;">${esc(BRAND_NAME)}</div>
       <h1 style="font-size:18px;font-weight:700;margin:0 0 12px 0;color:${COLOR_DARK}">New doctor review</h1>
 
       <table style="width:100%;font-size:14px;margin-bottom:14px;border-collapse:collapse">
-        <tr><td style="color:${COLOR_LIGHT};width:120px;padding:4px 0">Doctor</td><td style="padding:4px 0">${esc(p.doctorId)}</td></tr>
-        ${p.reviewId ? `<tr><td style="color:${COLOR_LIGHT};padding:4px 0">Review ID</td><td style="padding:4px 0">${esc(p.reviewId)}</td></tr>` : ''}
+        <tr><td style="color:${COLOR_LIGHT};width:120px;padding:4px 0">Doctor</td><td style="padding:4px 0">${esc(p.doctorName)}</td></tr>
         <tr><td style="color:${COLOR_LIGHT};padding:4px 0">Name</td><td style="padding:4px 0">${esc(p.name)}</td></tr>
         <tr><td style="color:${COLOR_LIGHT};padding:4px 0">Email</td><td style="padding:4px 0"><a href="mailto:${esc(p.email)}" style="color:${COLOR_TEAL};text-decoration:none">${esc(p.email)}</a></td></tr>
         <tr><td style="color:${COLOR_LIGHT};padding:4px 0">Phone</td><td style="padding:4px 0">+91${esc(p.phone)}</td></tr>
