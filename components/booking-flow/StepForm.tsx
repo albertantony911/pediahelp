@@ -1,13 +1,22 @@
+// components/booking-flow/StepForm.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle } from 'lucide-react';
-import Script from 'next/script';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useBookingStore } from '@/store/bookingStore';
+
+/** ---------- TUNABLES ---------- */
+const RESEND_COOLDOWN_BASE = 30; // seconds
+const MAX_RESENDS = 3;
+const OTP_LENGTH = 6;
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string | undefined;
+/** ------------------------------ */
 
 export default function StepForm() {
   const {
@@ -18,267 +27,362 @@ export default function StepForm() {
     setOtp,
     setOtpStatus,
     setStep,
-    confirmedBookingId,
     setConfirmedBookingId,
     otp,
     appointmentId,
   } = useBookingStore();
 
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [timer, setTimer] = useState(30);
-  const otpInputsRef = useRef<HTMLInputElement[]>([]);
 
-  // Auto-resend OTP countdown
-  useEffect(() => {
-    if (!otpSent || otpVerified || timer === 0) return;
-    const interval = setInterval(() => {
-      setTimer((t) => t - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timer, otpSent, otpVerified]);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [timer, setTimer] = useState(RESEND_COOLDOWN_BASE);
+  const [resendCount, setResendCount] = useState(0);
+  const [startedAt, setStartedAt] = useState<number>(Date.now());
+
+  const otpInputsRef = useRef<HTMLInputElement[]>([]);
+  const recaptchaCacheRef = useRef<{ token: string; ts: number } | null>(null);
+
+  /* ----------------------- Helpers ----------------------- */
 
   const validateFields = () => {
-    const newErrors: typeof errors = {};
-    if (!patient.parentName) newErrors.parentName = 'Parent’s name is required';
-    if (!patient.childName) newErrors.childName = 'Child’s name is required';
+    const next: Record<string, string> = {};
+    if (!patient.parentName) next.parentName = 'Parent’s name is required';
+    if (!patient.childName) next.childName = 'Child’s name is required';
     if (!patient.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patient.email)) {
-      newErrors.email = 'Valid email is required';
+      next.email = 'Valid email is required';
     }
     if (!patient.phone || !/^\d{10}$/.test(patient.phone)) {
-      newErrors.phone = 'Valid 10-digit phone number is required';
+      next.phone = 'Valid 10-digit phone is required';
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!selectedDoctor?._id || !selectedSlot) {
+      next.meta = 'Please select a slot again';
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
+  const getRecaptchaToken = async (): Promise<string> => {
+    try {
+      const now = Date.now();
+      if (recaptchaCacheRef.current && now - recaptchaCacheRef.current.ts < 30_000) {
+        return recaptchaCacheRef.current.token;
+      }
+      const keyFromMeta =
+        typeof document !== 'undefined'
+          ? document.querySelector<HTMLMetaElement>('meta[name="recaptcha-site-key"]')?.content
+          : '';
+      const siteKey = RECAPTCHA_SITE_KEY || (window as any)?.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || keyFromMeta || '';
+      const grecaptcha = (window as any)?.grecaptcha;
+      if (!siteKey || !grecaptcha?.execute || !grecaptcha?.ready) return '';
+      await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()));
+      const token = await grecaptcha.execute(siteKey, { action: 'submit' });
+      if (token) recaptchaCacheRef.current = { token, ts: now };
+      return token || '';
+    } catch {
+      return '';
+    }
+  };
+
+  /* ------------------- Countdown (resend) ------------------- */
+
+  useEffect(() => {
+    if (!otpSent || otpVerified || timer === 0) return;
+    const id = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [timer, otpSent, otpVerified]);
+
+  /* ------------------- OTP send / verify ------------------- */
+
   const handleSendOtp = async () => {
-    if (!validateFields() || !selectedDoctor || !selectedSlot) {
-      toast.error('Please fill all fields correctly');
+    if (!validateFields()) {
+      const first = Object.values(errors)[0];
+      if (first) toast.error(first);
+      return;
+    }
+    if (resendCount >= MAX_RESENDS) {
+      toast.error(`Maximum OTP resend limit of ${MAX_RESENDS} reached`);
       return;
     }
 
-    setLoading(true);
-    const res = await fetch('/api/heimdall/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        doctorId: selectedDoctor._id,
-        slot: selectedSlot,
-        patient,
-      }),
-    });
+    setIsSendingOtp(true);
+    try {
+      const token = await getRecaptchaToken();
+      if (!token) {
+        toast.error('reCAPTCHA not ready — try again in a moment');
+        return;
+      }
 
-    const data = await res.json();
-    if (res.ok && data.bookingId) {
-      setConfirmedBookingId(data.bookingId);
+      // Prefer email if valid, else SMS (+91)
+      const identifier =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patient.email)
+          ? patient.email.trim()
+          : `+91${patient.phone}`;
+
+      const res = await fetch('/api/verify/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier,
+          channel: 'auto',
+          scope: 'booking',
+          recaptchaToken: token,
+          startedAt,
+          // Honeypot optional (not using here)
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+      setSessionId(data.sessionId);
       setOtpSent(true);
-      setTimer(30);
-      toast.success('OTP sent');
+      setTimer(RESEND_COOLDOWN_BASE + resendCount * 10);
+      setResendCount((c) => c + 1);
+      setOtp(''); // clear input
       otpInputsRef.current[0]?.focus();
-    } else {
-      toast.error(data?.error || 'Failed to send OTP');
+      toast.success('OTP sent');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to send OTP');
+    } finally {
+      setIsSendingOtp(false);
+      setStartedAt(Date.now());
     }
-    setLoading(false);
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) return;
-    const otpArr = otp.split('');
-    otpArr[index] = value;
-    const newOtp = otpArr.join('');
-    setOtp(newOtp);
-
-    if (value && index < 5) otpInputsRef.current[index + 1]?.focus();
-    if (!value && index > 0) otpInputsRef.current[index - 1]?.focus();
   };
 
   const handleVerifyOtp = async () => {
-    if (!confirmedBookingId || otp.length !== 6) return;
+    if (!sessionId || otp.length !== OTP_LENGTH) return;
+    setIsVerifying(true);
+    try {
+      const verifyRes = await fetch('/api/verify/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, otp }),
+      });
+      const verifyJson = await verifyRes.json();
+      if (!verifyRes.ok || !verifyJson.ok) throw new Error(verifyJson.error || 'OTP verification failed');
 
-    setLoading(true);
-    const res = await fetch('/api/heimdall/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId: confirmedBookingId, otp }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      toast.success('OTP verified');
       setOtpStatus('verified');
       setOtpVerified(true);
-    } else {
-      toast.error('Invalid OTP');
+      toast.success('OTP verified');
+
+      // Create booking AFTER OTP verify
+      const create = await fetch('/api/heimdall/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doctorId: selectedDoctor!._id,
+          slot: selectedSlot!,
+          patient: {
+            parentName: patient.parentName,
+            childName: patient.childName,
+            phone: patient.phone,
+            email: patient.email,
+          },
+        }),
+      });
+      const createJson = await create.json();
+      if (!create.ok || !createJson.bookingId) throw new Error(createJson.error || 'Failed to create booking');
+
+      setConfirmedBookingId(createJson.bookingId);
+      // Go pay
+      await handlePayment(createJson.bookingId);
+    } catch (e: any) {
+      toast.error(e?.message || 'Verification failed, please try again.');
+      setOtpVerified(false);
+      setOtpStatus('failed');
+    } finally {
+      setIsVerifying(false);
     }
-    setLoading(false);
   };
 
-  const handlePayment = async () => {
-    if (!confirmedBookingId) return;
-    setLoading(true);
+  /* ------------------- Payment ------------------- */
 
-    const res = await fetch('/api/heimdall/pay', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId: confirmedBookingId }),
-    });
+  const handlePayment = async (bookingId: string) => {
+    setIsPaying(true);
+    try {
+      const res = await fetch('/api/heimdall/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.orderId) {
+        toast.error(data?.error || 'Failed to initialize payment');
+        return;
+      }
 
-    const data = await res.json();
-    if (!res.ok || !data.orderId) {
-      toast.error(data?.error || 'Payment failed');
-      setLoading(false);
-      return;
+      const razorpay = new (window as any).Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: 'INR',
+        name: data.doctor.name,
+        description: 'PediaHelp Appointment',
+        order_id: data.orderId,
+        handler: () => setStep(2),
+        notes: { appointmentId },
+        theme: { color: '#00B4D8' },
+      });
+      razorpay.open();
+    } catch (e: any) {
+      toast.error(e?.message || 'Payment failed to start');
+    } finally {
+      setIsPaying(false);
     }
-
-    const razorpay = new (window as any).Razorpay({
-      key: data.keyId,
-      amount: data.amount,
-      currency: 'INR',
-      name: data.doctor.name,
-      description: 'PediaHelp Appointment',
-      order_id: data.orderId,
-      handler: () => setStep(2),
-      notes: { appointmentId },
-      theme: { color: '#00B4D8' },
-    });
-
-    razorpay.open();
-    setLoading(false);
   };
 
-const renderField = (id: keyof typeof patient, label: string, type: string = 'text') => (
-  <div className="relative">
-    <input
-      type={type}
-      required
-      value={patient[id]}
-      onChange={(e) => setPatient({ ...patient, [id]: e.target.value })}
-      placeholder=" "      // important for peer-placeholder-shown
-      className={cn(
-        'peer w-full pt-6 pb-2 px-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all',
-        errors[id] && 'border-red-500'
-      )}
-      id={id}
-    />
-    <label
-      htmlFor={id}
-      className="
-        absolute left-4 top-1 text-xs text-gray-400 transition-all
-        peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm
-      "
-    >
-      {label}
-    </label>
-    {errors[id] && <p className="text-xs text-red-500 mt-1">{errors[id]}</p>}
-  </div>
-);
+  /* ------------------- OTP input UI ------------------- */
+
+  const handleOtpChange = (index: number, value: string, e?: React.ChangeEvent<HTMLInputElement>) => {
+    if (!/^\d?$/.test(value)) return;
+    const arr = otp.split('');
+    arr[index] = value;
+    const next = arr.join('');
+    setOtp(next);
+
+    if (value && index < OTP_LENGTH - 1) otpInputsRef.current[index + 1]?.focus();
+    else if (
+      !value &&
+      index > 0 &&
+      e?.target.selectionStart === 0 &&
+      (e?.nativeEvent as any)?.inputType === 'deleteContentBackward'
+    ) {
+      otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otpInputsRef.current[index]?.value && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+      const arr = otp.split('');
+      arr[index - 1] = '';
+      setOtp(arr.join(''));
+    } else if (event.key === 'ArrowLeft' && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    } else if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const renderField = (id: keyof typeof patient, label: string, type: string = 'text') => (
+    <div className="relative">
+      <Input
+        id={id}
+        type={type}
+        value={patient[id]}
+        onChange={(e) => setPatient({ ...patient, [id]: e.target.value })}
+        placeholder={label}
+        className={cn(errors[id] && 'border-red-500')}
+      />
+      {errors[id] && <p className="text-xs text-red-500 mt-1">{errors[id]}</p>}
+    </div>
+  );
+
+  /* ------------------- UI ------------------- */
 
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="max-w-lg mx-auto bg-white p-6 rounded-xl shadow-lg space-y-6">
-        <h2 className="text-xl font-semibold text-center">Confirm Your Appointment</h2>
+      {/* If using reCAPTCHA v3 */}
+      <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY ?? ''}`} strategy="lazyOnload" />
 
-        {renderField('parentName', "Parent's Name")}
-        {renderField('childName', "Child's Name")}
-        {renderField('email', 'Email', 'email')}
-        {renderField('phone', 'Phone', 'tel')}
+      <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6 border border-gray-100">
+        <h2 className="text-lg font-semibold text-center">Confirm Your Appointment</h2>
 
+        {/* Patient fields */}
         {!otpSent && (
-          <Button onClick={handleSendOtp} disabled={loading} className="w-full">
-            {loading ? 'Sending OTP...' : 'Send OTP & Continue'}
-          </Button>
+          <div className="space-y-3">
+            {renderField('parentName', "Parent's Name")}
+            {renderField('childName', "Child's Name")}
+            {renderField('email', 'Email', 'email')}
+            {renderField('phone', 'Phone (10 digits)', 'tel')}
+
+            <Button onClick={handleSendOtp} disabled={isSendingOtp} className="w-full rounded-xl">
+              {isSendingOtp ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…</> : 'Send OTP & Continue'}
+            </Button>
+            {errors.meta && <p className="text-xs text-red-500">{errors.meta}</p>}
+          </div>
         )}
 
+        {/* OTP step */}
         {otpSent && (
-          <div className="space-y-4">
-            <label className="text-sm text-gray-600">Enter 6-digit OTP</label>
-            <div className="flex justify-center gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                  <input
-                        key={i}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        className="w-10 h-12 text-lg text-center border border-gray-300 rounded-md focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                        ref={(el) => {
-                        if (el) otpInputsRef.current[i] = el;
-                        }}
-                        value={otp[i] || ''}
-                        onChange={(e) => handleOtpChange(i, e.target.value)}
-                        onKeyDown={(e) => {
-                        if (e.key === 'Backspace') {
-                            e.preventDefault();
-                            const otpArr = otp.split('');
-                            if (otpArr[i]) {
-                            // If current box has a digit, clear it
-                            otpArr[i] = '';
-                            setOtp(otpArr.join(''));
-                            } else if (i > 0) {
-                            // Otherwise move to and clear the previous box
-                            otpInputsRef.current[i - 1]?.focus();
-                            otpArr[i - 1] = '';
-                            setOtp(otpArr.join(''));
-                            }
-                        }
-                        }}
-                    />
-                    ))}
+          <div className="space-y-3">
+            <label className="text-sm text-gray-600">Enter the 6-digit OTP</label>
+
+            <div className="flex justify-center gap-2 rounded-xl p-1.5 bg-gray-50">
+              {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                <motion.input
+                  key={i}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className="w-10 h-12 text-lg text-center rounded-md border border-gray-300 bg-white/70 focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                  ref={(el) => {
+                    if (el) otpInputsRef.current[i] = el;
+                  }}
+                  value={otp[i] || ''}
+                  onChange={(e) => handleOtpChange(i, e.target.value, e)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                />
+              ))}
             </div>
 
             {!otpVerified && (
               <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
-                <button
-                  onClick={handleSendOtp}
-                  disabled={timer > 0}
-                  className={cn(timer > 0 && 'opacity-50 cursor-not-allowed', 'text-teal-600')}
-                >
-                  Resend OTP
-                </button>
+                {timer > 0 ? (
+                  <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
+                ) : (
+                  <button
+                    onClick={handleSendOtp}
+                    disabled={resendCount >= MAX_RESENDS || isSendingOtp}
+                    className={cn(
+                      'text-teal-700 font-medium',
+                      (resendCount >= MAX_RESENDS || isSendingOtp) && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    Resend OTP
+                  </button>
+                )}
+                <span className="text-gray-400">via email/SMS</span>
               </div>
             )}
 
             {!otpVerified && (
               <Button
                 onClick={handleVerifyOtp}
-                disabled={otp.length !== 6 || loading}
-                className="w-full"
+                disabled={otp.length !== OTP_LENGTH || isVerifying}
+                className="w-full rounded-xl"
               >
-                {loading ? 'Verifying...' : 'Verify OTP'}
+                {isVerifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…</> : 'Verify & Pay'}
               </Button>
             )}
 
+            <AnimatePresence>
+              {otpVerified && (
+                <motion.div
+                  className="flex items-center justify-center gap-2 text-green-600"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <p className="text-sm">OTP Verified</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {otpVerified && (
-              <motion.div
-                className="flex items-center justify-center gap-2 text-green-500"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <CheckCircle className="w-4 h-4" />
-                <p className="text-sm">OTP Verified</p>
-              </motion.div>
+              <Button disabled={isPaying} onClick={() => { /* guarded; payment auto-starts on verify */ }} className="w-full rounded-xl">
+                {isPaying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : 'Processing Payment…'}
+              </Button>
             )}
           </div>
         )}
-
-        <AnimatePresence>
-          {otpVerified && (
-            <motion.div
-              className="pt-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Button onClick={handlePayment} className="w-full">
-                {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : 'Pay & Confirm Appointment'}
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </>
   );

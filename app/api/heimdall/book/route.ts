@@ -1,53 +1,54 @@
+// app/api/heimdall/book/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { client } from '@/sanity/lib/client';
-import otpGenerator from 'otp-generator';
+import { getSession, markUsed } from '@/lib/otp-store-redis';
+import { nowSec } from '@/lib/crypto';
 
 export async function POST(req: NextRequest) {
-    console.log('[API] /book hit');
-  const body = await req.json();
-    console.log("Incoming Booking Payload:", JSON.stringify(body, null, 2));
-  const { doctorId, slot, patient } = body;
-  if (!doctorId || !slot || !patient?.parentName || !patient?.childName || !patient?.phone || !patient?.email) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  try {
+    const body = await req.json();
+    const { sessionId, doctorId, slot, patient } = body || {};
+
+    if (!sessionId || !doctorId || !slot || !patient?.parentName || !patient?.childName || !patient?.phone || !patient?.email) {
+      return NextResponse.json({ error: 'bad_request' }, { status: 400 });
+    }
+
+    // Validate OTP session (same pattern as reviews submit)
+    const s = await getSession(sessionId);
+    if (!s)                     return NextResponse.json({ error: 'invalid_session' }, { status: 400 });
+    if (s.expiresAt < nowSec()) return NextResponse.json({ error: 'expired' }, { status: 400 });
+    if (!s.verified)            return NextResponse.json({ error: 'not_verified' }, { status: 400 });
+    if (s.used)                 return NextResponse.json({ error: 'already_used' }, { status: 400 });
+    if (s.scope !== 'booking')  return NextResponse.json({ error: 'wrong_scope' }, { status: 403 });
+
+    // Prevent double-booking the same doctor+slot
+    const alreadyBooked = await client.fetch(
+      `*[_type == "booking" && doctor._ref == $doctorId AND slot == $slot][0]{ _id }`,
+      { doctorId, slot }
+    );
+    if (alreadyBooked) {
+      return NextResponse.json({ error: 'slot_taken' }, { status: 409 });
+    }
+
+    // Create booking in Sanity (status: 'verified' so payment can proceed)
+    const booking = await client.create({
+      _type: 'booking',
+      doctor: { _type: 'reference', _ref: doctorId },
+      slot,
+      patientName: patient.parentName,
+      childName: patient.childName,
+      phone: patient.phone, // expects +91##########
+      email: patient.email,
+      status: 'verified',
+      confirmedAt: new Date().toISOString(),
+    });
+
+    // Mark the OTP session used
+    await markUsed(sessionId);
+
+    return NextResponse.json({ ok: true, bookingId: booking._id });
+  } catch (e: any) {
+    console.error('[heimdall/book] error:', e?.message || e);
+    return NextResponse.json({ error: 'book_failed' }, { status: 500 });
   }
-
-// Generate OTP
-const otp = otpGenerator.generate(6, {
-  upperCaseAlphabets: false,
-  lowerCaseAlphabets: false,
-  specialChars: false,
-  digits: true,
-});
-
-  // Check if the slot is already booked
-  const alreadyBooked = await client.fetch(
-    `*[_type == "booking" && doctor._ref == $doctorId && slot == $slot][0]`,
-    { doctorId, slot }
-  );
-
-  if (alreadyBooked) {
-    return NextResponse.json({ error: 'Slot already booked' }, { status: 409 });
-  }
-
-  // Create temporary booking in Sanity
-  const booking = await client.create({
-    _type: 'booking',
-    doctor: { _type: 'reference', _ref: doctorId },
-    slot,
-    patientName: patient.parentName,
-    childName: patient.childName,
-    phone: patient.phone,
-    email: patient.email,
-    status: 'pending',
-  });
-
-  // Store OTP temporarily in-memory (use Redis later)
-  globalThis.tempOtps ||= {};
-  globalThis.tempOtps[booking._id] = otp;
-
-  // Mock send OTP
-  console.log(`[DEBUG] OTP for booking ${booking._id}: ${otp}`);
-  console.log("Incoming Booking Payload:", body);
-  return NextResponse.json({ bookingId: booking._id, otp }); // ⚠️ Return OTP only in dev!
 }
-

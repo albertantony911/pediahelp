@@ -40,7 +40,7 @@ const buttonStyles = tv({
     intent: {
       available: 'bg-teal-200 text-dark-shade border border-teal-400 hover:border-teal-500 hover:bg-teal-100',
       selected: 'bg-teal-600 text-white ring-2 ring-coral-400 scale-[1.05] animate-pulse-ring',
-      disabled: 'bg-white text-gray-400 opacity-50 cursor-not-allowed border border-dashed border-gray-300',
+      disabled: 'bg-gray-600 text-gray-400 opacity-50 cursor-not-allowed border border-dashed border-gray-300',
     },
   },
 });
@@ -205,10 +205,10 @@ export default function StepSlot() {
   return (
     <>
       <style>{pulseRingStyles}</style>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-        <div className="flex flex-col md:flex-row md:gap-12">
+      <div className="w-full mx-auto px-4 sm:px-6 ">
+        <div className="flex flex-col justify-center md:gap-12">
           {/* Calendar Section */}
-          <section className="md:w-1/2" aria-label="Select appointment date">
+          <section className="md:w-auto mx-auto" aria-label="Select appointment date">
             <AnimatePresence mode="wait">
               <motion.div
                 key={monthKey}
@@ -247,13 +247,13 @@ export default function StepSlot() {
           </section>
 
           {/* Time Slots Section */}
-          <section className="md:w-1/2 mt-6 md:mt-0 relative" aria-label="Select appointment time">
-            <div className="block md:hidden text-center text-sm font-semibold text-gray-700 mb-2">
+          <section className="md:w-lg mx-auto mt-6 md:mt-0 relative" aria-label="Select appointment time">
+            <div className="block md:hidden text-center text-sm font-semibold text-white mb-2">
               Available Slots
             </div>
             {loading && (
               <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                <div className="text-sm text-gray-700 animate-pulse">Updating slots...</div>
+                <div className="text-sm text-white animate-pulse">Updating slots...</div>
               </div>
             )}
             <AnimatePresence mode="wait">
@@ -263,7 +263,7 @@ export default function StepSlot() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0 } }}
                 transition={{ duration: 0.2 }}
-                className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-3"
+                className="grid grid-cols-4  gap-3"
                 aria-busy={loading}
               >
                 {slotAvailability.map((slot, index) => (
@@ -288,7 +288,7 @@ export default function StepSlot() {
         {/* Summary Card */}
         {selectedSlot && (
           <section
-            className="mt-6 mx-auto max-w-2xl bg-white rounded-2imiaxl border border-gray-100 shadow-md p-4"
+            className="mt-6 mx-auto max-w-2xl bg-white rounded-2 border border-gray-100 shadow-md p-4"
             aria-label="Your appointment selection"
             aria-live="polite"
           >
