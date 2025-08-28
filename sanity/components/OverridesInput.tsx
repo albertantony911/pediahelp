@@ -66,6 +66,11 @@ export default function OverridesInput(props: any) {
   const [partialMode, setPartialMode] = useState(false)
   const [blocked, setBlocked] = useState<string[]>([])
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null)
+  const [suppressPrefill, setSuppressPrefill] = useState(false)
+
+  // NEW: which action is “active” in the confirm card for current selection
+  // 'full' by default when a date is picked; becomes 'partial' when you click “Approve Partial”
+  const [activeChoice, setActiveChoice] = useState<'full' | 'partial' | null>(null)
 
   // delete confirm modal
   const [confirmDelete, setConfirmDelete] = useState<null | { date: string }>(null)
@@ -86,23 +91,38 @@ export default function OverridesInput(props: any) {
       .sort((a, b) => a.date.localeCompare(b.date))
   }, [value])
 
-  // Prefill on date change
+  // Prefill on date change — DO NOT auto-open partial panel.
   useEffect(() => {
-    if (!selected) return
+    if (!selected || suppressPrefill) return
     const ex = ymd ? byDate.get(ymd) : undefined
+
+    // Default to “full” as active choice whenever a date is picked.
+    // If there is an existing partial leave, we’ll reflect that choice visually
+    // but keep the partial panel CLOSED until the user clicks “Approve Partial”.
     if (ex) {
       if (ex.isFullDay) {
         setPartialMode(false)
         setBlocked([])
+        setActiveChoice('full')
       } else {
-        setPartialMode(true)
+        setPartialMode(false)                 // <-- keep it closed
         setBlocked(ex.partialSlots || [])
+        setActiveChoice('partial')            // <-- reflect existing choice without opening
       }
     } else {
       setPartialMode(false)
       setBlocked([])
+      setActiveChoice('full')                 // <-- default active
     }
-  }, [selected, ymd, byDate])
+  }, [selected, ymd, byDate, suppressPrefill])
+
+  // Selecting a date directly (we also ensure “full” is active by default)
+  const handleSelectDate = (d?: Date) => {
+    setSelected(d || undefined)
+    setPartialMode(false)
+    setBlocked([])
+    if (d) setActiveChoice('full')
+  }
 
   // Mutators
   const toggleSlot = (slot: string) => {
@@ -116,24 +136,35 @@ export default function OverridesInput(props: any) {
     onChange(set([...dedup, withStableKey]))
   }
 
+  // Reset to initial (no date selected)
+  const resetToInitial = () => {
+    setSuppressPrefill(true)
+    setPartialMode(false)
+    setBlocked([])
+    setSelected(undefined)
+    // keep activeChoice as-is to “remember” the last action highlight (requested)
+    setTimeout(() => setSuppressPrefill(false), 150)
+  }
+
   const saveFullDay = () => {
     if (!ymd) return
     upsertOverride({ _type: 'appointmentOverride', date: ymd, isFullDay: true, partialSlots: [] })
-    setPartialMode(false)
-    setBlocked([])
     setRecentlyAdded(ymd)
+    setActiveChoice('full')
+    resetToInitial()
   }
 
   const approvePartial = () => {
     if (!ymd) return
     upsertOverride({ _type: 'appointmentOverride', date: ymd, isFullDay: false, partialSlots: blocked })
-    setPartialMode(false)
     setRecentlyAdded(ymd)
+    setActiveChoice('partial')     // highlight shifts to “Approve Partial”
+    resetToInitial()               // collapse + clear selection
   }
 
   const cancelPartial = () => {
     setPartialMode(false)
-    setBlocked([])
+    // retain activeChoice as user intent; do not clear
   }
 
   const removeOverride = (date: string) => {
@@ -147,9 +178,11 @@ export default function OverridesInput(props: any) {
     if (o.isFullDay) {
       setPartialMode(false)
       setBlocked([])
+      setActiveChoice('full')
     } else {
-      setPartialMode(true)
+      setPartialMode(true) // on explicit edit, open the panel
       setBlocked(o.partialSlots || [])
+      setActiveChoice('partial')
     }
   }
 
@@ -161,43 +194,16 @@ export default function OverridesInput(props: any) {
 
   // DayPicker compact
   const dpClass = 'rdp rdp-compact text-[13px] text-teal-50'
-  
   const dpStyles = {
-  root: { color: 'inherit' },
-  caption: { fontWeight: 600 },
-  months: { width: 280 },
-  nav_button: { borderRadius: 8, padding: 4, lineHeight: 1 },
-  day_button: { borderRadius: 10, height: 36, width: 36, transition: 'all 0.15s ease' },
-      head_cell: { color: '#264E53', fontWeight: 600 },
-  
-
-  // Selected day → teal background, darker teal text
-  day_selected: {
-    background: 'rgba(20,184,166,0.8)',  // teal fill
-    color: '#fff',
-    fontWeight: 600,
-  },
-
-  // Hovered day → darker teal overlay
-  day_hover: {
-    background: 'rgba(13,148,136,0.9)', // darker teal
-    color: '#fff',
-  },
-
-  // Active (pressed)
-  day_active: {
-    background: 'rgba(15,118,110,1)', // even darker teal
-    color: '#fff',
-  },
-
-  // Today outline
-  day_today: {
-    outline: '2px solid rgba(20,184,166,0.45)',
-    outlineOffset: 2,
-    borderRadius: 10,
-      },
-  
-} as const
+    root: { color: 'inherit' },
+    caption: { fontWeight: 600 },
+    months: { width: 280 },
+    nav_button: { borderRadius: 8, padding: 4, lineHeight: 1 },
+    day_button: { borderRadius: 10, height: 36, width: 36, transition: 'all 0.15s ease' },
+    head_cell: { color: '#264E53', fontWeight: 600 },
+    day_selected: { background: 'rgba(20,184,166,0.8)', color: '#fff', fontWeight: 600 },
+    day_today: { outline: '2px solid rgba(20,184,166,0.45)', outlineOffset: 2, borderRadius: 10 },
+  } as const
 
   /* ---------------- render ---------------- */
   return (
@@ -207,9 +213,6 @@ export default function OverridesInput(props: any) {
 
       {/* Top: Calendar (left) • Approved leaves (right, bounded width & scrollable) */}
       <div className={[card, sectionPad].join(' ')}>
-        {/* 2-col layout with explicit column sizes:
-            - Left: min 320px then grow
-            - Right: min 220px, max 320px (compact) */}
         <div className="grid gap-6 md:[grid-template-columns:minmax(320px,_1fr)_minmax(220px,_320px)]">
           {/* Left: Calendar */}
           <div className="flex justify-center md:justify-start">
@@ -217,7 +220,7 @@ export default function OverridesInput(props: any) {
               <DayPicker
                 mode="single"
                 selected={selected}
-                onSelect={(d) => setSelected(d || undefined)}
+                onSelect={handleSelectDate}
                 className={dpClass}
                 styles={dpStyles as any}
                 disabled={{ before: new Date() }}
@@ -250,12 +253,10 @@ export default function OverridesInput(props: any) {
                     <SlideIn key={o._key || o.date}>
                       <div
                         className={[
-                          // removed any ring/outline that could create a “selection” glow
                           'flex items-center justify-between rounded-xl border border-teal-400/20 bg-teal-400/10 px-3 py-2',
                           'outline-none focus:outline-none'
                         ].join(' ')}
                       >
-                        {/* tile + brief info */}
                         <div className="flex items-center gap-2">
                           <CalendarTile month={month} day={day} compact />
                           <div className="text-xs text-teal-50/80">
@@ -263,21 +264,11 @@ export default function OverridesInput(props: any) {
                           </div>
                         </div>
 
-                        {/* explicit Edit / Delete buttons */}
                         <div className="flex items-center gap-2">
-                          <IconButton
-                            ariaLabel="Edit"
-                            onClick={() => editOverride(o)}
-                            variant="teal"
-                          >
+                          <IconButton ariaLabel="Edit" onClick={() => editOverride(o)} variant="teal">
                             <IconPencil />
                           </IconButton>
-
-                          <IconButton
-                            ariaLabel="Delete"
-                            onClick={() => setConfirmDelete({ date: o.date })}
-                            variant="danger"
-                          >
+                          <IconButton ariaLabel="Delete" onClick={() => setConfirmDelete({ date: o.date })} variant="danger">
                             <IconX />
                           </IconButton>
                         </div>
@@ -312,11 +303,15 @@ export default function OverridesInput(props: any) {
             disabled={!ymd}
             label="Approve Full-day"
             onClick={saveFullDay}
+            active={activeChoice === 'full'}
+            ariaPressed={activeChoice === 'full'}
           />
           <FullWidthTealButton
             disabled={!ymd}
             label="Approve Partial"
-            onClick={() => setPartialMode(true)}
+            onClick={() => { setPartialMode(true); setActiveChoice('partial') }}
+            active={activeChoice === 'partial'}
+            ariaPressed={activeChoice === 'partial'}
           />
         </div>
       </div>
@@ -375,6 +370,20 @@ export default function OverridesInput(props: any) {
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => confirmDelete && removeOverride(confirmDelete.date)}
       />
+
+      {/* --- Calendar hover override for LIGHTER teal + dark teal text --- */}
+      <style jsx global>{`
+        /* Lighter hover wash with dark-teal text (only when not selected/disabled) */
+        .rdp-day:not(.rdp-day_selected):not([disabled]):hover {
+          background-color: rgba(20, 184, 166, 0.12) !important; /* lighter teal */
+          color: #264e53 !important; /* dark teal text */
+        }
+        /* Ensure selected stays teal */
+        .rdp-day_selected:not([disabled]) {
+          background-color: rgba(20, 184, 166, 0.8) !important;
+          color: #fff !important;
+        }
+      `}</style>
     </div>
   )
 }
@@ -382,7 +391,6 @@ export default function OverridesInput(props: any) {
 /* ---------------- tiny subcomponents ---------------- */
 
 function CalendarTile({ month, day, compact = false }: { month: string, day: number, compact?: boolean }) {
-  // month like 'AUG'
   return (
     <div className={[
       'relative rounded-lg border border-teal-300/30 bg-teal-500/15 grid place-items-center',
@@ -567,27 +575,33 @@ function FullWidthTealButton({
   onClick,
   intent = 'neutral',
   disabled = false,
+  active = false,
+  ariaPressed,
 }: {
   label: string
   onClick: () => void
   intent?: 'neutral' | 'primary'
   disabled?: boolean
+  active?: boolean
+  ariaPressed?: boolean
 }) {
-  const classes =
+  const base =
     intent === 'primary'
       ? 'bg-teal-500/80 hover:bg-teal-500 text-white border-teal-300/40'
       : 'bg-teal-400/15 hover:bg-teal-400/25 text-teal-50 border-teal-300/30'
-
+  const activeStyles = 'ring-2 ring-teal-300/50 bg-teal-500/40 text-white border-teal-300/40'
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={ariaPressed}
       className={[
         'w-full text-sm font-semibold px-3 py-2 rounded-lg border transition',
         'active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed',
         'outline-none focus:outline-none',
-        classes,
+        base,
+        active ? activeStyles : '',
       ].join(' ')}
     >
       {label}

@@ -19,22 +19,43 @@
   visibility: hidden; /* use visibility, not display:none */
 }
 
-/* Override react-day-picker default selected day */
-.rdp-day_selected:not([disabled]) {
-  background-color: rgba(20, 184, 166, 0.8) !important; /* teal */
-  color: #fff !important;
+/* 1) Softer hover bubble + readable text */
+.rdp .rdp-day:not(.rdp-day_selected):not(.rdp-day_disabled):not([disabled]):hover {
+  background-color: rgba(20, 184, 166, 0.10) !important; /* lighter teal wash */
+  color: #ffffff !important; /* readable on dark teal */
 }
 
-.rdp-day_selected:hover:not([disabled]) {
-  background-color: rgba(13, 148, 136, 0.9) !important; /* darker teal */
-  color: #fff !important;
+/* DayPicker also colors buttons on hover via this rule */
+.rdp .rdp-button:hover {
+  color: #ffffff !important;
 }
 
-.rdp-day_today:not(.rdp-day_selected) {
-  outline: 2px solid rgba(20,184,166,0.45) !important;
-  outline-offset: 2px !important;
+/* 2) Selected state (keep your teal) */
+.rdp .rdp-day_selected:not([disabled]) {
+  background-color: rgba(20, 184, 166, 0.80) !important;
+  color: #ffffff !important;
 }
 
+.rdp .rdp-day_today:not(.rdp-day_selected) {
+  outline: none !important;
+  background-color: rgba(202, 215, 110, 0.1) !important; /* faint wash */
+  color: #CAD76E !important;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+/* 4) Disabled days: no teal bubble on hover, dim text, no pointer */
+.rdp .rdp-day[disabled],
+.rdp .rdp-day_disabled {
+  color: rgba(255, 255, 255, 0.28) !important;
+  background-color: transparent !important;
+  cursor: not-allowed !important;
+}
+.rdp .rdp-day[disabled]:hover,
+.rdp .rdp-day_disabled:hover {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+}
 
 @keyframes accordion-down {
   from { height: 0; }
