@@ -1,58 +1,51 @@
+// components/blocks/wave-divider.tsx
 'use client'
 
 import { urlFor } from '@/sanity/lib/image'
+import React from 'react'
 
 interface WaveDividerProps {
-  _type: 'waveDivider';
-  _key: string;
+  _type: 'waveDivider'
+  _key: string
   variant: {
-    label: string | null;
-    desktopSvg: {
-      asset: {
-        _id: string;
-        url: string | null;
-        mimeType: string | null;
-        metadata: {
-          dimensions: {
-            width: number | null;
-            height: number | null;
-          } | null;
-        } | null;
-      } | null;
-    } | null;
-    mobileSvg: {
-      asset: {
-        _id: string;
-        url: string | null;
-        mimeType: string | null;
-        metadata: {
-          dimensions: {
-            width: number | null;
-            height: number | null;
-          } | null;
-        } | null;
-      } | null;
-    } | null;
-  } | null;
+    label: string | null
+    desktopSvg?: { asset?: { _id: string; url: string | null } } | null
+    mobileSvg?:  { asset?: { _id: string; url: string | null } } | null
+  } | null
 }
 
 const WaveDivider: React.FC<WaveDividerProps> = ({ variant }) => {
-  if (!variant?.desktopSvg?.asset && !variant?.mobileSvg?.asset) return null
+  const desktop = variant?.desktopSvg?.asset ? urlFor(variant.desktopSvg).url() : null
+  const mobile  = variant?.mobileSvg?.asset  ? urlFor(variant.mobileSvg).url()  : null
+  if (!desktop && !mobile) return null
 
   return (
-    <div className="w-full h-[100px] relative">
-      {variant?.desktopSvg?.asset?.url && (
-        <img
-          src={urlFor(variant.desktopSvg).url()}
-          alt={`Wave divider desktop - ${variant.label || 'unknown'}`}
-          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
+    <div
+      className={[
+        'relative h-[100px]',
+        'overflow-hidden isolate select-none', // contain + paint above neighbors
+      ].join(' ')}
+      aria-hidden
+    >
+      {/* Desktop (≥ lg) */}
+      {desktop && (
+        <div
+          className={[
+            'hidden lg:block absolute -inset-px', // ← 1px overdraw on ALL sides
+            'bg-center bg-cover will-change-transform pointer-events-none',
+          ].join(' ')}
+          style={{ backgroundImage: `url("${desktop}")` }}
         />
       )}
-      {variant?.mobileSvg?.asset?.url && (
-        <img
-          src={urlFor(variant.mobileSvg).url()}
-          alt={`Wave divider mobile - ${variant.label || 'unknown'}`}
-          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
+
+      {/* Mobile (< lg) */}
+      {mobile && (
+        <div
+          className={[
+            'block lg:hidden absolute -inset-px',
+            'bg-center bg-cover will-change-transform pointer-events-none',
+          ].join(' ')}
+          style={{ backgroundImage: `url("${mobile}")` }}
         />
       )}
     </div>

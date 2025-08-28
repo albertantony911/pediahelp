@@ -1,6 +1,6 @@
 // components/blocks/index.tsx
 
-// 1. Explicit union of _type values to avoid TS2590
+// 1) Explicit union of _type values
 const BLOCK_TYPES = [
   "hero-1",
   "hero-2",
@@ -24,14 +24,14 @@ const BLOCK_TYPES = [
 
 type BlockType = (typeof BLOCK_TYPES)[number];
 
-// 2. Define a generic base for Sanity blocks (you can extend this)
+// 2) Base block
 interface BaseBlock {
   _type: BlockType;
   _key: string;
   [key: string]: any;
 }
 
-// 3. Components
+// 3) Components
 import Hero1 from "@/components/blocks/hero/hero-1";
 import Hero2 from "@/components/blocks/hero/hero-2";
 import SectionHeader from "@/components/blocks/section-header";
@@ -51,7 +51,7 @@ import ContactForm from "@/components/blocks/forms/contact-form";
 import CareerForm from "@/components/blocks/forms/career-form";
 import WaveDivider from "@/components/blocks/wave-divider";
 
-// 4. Component mapping with type-safe keys
+// 4) Map
 const componentMap: Record<BlockType, React.ComponentType<any>> = {
   "hero-1": Hero1,
   "hero-2": Hero2,
@@ -73,10 +73,10 @@ const componentMap: Record<BlockType, React.ComponentType<any>> = {
   waveDivider: WaveDivider,
 };
 
-// 5. Final Block Renderer
+// 5) Renderer
 export default function Blocks({ blocks }: { blocks: BaseBlock[] }) {
   return (
-    <div className="overflow-x-hidden"> {/* Added wrapper to prevent overflow */}
+    <div className="overflow-x-hidden">
       {blocks.map((block) => {
         const Component = componentMap[block._type as BlockType];
 
@@ -85,9 +85,13 @@ export default function Blocks({ blocks }: { blocks: BaseBlock[] }) {
           return <div key={block._key} data-type={block._type} />;
         }
 
+        // KEEP your bleed wrapper; it works across most devices.
         if (block._type === "waveDivider") {
           return (
-            <div className="w-screen -mx-[calc(50vw-50%)]" key={block._key}>
+            <div
+              key={block._key}
+              className="w-screen -mx-[calc(50vw-50%)]"
+            >
               <Component {...block} />
             </div>
           );
