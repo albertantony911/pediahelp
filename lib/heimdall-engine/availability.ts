@@ -1,6 +1,6 @@
 // lib/heimdall-engine/availability.ts
 import { client } from '@/sanity/lib/client';
-import { format, eachDayOfInterval } from 'date-fns';
+import { format, eachDayOfInterval, compareAsc } from 'date-fns';
 
 interface GetSlotsParams {
   doctorId: string;
@@ -8,7 +8,8 @@ interface GetSlotsParams {
   endDate: string;   // "yyyy-MM-dd" inclusive by calendar day
 }
 
-// ---- IST helpers (no date-fns-tz needed) ----
+/* --------------------------- IST helpers --------------------------- */
+
 const IST = '+05:30';
 
 /** Given local date "yyyy-MM-dd" + time "HH:mm", returns the true UTC instant as ISO (Z) */
@@ -31,6 +32,39 @@ function endOfIstDayExclusiveUtcIso(ymd: string): string {
 
 /** 48-hour cutoff in ms */
 const MIN_DELAY_MS = 48 * 60 * 60 * 1000;
+
+/* ----------------------- Slot sanitation helpers ----------------------- */
+
+const HHMM_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+/** "9:0" -> "09:00", "9:30"->"09:30"; returns null if invalid */
+function normalizeSlot(hhmm: unknown): string | null {
+  if (typeof hhmm !== 'string') return null;
+  const trimmed = hhmm.trim();
+  // Allow a few loose patterns and reformat to HH:mm
+  const m = /^(\d{1,2}):(\d{1,2})$/.exec(trimmed);
+  if (!m) return HHMM_RE.test(trimmed) ? trimmed : null;
+
+  let h = Number(m[1]);
+  let min = Number(m[2]);
+  if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+
+  const out = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  return HHMM_RE.test(out) ? out : null;
+}
+
+/** Ensure an array of strings, normalized and unique */
+function normalizeSlotArray(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set<string>();
+  for (const v of arr) {
+    const n = normalizeSlot(v);
+    if (n) seen.add(n);
+  }
+  return Array.from(seen);
+}
+
+/* ------------------------------ Main ------------------------------ */
 
 export async function getAvailableSlots({
   doctorId,
@@ -61,43 +95,55 @@ export async function getAvailableSlots({
 
   if (!appointment) return [];
 
+  const weekly = appointment.weeklyAvailability ?? {};
+  const overrides: any[] = Array.isArray(appointment.overrides) ? appointment.overrides : [];
   const booked = new Set<string>((bookings || []).map((b: any) => String(b.slot)));
-  const out: string[] = [];
 
+  const outIso: string[] = [];
+  const cutoff = Date.now() + MIN_DELAY_MS;
+
+  // Build the local (calendar) range; we only use y-m-d
   const range = eachDayOfInterval({
     start: new Date(`${startDate}T00:00:00.000Z`),
     end: new Date(`${endDate}T00:00:00.000Z`),
   });
 
-  const cutoff = Date.now() + MIN_DELAY_MS;
-
   for (const day of range) {
-    const dow = format(day, 'EEEE').toLowerCase();  // monday..sunday
+    const dow = format(day, 'EEEE').toLowerCase(); // monday..sunday
     const ymd = format(day, 'yyyy-MM-dd');
 
-    // Base weekly slots (e.g. ["09:00","10:00",...])
-    let baseSlots: string[] = appointment?.weeklyAvailability?.[dow] || [];
+    // Base weekly slots
+    const baseRaw = weekly?.[dow];
+    let baseSlots = normalizeSlotArray(baseRaw);
 
-    // Apply overrides (full-day or partial)
-    const dayOverrides = (appointment.overrides || []).filter((o: any) => o.date === ymd);
+    if (!baseSlots.length) continue;
+
+    // Apply same-day overrides
+    const dayOverrides = overrides.filter((o) => o?.date === ymd);
     if (dayOverrides.length) {
-      if (dayOverrides.some((o: any) => o.isFullDay)) {
-        // Entire day off
-        continue;
+      // Full day off?
+      if (dayOverrides.some((o) => o?.isFullDay)) continue;
+
+      // Partial blocks
+      const blocked = new Set<string>();
+      for (const ov of dayOverrides) {
+        normalizeSlotArray(ov?.partialSlots).forEach((s) => blocked.add(s));
       }
-      const blocked = new Set<string>(dayOverrides.flatMap((o: any) => o.partialSlots || []));
       baseSlots = baseSlots.filter((s) => !blocked.has(s));
+      if (!baseSlots.length) continue;
     }
 
     // Convert each local slot to UTC, enforce 48h buffer, skip booked
     for (const hhmm of baseSlots) {
       const utcIso = istLocalToUtcIso(ymd, hhmm);
-      const slotTime = new Date(utcIso).getTime();
-
-      if (slotTime < cutoff) continue;          // 🔒 enforce 48h cutoff
-      if (!booked.has(utcIso)) out.push(utcIso);
+      const slotMs = new Date(utcIso).getTime();
+      if (slotMs < cutoff) continue; // 48h guard
+      if (!booked.has(utcIso)) outIso.push(utcIso);
     }
   }
 
-  return out;
+  // Deduplicate + sort ascending
+  const unique = Array.from(new Set(outIso));
+  unique.sort((a, b) => compareAsc(new Date(a), new Date(b)));
+  return unique;
 }

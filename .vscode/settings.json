@@ -1,3 +1,20 @@
 {
-    "liveServer.settings.port": 5501
+  "liveServer.settings.port": 5501,
+
+  // Tell VS Code to stop flagging Tailwind's custom at-rules
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // Make CSS/PostCSS files use Tailwind syntax
+  "tailwindCSS.includeLanguages": {
+    "css": "tailwindcss",
+    "postcss": "tailwindcss"
+  },
+
+  // Optional: treat specific files as PostCSS so @apply and @theme work cleanly
+  "files.associations": {
+    "globals.css": "postcss",
+    "**/app/**/*.css": "postcss"
+  }
 }

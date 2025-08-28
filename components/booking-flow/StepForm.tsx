@@ -1,10 +1,9 @@
-// components/booking-flow/StepForm.tsx
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ export default function StepForm() {
     setConfirmedBookingId,
     otp,
     appointmentId,
+    setSelectedSlot,
   } = useBookingStore();
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -133,7 +133,6 @@ export default function StepForm() {
           scope: 'booking',
           recaptchaToken: token,
           startedAt,
-          // Honeypot optional (not using here)
         }),
       });
 
@@ -283,6 +282,14 @@ export default function StepForm() {
     </div>
   );
 
+  /* ------------------- Back to slots ------------------- */
+
+  const handleBackToSlots = () => {
+    // Clear slot + go to first step
+    setSelectedSlot(null);
+    setStep(0);
+  };
+
   /* ------------------- UI ------------------- */
 
   return (
@@ -292,6 +299,26 @@ export default function StepForm() {
       <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY ?? ''}`} strategy="lazyOnload" />
 
       <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6 border border-gray-100">
+        {/* Back row */}
+        <div className="flex items-center justify-between -mt-1">
+          <button
+            type="button"
+            onClick={handleBackToSlots}
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Change slot
+          </button>
+          {selectedSlot && (
+            <span className="text-xs text-gray-500">
+              {new Date(selectedSlot).toLocaleString('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </span>
+          )}
+        </div>
+
         <h2 className="text-lg font-semibold text-center">Confirm Your Appointment</h2>
 
         {/* Patient fields */}
@@ -303,7 +330,13 @@ export default function StepForm() {
             {renderField('phone', 'Phone (10 digits)', 'tel')}
 
             <Button onClick={handleSendOtp} disabled={isSendingOtp} className="w-full rounded-xl">
-              {isSendingOtp ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…</> : 'Send OTP & Continue'}
+              {isSendingOtp ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…
+                </>
+              ) : (
+                'Send OTP & Continue'
+              )}
             </Button>
             {errors.meta && <p className="text-xs text-red-500">{errors.meta}</p>}
           </div>
@@ -358,7 +391,13 @@ export default function StepForm() {
                 disabled={otp.length !== OTP_LENGTH || isVerifying}
                 className="w-full rounded-xl"
               >
-                {isVerifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…</> : 'Verify & Pay'}
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…
+                  </>
+                ) : (
+                  'Verify & Pay'
+                )}
               </Button>
             )}
 
@@ -377,8 +416,14 @@ export default function StepForm() {
             </AnimatePresence>
 
             {otpVerified && (
-              <Button disabled={isPaying} onClick={() => { /* guarded; payment auto-starts on verify */ }} className="w-full rounded-xl">
-                {isPaying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : 'Processing Payment…'}
+              <Button disabled={isPaying} onClick={() => {}} className="w-full rounded-xl">
+                {isPaying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…
+                  </>
+                ) : (
+                  'Processing Payment…'
+                )}
               </Button>
             )}
           </div>

@@ -1,8 +1,7 @@
-// components/booking-flow/StepBook.tsx
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { format, isSameDay, addDays, parseISO } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { format, isSameDay, addDays } from 'date-fns';
 import { useBookingStore } from '@/store/bookingStore';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -31,7 +30,9 @@ export default function StepBook() {
     setConfirmedBookingId,
   } = useBookingStore();
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Preselect date = today + 2 days for context
+  const initialDate = addDays(new Date(), 2);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [allFetchedSlots, setAllFetchedSlots] = useState<string[]>([]);
   const [otp, setOtp] = useState('');
@@ -77,34 +78,40 @@ export default function StepBook() {
       return;
     }
     setLoading(true);
-    const res = await fetch('/api/heimdall/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doctorId: selectedDoctor._id, slot: selectedSlot, patient }),
-    });
-    const data = await res.json();
-    if (res.ok && data.bookingId) {
-      setConfirmedBookingId(data.bookingId);
-      setOtpSent(true);
-      toast.success('OTP sent');
-    } else toast.error(data?.error || 'Booking failed');
-    setLoading(false);
+    try {
+      const res = await fetch('/api/heimdall/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctorId: selectedDoctor._id, slot: selectedSlot, patient }),
+      });
+      const data = await res.json();
+      if (res.ok && data.bookingId) {
+        setConfirmedBookingId(data.bookingId);
+        setOtpSent(true);
+        toast.success('OTP sent');
+      } else toast.error(data?.error || 'Booking failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
     if (!confirmedBookingId || otp.length !== 6) return;
     setLoading(true);
-    const res = await fetch('/api/heimdall/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId: confirmedBookingId, otp }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      toast.success('OTP Verified!');
-      handlePay();
-    } else toast.error('Invalid OTP');
-    setLoading(false);
+    try {
+      const res = await fetch('/api/heimdall/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: confirmedBookingId, otp }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('OTP Verified!');
+        handlePay();
+      } else toast.error('Invalid OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePay = async () => {
@@ -144,7 +151,27 @@ export default function StepBook() {
         selected={selectedDate}
         onSelect={(date) => date && setSelectedDate(date)}
         weekStartsOn={1}
+        // 🔒 Disable past & next 48h
+        modifiers={{
+          disabled: { before: addDays(new Date(), 2) },
+        }}
+        modifiersClassNames={{
+          selected: 'bg-teal-100 text-dark-shade scale-[1.05] transition-all duration-300 ease-in-out',
+          today: 'text-coral-600 font-semibold',
+          disabled: 'text-gray-400 cursor-not-allowed bg-gray-50', // 👈 light gray disabled dates
+        }}
         className="rounded-xl border border-gray-200 p-4 shadow-sm bg-white text-sm"
+        components={{
+          IconLeft: () => <ChevronLeft className="w-4 h-4 text-gray-500 hover:text-teal-600" />,
+          IconRight: () => <ChevronRight className="w-4 h-4 text-gray-500 hover:text-teal-600" />,
+        }}
+        classNames={{
+          caption: 'relative flex justify-center items-center font-semibold text-sm gap-2 mb-2',
+          nav: 'flex justify-between w-full absolute top-1',
+          nav_button: 'p-1',
+        }}
+        captionLayout="dropdown-buttons"
+        aria-label="Appointment calendar"
       />
 
       {/* Time Slots */}
@@ -205,7 +232,9 @@ export default function StepBook() {
               ))}
             </InputOTPGroup>
           </InputOTP>
-          <Button onClick={handleVerifyOtp} className="w-full">Verify & Pay</Button>
+          <Button onClick={handleVerifyOtp} className="w-full" disabled={loading}>
+            {loading ? 'Verifying…' : 'Verify & Pay'}
+          </Button>
         </div>
       )}
     </div>

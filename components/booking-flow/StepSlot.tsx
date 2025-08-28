@@ -31,7 +31,7 @@ const PREDEFINED_SLOTS = Array.from({ length: 16 }, (_, i) => {
 });
 
 // Types
-interface BookingStore {
+interface BookingStoreSlice {
   selectedDoctor: { _id: string; name?: string; photo?: { asset?: { url?: string } } } | null;
   selectedSlot: string | null;
   setSelectedSlot: (slot: string | null) => void;
@@ -109,11 +109,13 @@ const SlotButton = memo(function SlotButton({ slot, selected, available, onSelec
 ));
 
 export default function StepSlot() {
-  const { selectedDoctor, selectedSlot, setSelectedSlot, setStep } = useBookingStore() as BookingStore;
+  const { selectedDoctor, selectedSlot, setSelectedSlot, setStep } = useBookingStore() as unknown as BookingStoreSlice;
   const router = useRouter();
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [monthKey, setMonthKey] = useState<number>(selectedDate.getMonth());
+  // Preselect date = today + 2 days for context
+  const initialDate = useMemo(() => addDays(new Date(), 2), []);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
+  const [monthKey, setMonthKey] = useState<number>(initialDate.getMonth());
   const [allFetchedSlots, setAllFetchedSlots] = useState<string[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,11 +166,11 @@ export default function StepSlot() {
     [selectedDoctor]
   );
 
-  // Preload slots for next 3 days
+  // Preload slots for next 3 days from the *initial* context date
   useEffect(() => {
     const datesToPreload = [selectedDate, addDays(selectedDate, 1), addDays(selectedDate, 2)];
     datesToPreload.forEach((date) => fetchAllSlots(date, true));
-  }, [selectedDoctor, fetchAllSlots]);
+  }, [selectedDoctor, fetchAllSlots, selectedDate]);
 
   useEffect(() => {
     fetchAllSlots(selectedDate);
@@ -182,7 +184,7 @@ export default function StepSlot() {
   }, [selectedDate, fetchAllSlots]);
 
   const handleSlotSelect = (slot: string) => {
-    // Keep your original selection format (local ISO without Z)
+    // Keep original selection format (local ISO without Z)
     const fullSlot = `${format(selectedDate, 'yyyy-MM-dd')}T${slot}:00`;
     setSelectedSlot(fullSlot);
   };
@@ -199,7 +201,7 @@ export default function StepSlot() {
     return Array.from(slotDays).map((dateStr) => parseISO(`${dateStr}T00:00:00Z`));
   }, [allFetchedSlots]);
 
-  // Build a quick lookup: for the selected date, which HH:mm exist in availableSlots?
+  // Lookup for available HH:mm on the selected date
   const availableTimesForDay = useMemo(() => {
     const map = new Set<string>();
     availableSlots.forEach((iso) => {
@@ -250,11 +252,16 @@ export default function StepSlot() {
                   onSelect={(date) => date && setSelectedDate(date)}
                   onMonthChange={(date) => setMonthKey(date.getMonth())}
                   weekStartsOn={1}
-                  modifiers={{ available: datesWithSlots }}
+                  // 🔒 Disable past & next 48h; also mark "available" days
+                  modifiers={{
+                    available: datesWithSlots,
+                    disabled: { before: addDays(new Date(), 2) },
+                  }}
                   modifiersClassNames={{
                     selected: 'bg-teal-100 text-dark-shade scale-[1.05] transition-all duration-300 ease-in-out',
                     today: 'text-coral-600 font-semibold',
                     available: 'border border-coral-400 hover:bg-teal-50 hover:scale-[1.03] transition-all duration-200 ease-in-out',
+                    disabled: 'text-gray-400 cursor-not-allowed bg-gray-50', // 👈 light gray disabled dates
                   }}
                   className="rounded-xl border border-gray-200 p-4 shadow-sm bg-white text-sm"
                   components={{
