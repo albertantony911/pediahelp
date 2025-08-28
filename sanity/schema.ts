@@ -54,6 +54,8 @@ import careerForm from './schemas/blocks/forms/career-form';
 import waveDivider from './schemas/blocks/wave-divider';
 import waveDividerVariant from './schemas/blocks/wave-divider-variant';
 import appointment from './schemas/documents/appointment';
+import weeklyAvailability from './schemas/objects/weeklyAvailability';
+import appointmentOverride from './schemas/objects/appointmentOverride';
 import { app } from "@/lib/firebase";
 
 export const schema: { types: SchemaTypeDefinition[] } = {
@@ -74,6 +76,8 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     specialtyCards,
     booking,
     appointment,
+    weeklyAvailability,
+    appointmentOverride,
 
     
     // shared objects

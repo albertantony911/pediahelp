@@ -859,6 +859,13 @@ export type BlockContent = Array<{
   _key: string;
 } & Code>;
 
+export type AppointmentOverride = {
+  _type: "appointmentOverride";
+  date?: string;
+  isFullDay?: boolean;
+  partialSlots?: Array<string>;
+};
+
 export type Appointment = {
   _id: string;
   _type: "appointment";
@@ -871,21 +878,21 @@ export type Appointment = {
     _weak?: boolean;
     [internalGroqTypeReferenceTo]?: "doctor";
   };
-  weeklyAvailability?: {
-    monday?: Array<string>;
-    tuesday?: Array<string>;
-    wednesday?: Array<string>;
-    thursday?: Array<string>;
-    friday?: Array<string>;
-    saturday?: Array<string>;
-    sunday?: Array<string>;
-  };
+  weeklyAvailability?: WeeklyAvailability;
   overrides?: Array<{
-    date?: string;
-    isFullDay?: boolean;
-    partialSlots?: Array<string>;
     _key: string;
-  }>;
+  } & AppointmentOverride>;
+};
+
+export type WeeklyAvailability = {
+  _type: "weeklyAvailability";
+  monday?: Array<string>;
+  tuesday?: Array<string>;
+  wednesday?: Array<string>;
+  thursday?: Array<string>;
+  friday?: Array<string>;
+  saturday?: Array<string>;
+  sunday?: Array<string>;
 };
 
 export type Booking = {
@@ -1445,7 +1452,7 @@ export type Code = {
   highlightedLines?: Array<number>;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | CareerForm | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | Appointment | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | WaveDivider | CareerForm | ContactForm | SpecialtyCard | SectionBlock | AllPosts | FormNewsletter | Faqs | LogoCloud1 | Cta1 | Timelines1 | TimelineRow | Carousel2 | Carousel1 | GridRow | GridPost | PricingCard | GridCard | SplitInfo | SplitInfoList | SplitImage | SplitCard | SplitCardsList | SplitContent | SplitRow | SectionHeader | Hero2 | Hero1 | SectionPadding | ButtonVariant | ColorVariant | Link | BlockContent | AppointmentOverride | Appointment | WeeklyAvailability | Booking | SpecialtyCards | Specialities | WaveDividerVariant | BlogQuestion | Comment | Review | Testimonial | Faq | Category | Author | Post | Doctor | Page | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | Slug | Code;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./app/(main)/blog/doctor/[slug]/page.tsx
 // Variable: doctorPostsQuery

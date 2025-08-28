@@ -14,6 +14,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import debounce from 'lodash.debounce';
 
+// ---- 48h cutoff (mirrors backend) ----
+const MIN_DELAY_MS = 48 * 60 * 60 * 1000;
+const IST = '+05:30';
+const istLocalToUtcMs = (ymd: string, hhmm: string) =>
+  new Date(`${ymd}T${hhmm}:00${IST}`).getTime();
+
 // Constants
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const CACHE_SIZE_LIMIT = 50;
@@ -23,7 +29,6 @@ const PREDEFINED_SLOTS = Array.from({ length: 16 }, (_, i) => {
   const hour = 8 + i;
   return `${hour.toString().padStart(2, '0')}:00`;
 });
-
 
 // Types
 interface BookingStore {
@@ -38,9 +43,9 @@ const buttonStyles = tv({
   base: 'relative w-full px-3 py-2.5 rounded-lg font-medium text-sm text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 will-change-transform-opacity',
   variants: {
     intent: {
-      available: 'bg-teal-200 text-dark-shade border border-teal-400 hover:border-teal-500 hover:bg-teal-100',
-      selected: 'bg-teal-600 text-white ring-2 ring-coral-400 scale-[1.05] animate-pulse-ring',
-      disabled: 'bg-gray-600 text-gray-400 opacity-50 cursor-not-allowed border border-dashed border-gray-300',
+      available: 'bg-teal-300 text-dark-shade border border-teal-500 hover:border-teal-600 hover:bg-teal-200',
+      selected: 'bg-teal-700 text-white ring-2 ring-coral-400 scale-[1.05] animate-pulse-ring',
+      disabled: 'bg-gray-200 text-gray-500 opacity-60 cursor-not-allowed border border-dashed border-gray-300',
     },
   },
 });
@@ -177,6 +182,7 @@ export default function StepSlot() {
   }, [selectedDate, fetchAllSlots]);
 
   const handleSlotSelect = (slot: string) => {
+    // Keep your original selection format (local ISO without Z)
     const fullSlot = `${format(selectedDate, 'yyyy-MM-dd')}T${slot}:00`;
     setSelectedSlot(fullSlot);
   };
@@ -193,14 +199,35 @@ export default function StepSlot() {
     return Array.from(slotDays).map((dateStr) => parseISO(`${dateStr}T00:00:00Z`));
   }, [allFetchedSlots]);
 
-  const slotAvailability = useMemo(() => {
-    return PREDEFINED_SLOTS.map((time) => ({
-      time,
-      available: availableSlots.some(
-        (slot) => isSameDay(new Date(slot), selectedDate) && format(new Date(slot), 'HH:mm') === time
-      ),
-    }));
+  // Build a quick lookup: for the selected date, which HH:mm exist in availableSlots?
+  const availableTimesForDay = useMemo(() => {
+    const map = new Set<string>();
+    availableSlots.forEach((iso) => {
+      const d = new Date(iso);
+      if (isSameDay(d, selectedDate)) {
+        map.add(format(d, 'HH:mm'));
+      }
+    });
+    return map;
   }, [availableSlots, selectedDate]);
+
+  // Client-side 48h filter so soon slots don't show
+  const slotAvailability = useMemo(() => {
+    const cutoff = Date.now() + MIN_DELAY_MS;
+    const ymd = format(selectedDate, 'yyyy-MM-dd');
+
+    return PREDEFINED_SLOTS.map((time) => {
+      const exists = availableTimesForDay.has(time);
+      // mirror backend: compute the true UTC instant for this local IST slot and compare
+      const utcMs = istLocalToUtcMs(ymd, time);
+      const farEnough = utcMs >= cutoff;
+
+      return {
+        time,
+        available: exists && farEnough,
+      };
+    });
+  }, [availableTimesForDay, selectedDate]);
 
   return (
     <>
@@ -248,8 +275,8 @@ export default function StepSlot() {
 
           {/* Time Slots Section */}
           <section className="md:w-lg mx-auto mt-6 md:mt-0 relative" aria-label="Select appointment time">
-            <div className="block md:hidden text-center text-sm font-semibold text-white mb-2">
-              Available Slots
+            <div className="block md:hidden text-center text-sm font-semibold text-gray-700 mb-2">
+              Available Slots (48h notice)
             </div>
 
             {loading && (
@@ -260,7 +287,7 @@ export default function StepSlot() {
 
             {!loading && slotAvailability.every(s => !s.available) && (
               <div className="text-center text-sm text-gray-400 py-6">
-                No slots for this day. Try another date.
+                No slots for this day (48h notice). Try another date.
               </div>
             )}
 

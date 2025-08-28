@@ -1,12 +1,8 @@
-// sanity/schemas/documents/appointment.ts
+// /Users/albert/Desktop/github_repos/pediahelp/sanity/schemas/documents/appointment.ts
 import { defineType, defineField } from 'sanity'
 import { Calendar } from 'lucide-react'
-import TimeSlotsAdapter from '../../components/TimeSlotsAdapter' // <-- use the adapter
-
-const SLOT_OPTIONS = Array.from({ length: 16 }, (_, i) => {
-  const hour = 8 + i
-  return `${hour.toString().padStart(2, '0')}:00`
-})
+import WeeklyAvailabilityInput from '../../components/WeeklyAvailabilityInput'
+import OverridesInput from '../../components/OverridesInput'
 
 export default defineType({
   name: 'appointment',
@@ -25,64 +21,22 @@ export default defineType({
     defineField({
       name: 'weeklyAvailability',
       title: 'Weekly Availability (defaults)',
-      type: 'object',
-      options: { collapsed: false, collapsible: true },
-      fields: [
-        ...['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((dow) =>
-          defineField({
-            name: dow,
-            title: dow[0].toUpperCase() + dow.slice(1),
-            type: 'array',
-            of: [{ type: 'string' }],
-            options: {
-              layout: 'tags',
-              list: SLOT_OPTIONS.map((v) => ({ title: v, value: v })),
-            },
-            // ✅ attach adapter here
-            components: { input: TimeSlotsAdapter },
-          })
-        ),
-      ],
-      initialValue: {
-        monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [],
+      type: 'weeklyAvailability',
+      description: 'Tap to select hours for each weekday (08:00–23:00).',
+      components: {
+        input: WeeklyAvailabilityInput,
       },
-      description: 'Click to add default slots (08:00–23:00).',
     }),
 
     defineField({
       name: 'overrides',
       title: 'Overrides / Leaves',
       type: 'array',
-      of: [{
-        type: 'object',
-        fields: [
-          defineField({ name: 'date', title: 'Date', type: 'date', validation: (Rule) => Rule.required() }),
-          defineField({ name: 'isFullDay', title: 'Full Day Leave?', type: 'boolean', initialValue: true }),
-          defineField({
-            name: 'partialSlots',
-            title: 'Unavailable Time Slots (if partial)',
-            type: 'array',
-            of: [{ type: 'string' }],
-            options: {
-              layout: 'tags',
-              list: SLOT_OPTIONS.map((v) => ({ title: v, value: v })),
-            },
-            // ✅ also use adapter here
-            components: { input: TimeSlotsAdapter },
-            hidden: ({ parent }) => parent?.isFullDay === true,
-          }),
-        ],
-        preview: {
-          select: { date: 'date', isFullDay: 'isFullDay' },
-          prepare({ date, isFullDay }) {
-            return {
-              title: date ? new Date(date).toDateString() : 'Override',
-              subtitle: isFullDay ? 'Full day' : 'Partial',
-            }
-          },
-        },
-      }],
-      description: 'Full-day leave or block specific slots on individual dates.',
+      of: [{ type: 'appointmentOverride' }],
+      description: 'Pick dates to set full-day leave or block specific hours.',
+      components: {
+        input: OverridesInput,
+      },
     }),
   ],
   preview: {

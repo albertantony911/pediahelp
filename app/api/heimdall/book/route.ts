@@ -4,6 +4,8 @@ import { client } from '@/sanity/lib/client';
 import { getSession, markUsed } from '@/lib/otp-store-redis';
 import { nowSec } from '@/lib/crypto';
 
+const MIN_DELAY_MS = 48 * 60 * 60 * 1000; // 48h
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -11,6 +13,11 @@ export async function POST(req: NextRequest) {
 
     if (!sessionId || !doctorId || !slot || !patient?.parentName || !patient?.childName || !patient?.phone || !patient?.email) {
       return NextResponse.json({ error: 'bad_request' }, { status: 400 });
+    }
+
+    // Enforce 48h buffer at booking time as well (server truth)
+    if (new Date(slot).getTime() < Date.now() + MIN_DELAY_MS) {
+      return NextResponse.json({ error: 'too_soon' }, { status: 400 });
     }
 
     // Validate OTP session (same pattern as reviews submit)
