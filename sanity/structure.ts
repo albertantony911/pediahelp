@@ -3,7 +3,7 @@ import { orderableDocumentListDeskItem } from '@sanity/orderable-document-list';
 import {
   Files, BookA, Tag, CalendarCheck2, ListCollapse, Quote,
   Stethoscope, FileText, FolderKanban, MessageCircle, Waves,
-  Calendar
+  Calendar, MessageSquare
 } from 'lucide-react';
 
 export const structure = (S: any, context: any) =>
@@ -21,10 +21,38 @@ export const structure = (S: any, context: any) =>
           S.list().title('Blog Management').items([
             S.listItem()
               .title('Posts').schemaType('post').icon(FileText)
-              .child(S.documentTypeList('post').title('Posts')
-                .defaultOrdering([{ field: '_createdAt', direction: 'desc' }])
+              .child(
+                S.documentTypeList('post')
+                  .title('Posts')
+                  .defaultOrdering([{ field: '_createdAt', direction: 'desc' }])
               ),
             orderableDocumentListDeskItem({ type: 'category', title: 'Categories', icon: BookA, S, context }),
+
+            // ✅ Blog comments moderation
+            S.listItem()
+              .title('Comments')
+              .icon(MessageSquare)
+              .child(
+                S.list().title('Comments').items([
+                  S.listItem()
+                    .title('Pending')
+                    .icon(MessageSquare)
+                    .child(
+                      S.documentTypeList('blogComment')
+                        .title('Pending Comments')
+                        .filter('_type == "blogComment" && approved != true')
+                        .defaultOrdering([{ field: 'submittedAt', direction: 'desc' }])
+                    ),
+                  S.listItem()
+                    .title('All')
+                    .icon(MessageSquare)
+                    .child(
+                      S.documentTypeList('blogComment')
+                        .title('All Comments')
+                        .defaultOrdering([{ field: 'submittedAt', direction: 'desc' }])
+                    ),
+                ])
+              ),
           ])
         ),
 
@@ -32,7 +60,7 @@ export const structure = (S: any, context: any) =>
       S.divider(),
       orderableDocumentListDeskItem({ type: 'doctor', title: 'Doctors', icon: Stethoscope, S, context }),
 
-      // 🗓 Appointments Control (unified)
+      // 🗓 Appointments Control
       S.listItem()
         .title('Appointments Control')
         .icon(Calendar)

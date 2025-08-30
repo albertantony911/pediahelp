@@ -1,5 +1,6 @@
 // lib/mailer.ts
 import { Resend } from 'resend';
+import { signApprovalToken } from './approval';
 import {
   otpEmailHtml,
   otpEmailText,
@@ -138,4 +139,49 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
     text: doctorReviewNotifyText(tmplPayload),
     html: doctorReviewNotifyHtml(tmplPayload),
   });
+}
+
+
+// --- add near other exports in lib/mailer.ts ---
+
+export async function sendBlogCommentNotification(to: string, payload: {
+  postTitle: string;
+  name: string;
+  email: string;
+  phone: string;
+  question: string;
+  docId?: string; // optional: if provided, include approve button
+}) {
+  const subject = `${BRAND} — New comment on "${payload.postTitle}"`;
+
+  // Approve link (if docId present)
+  let approveLink: string | null = null;
+  if (payload.docId && process.env.NEXT_PUBLIC_BASE_URL && process.env.APPROVAL_SECRET) {
+    const token = signApprovalToken(payload.docId, 'blogComment.approve', 60 * 60); // 1h
+    approveLink = `${process.env.NEXT_PUBLIC_BASE_URL}/api/blog-comments/approve?id=${encodeURIComponent(payload.docId)}&token=${encodeURIComponent(token)}`;
+  }
+
+  const text =
+`New blog comment:
+
+Post: ${payload.postTitle}
+From: ${payload.name} <${payload.email}> (+91 ${payload.phone})
+---
+${payload.question}
+
+${approveLink ? `Approve: ${approveLink}` : ''}`.trim();
+
+  const html =
+`<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;line-height:1.4">
+  <h2 style="margin:0 0 12px">New blog comment</h2>
+  <p><strong>Post:</strong> ${payload.postTitle}</p>
+  <p><strong>From:</strong> ${payload.name} &lt;${payload.email}&gt; (+91 ${payload.phone})</p>
+  <pre style="white-space:pre-wrap;background:#f7f7f9;padding:12px;border-radius:8px;border:1px solid #eee">${payload.question.replace(/</g,'&lt;')}</pre>
+  ${approveLink ? `
+    <div style="margin-top:16px">
+      <a href="${approveLink}" style="background:#16a34a;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;display:inline-block">Approve Comment</a>
+    </div>` : ''}
+</div>`;
+
+  await sendEmail({ to, subject, text, html });
 }
