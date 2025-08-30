@@ -174,7 +174,7 @@ export default function BlogCommentForm({ slug, blogTitle, successMessage }: Pro
       // Create the comment after verify
       setIsSubmitting(true);
       const v = getValues();
-      const createRes = await fetch('/api/blog-comments/submit', {
+      const createRes = await fetch('/api/comments/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -199,7 +199,7 @@ export default function BlogCommentForm({ slug, blogTitle, successMessage }: Pro
     }
   };
 
-  /** OTP input handlers (same feel as feedback form) */
+  /** OTP input handlers */
   const handleOtpChange = (index: number, value: string, e?: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
     const arr = (otp || '').split('');

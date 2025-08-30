@@ -6,8 +6,8 @@ import { formatDistanceToNow } from 'date-fns';
 type Comment = {
   _id: string;
   name: string;
-  comment: string;
-  submittedAt: string;
+  question: string;      // ← blog comment body field
+  submittedAt?: string;
 };
 
 export default function CommentList({ postId }: { postId: string }) {
@@ -16,7 +16,9 @@ export default function CommentList({ postId }: { postId: string }) {
 
   useEffect(() => {
     async function fetchComments() {
-      const res = await fetch(`/api/comments?postId=${postId}`);
+      const res = await fetch(`/api/comments?postId=${encodeURIComponent(postId)}`, {
+        next: { revalidate: 30 },
+      });
       if (res.ok) {
         const data = await res.json();
         setComments(data.comments || []);
@@ -38,12 +40,14 @@ export default function CommentList({ postId }: { postId: string }) {
         >
           <div className="flex justify-between mb-1">
             <span className="font-semibold text-gray-900">{c.name}</span>
-            <span className="text-xs text-gray-500">
-              {formatDistanceToNow(new Date(c.submittedAt), { addSuffix: true })}
-            </span>
+            {c.submittedAt && (
+              <span className="text-xs text-gray-500">
+                {formatDistanceToNow(new Date(c.submittedAt), { addSuffix: true })}
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-line">
-            {c.comment}
+            {c.question}
           </p>
         </div>
       ))}

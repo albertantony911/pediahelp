@@ -216,3 +216,58 @@ export function doctorReviewNotifyHtml(p: DoctorReviewPayload) {
     </div>
   </div>`;
 }
+
+
+// ---------- BLOG COMMENT NOTIFY EMAIL ----------
+export function blogCommentNotifyText(p: {
+  postTitle: string;
+  name: string;
+  email: string;
+  phone: string;
+  question: string;
+  approveUrl: string;
+}) {
+  return `${BRAND_NAME} — New Blog Comment
+
+Post: ${p.postTitle}
+From: ${p.name} <${p.email}> (+91${p.phone})
+
+${p.question}
+
+Approve:
+${p.approveUrl}
+`;
+}
+
+export function blogCommentNotifyHtml(p: {
+  postTitle: string;
+  name: string;
+  email: string;
+  phone: string;
+  question: string;
+  approveUrl: string;
+}) {
+  return `
+  <div style="background:#ffffff;margin:0;padding:0;width:100%">
+    <div style="max-width:640px;margin:0 auto;padding:24px 20px;
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${'#0b0d11'};line-height:1.6;">
+
+      <div style="font-size:14px;font-weight:700;color:${'#1C947B'};margin-bottom:12px;">${esc(BRAND_NAME)}</div>
+      <h1 style="font-size:18px;font-weight:700;margin:0 0 12px 0;color:${'#264E53'}">New blog comment</h1>
+
+      <p><strong>Post:</strong> ${esc(p.postTitle)}</p>
+      <p><strong>From:</strong> ${esc(p.name)} &lt;${esc(p.email)}&gt; (+91${esc(p.phone)})</p>
+
+      <div style="font-size:12px;color:${'#CAD76E'};margin:12px 0 6px">Comment</div>
+      <div style="white-space:pre-wrap;margin-bottom:16px">${esc(p.question)}</div>
+
+      <div style="margin-top:12px">
+        <a href="${esc(p.approveUrl)}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px">
+          Approve & publish
+        </a>
+      </div>
+
+      <p style="font-size:12px;color:#666;margin-top:10px">If the button doesn’t work, open: ${esc(p.approveUrl)}</p>
+    </div>
+  </div>`;
+}

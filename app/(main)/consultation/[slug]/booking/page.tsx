@@ -10,6 +10,7 @@ import Logo from '@/components/logo';
 import WaveDivider from '@/components/blocks/wave-divider';
 
 
+
 export default function BookingPage() {
   const { slug } = useParams();
   const setSelectedDoctor = useBookingStore((s) => s.setSelectedDoctor);

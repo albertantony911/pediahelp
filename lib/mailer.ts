@@ -1,6 +1,7 @@
 // lib/mailer.ts
 import { Resend } from 'resend';
-import { signApprovalToken } from './approval';
+import crypto from 'crypto';
+
 import {
   otpEmailHtml,
   otpEmailText,
@@ -10,6 +11,8 @@ import {
   careerApplicationLinkText,
   doctorReviewNotifyHtml,
   doctorReviewNotifyText,
+  blogCommentNotifyHtml,
+  blogCommentNotifyText,
 } from './email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -19,7 +22,7 @@ const FROM_ADDR = process.env.RESEND_FROM!; // e.g. 'Pediahelp <hello@send.pedia
 const REPLY_TO = process.env.RESEND_REPLY_TO || undefined;
 
 /* -------------------------------------------------------
- * Core sender (unchanged)
+ * Core sender
  * -----------------------------------------------------*/
 type SendEmailOpts = {
   to: string;
@@ -45,7 +48,7 @@ async function sendEmail({ to, subject, text, html }: SendEmailOpts) {
 }
 
 /* -------------------------------------------------------
- * OTP (email channel)  — unchanged
+ * OTP (email channel)
  * -----------------------------------------------------*/
 export async function sendOtpEmail(to: string, code: string, minutes = 10) {
   await sendEmail({
@@ -57,7 +60,7 @@ export async function sendOtpEmail(to: string, code: string, minutes = 10) {
 }
 
 /* -------------------------------------------------------
- * Contact notification (to you) — unchanged
+ * Contact notification (to you)
  * -----------------------------------------------------*/
 export async function sendContactNotification(to: string, payload: {
   name: string;
@@ -74,7 +77,7 @@ export async function sendContactNotification(to: string, payload: {
 }
 
 /* -------------------------------------------------------
- * Careers: link-based application — unchanged
+ * Careers: link-based application
  * -----------------------------------------------------*/
 type CareerBasics = {
   name: string;
@@ -106,7 +109,7 @@ export async function sendCareerApplicationLink(
  *   - Emails use doctorName; reviewId is never shown
  * -----------------------------------------------------*/
 export type DoctorReviewPayload = {
-  doctorName?: string;      // ✅ preferred
+  doctorName?: string;      // preferred
   doctorId?: string;        // (legacy) tolerated for subject fallback only
   name: string;
   email: string;
@@ -123,7 +126,6 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
 
   const subject = payload.subject || `${BRAND} — New review for Dr. ${doctorName}`;
 
-  // Templates expect doctorName (not ID), and we never pass a reviewId.
   const tmplPayload = {
     doctorName,
     name: payload.name,
@@ -141,47 +143,55 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
   });
 }
 
+/* -------------------------------------------------------
+ * Blog Comment notification (with Approve button)
+ *   Uses HMAC signer (COMMENT_APPROVE_SECRET) and /api/comments/approve
+ * -----------------------------------------------------*/
 
-// --- add near other exports in lib/mailer.ts ---
+// signer for approve link
+function signApprovePayload(payload: { id: string; slug: string }) {
+  const secret = process.env.COMMENT_APPROVE_SECRET!;
+  const json = JSON.stringify(payload);
+  const sig = crypto.createHmac('sha256', secret).update(json).digest('hex');
+  return { token: Buffer.from(json).toString('base64url'), sig };
+}
 
-export async function sendBlogCommentNotification(to: string, payload: {
-  postTitle: string;
-  name: string;
-  email: string;
-  phone: string;
-  question: string;
-  docId?: string; // optional: if provided, include approve button
-}) {
-  const subject = `${BRAND} — New comment on "${payload.postTitle}"`;
-
-  // Approve link (if docId present)
-  let approveLink: string | null = null;
-  if (payload.docId && process.env.NEXT_PUBLIC_BASE_URL && process.env.APPROVAL_SECRET) {
-    const token = signApprovalToken(payload.docId, 'blogComment.approve', 60 * 60); // 1h
-    approveLink = `${process.env.NEXT_PUBLIC_BASE_URL}/api/blog-comments/approve?id=${encodeURIComponent(payload.docId)}&token=${encodeURIComponent(token)}`;
+export async function sendBlogCommentNotification(
+  to: string,
+  payload: {
+    commentId: string;
+    slug: string;
+    postTitle: string;
+    name: string;
+    email: string;
+    phone: string;
+    question: string;
   }
+) {
+  const base = process.env.NEXT_PUBLIC_SITE_URL!;
+  const { token, sig } = signApprovePayload({ id: payload.commentId, slug: payload.slug });
+  const approveUrl = `${base}/api/comments/approve?token=${token}&sig=${sig}`;
 
-  const text =
-`New blog comment:
+  const subject = `${BRAND} — New comment on “${payload.postTitle}”`;
 
-Post: ${payload.postTitle}
-From: ${payload.name} <${payload.email}> (+91 ${payload.phone})
----
-${payload.question}
-
-${approveLink ? `Approve: ${approveLink}` : ''}`.trim();
-
-  const html =
-`<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;line-height:1.4">
-  <h2 style="margin:0 0 12px">New blog comment</h2>
-  <p><strong>Post:</strong> ${payload.postTitle}</p>
-  <p><strong>From:</strong> ${payload.name} &lt;${payload.email}&gt; (+91 ${payload.phone})</p>
-  <pre style="white-space:pre-wrap;background:#f7f7f9;padding:12px;border-radius:8px;border:1px solid #eee">${payload.question.replace(/</g,'&lt;')}</pre>
-  ${approveLink ? `
-    <div style="margin-top:16px">
-      <a href="${approveLink}" style="background:#16a34a;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;display:inline-block">Approve Comment</a>
-    </div>` : ''}
-</div>`;
-
-  await sendEmail({ to, subject, text, html });
+  await sendEmail({
+    to,
+    subject,
+    text: blogCommentNotifyText({
+      postTitle: payload.postTitle,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      question: payload.question,
+      approveUrl,
+    }),
+    html: blogCommentNotifyHtml({
+      postTitle: payload.postTitle,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      question: payload.question,
+      approveUrl,
+    }),
+  });
 }

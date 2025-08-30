@@ -5,7 +5,6 @@ export const revalidate = 60; // ISR every 60 seconds
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { cn } from '@/lib/utils';
 import Logo from '@/components/logo';
 import Breadcrumbs from '@/components/ui/breadcrumbs';
 import PortableTextRenderer from '@/components/portable-text-renderer';
@@ -13,7 +12,7 @@ import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
 import BlogCommentForm from '@/components/blocks/forms/blog-comment-form';
 import ShareButtons from '@/components/ui/ShareButtons';
 import WaveDivider from '@/components/blocks/wave-divider';
-
+import CommentList from '@/components/blocks/blog/CommentList';
 
 import {
   fetchSanityPostBySlug,
@@ -79,12 +78,12 @@ export default async function PostPage({
     post.image?.asset?.url ||
     (typeof post.image === 'string' ? post.image : undefined);
 
-  const shareUrl = `https://yourdomain.com/blog/${slug}`;
+  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'}/blog/${slug}`;
   const shareTitle = post.title ?? 'Blog Post';
 
   return (
     <section className="bg-background text-foreground">
-      <div className="w-full flex justify-center items-center bg-white lg:hidden">
+      <div className="w-full flex justify-center items-center bg-dark-shade lg:hidden">
         <Logo />
       </div>
 
@@ -162,6 +161,12 @@ export default async function PostPage({
                   slug={slug}
                   blogTitle={post.title ?? 'Blog Post'}
                 />
+                {/* Approved comments */}
+                {post._id && (
+                  <div className="mt-8">
+                    <CommentList postId={post._id} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
