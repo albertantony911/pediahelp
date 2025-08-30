@@ -132,18 +132,13 @@ export default async function PostPage({
         </div>
       </div>
 
-      <div className="w-screen h-[100px] relative">
-        <img
-          src="/waves/white-to-dark-desktop-1.svg"
-          alt="Wave divider desktop"
-          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
-        />
-        <img
-          src="/waves/white-to-dark-mobile-1.svg"
-          alt="Wave divider mobile"
-          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
-        />
-      </div>
+      {/* Wave Divider Section */}
+      <WaveDivider
+        desktopSrc="/waves/white-to-dark-desktop-1.svg"
+        mobileSrc="/waves/white-to-dark-mobile-1.svg"
+        height={100}
+        bleed
+      />
 
       {post.doctorAuthor && (
         <div className="bg-dark-shade py-5">
