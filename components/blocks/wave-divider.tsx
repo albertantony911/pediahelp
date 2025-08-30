@@ -1,55 +1,52 @@
-// components/blocks/wave-divider.tsx
-'use client'
+'use client';
 
-import { urlFor } from '@/sanity/lib/image'
-import React from 'react'
+import { urlFor } from '@/sanity/lib/image';
+import React from 'react';
 
-interface WaveDividerProps {
-  _type: 'waveDivider'
-  _key: string
-  variant: {
-    label: string | null
-    desktopSvg?: { asset?: { _id: string; url: string | null } } | null
-    mobileSvg?:  { asset?: { _id: string; url: string | null } } | null
-  } | null
-}
+type SanityVariant = {
+  label: string | null;
+  desktopSvg?: { asset?: { _id: string; url: string | null } } | null;
+  mobileSvg?:  { asset?: { _id: string; url: string | null } } | null;
+};
 
-const WaveDivider: React.FC<WaveDividerProps> = ({ variant }) => {
-  const desktop = variant?.desktopSvg?.asset ? urlFor(variant.desktopSvg).url() : null
-  const mobile  = variant?.mobileSvg?.asset  ? urlFor(variant.mobileSvg).url()  : null
-  if (!desktop && !mobile) return null
+type Props =
+  | { _type?: 'waveDivider'; _key?: string; variant: SanityVariant | null; desktopSrc?: never; mobileSrc?: never; height?: number; bleed?: boolean; className?: string }
+  | { _type?: 'waveDivider'; _key?: string; variant?: null; desktopSrc?: string | null; mobileSrc?: string | null; height?: number; bleed?: boolean; className?: string };
+
+const WaveDivider: React.FC<Props> = ({ variant, desktopSrc, mobileSrc, height = 100, bleed = true, className = '' }) => {
+  const desktop =
+    desktopSrc ??
+    (variant?.desktopSvg?.asset ? urlFor(variant.desktopSvg).url() : null);
+  const mobile =
+    mobileSrc ??
+    (variant?.mobileSvg?.asset ? urlFor(variant.mobileSvg).url() : null);
+
+  if (!desktop && !mobile) return null;
 
   return (
     <div
       className={[
-        'relative h-[100px]',
-        'overflow-hidden isolate select-none', // contain + paint above neighbors
+        bleed ? 'w-screen -mx-[calc(50vw-50%)]' : '',
+        'relative isolate overflow-hidden select-none',
+        className,
       ].join(' ')}
+      style={{ height }}
       aria-hidden
     >
-      {/* Desktop (≥ lg) */}
       {desktop && (
         <div
-          className={[
-            'hidden lg:block absolute -inset-px', // ← 1px overdraw on ALL sides
-            'bg-center bg-cover will-change-transform pointer-events-none',
-          ].join(' ')}
+          className="hidden lg:block absolute -inset-px bg-center bg-cover will-change-transform pointer-events-none"
           style={{ backgroundImage: `url("${desktop}")` }}
         />
       )}
-
-      {/* Mobile (< lg) */}
       {mobile && (
         <div
-          className={[
-            'block lg:hidden absolute -inset-px',
-            'bg-center bg-cover will-change-transform pointer-events-none',
-          ].join(' ')}
+          className="block lg:hidden absolute -inset-px bg-center bg-cover will-change-transform pointer-events-none"
           style={{ backgroundImage: `url("${mobile}")` }}
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default WaveDivider
+export default WaveDivider;

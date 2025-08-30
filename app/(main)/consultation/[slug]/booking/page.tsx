@@ -7,6 +7,8 @@ import { getDoctorBySlug } from '@/sanity/queries/doctor';
 import { useBookingStore } from '@/store/bookingStore';
 import BookingLayout from '@/components/booking-flow/BookingLayout';
 import Logo from '@/components/logo';
+import WaveDivider from '@/components/blocks/wave-divider';
+
 
 export default function BookingPage() {
   const { slug } = useParams();
@@ -32,18 +34,13 @@ export default function BookingPage() {
         <Logo />
       </div>
       <BookingLayout />
-      <div className="w-screen h-[100px] relative">
-        <img
-          src="/waves/dark-to-white-desktop-1.svg"
-          alt="Wave divider desktop"
-          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
-        />
-        <img
-          src="/waves/dark-to-white-mobile-1.svg"
-          alt="Wave divider mobile"
-          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
-        />
-      </div>
+      {/* Wave Divider Section */}
+      <WaveDivider
+        desktopSrc="/waves/dark-to-white-desktop-1.svg"
+        mobileSrc="/waves/dark-to-white-mobile-1.svg"
+        height={100}
+        bleed
+      />
     </main>
   );
 }

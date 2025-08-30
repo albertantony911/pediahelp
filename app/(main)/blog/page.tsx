@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import BlogLanding from '@/components/blocks/blog/BlogLanding';
+import WaveDivider from '@/components/blocks/wave-divider';
 
 export const metadata: Metadata = {
   title: 'Knowledge Hub | Pediahelp',
@@ -28,19 +29,12 @@ export default function BlogSSRPage() {
       
       <BlogLanding />
       {/* Wave Divider Section */}
-      <div className="relative w-full h-[100px] overflow-hidden">
-        <picture>
-          <source
-            media="(min-width: 1024px)"
-            srcSet="/waves/dark-to-white-desktop-1.svg"
-          />
-          <img
-            src="/waves/dark-to-white-mobile-1.svg"
-            alt="Wave divider"
-            className="w-full h-full object-cover absolute top-0 left-0"
-          />
-        </picture>
-      </div>
+      <WaveDivider
+        desktopSrc="/waves/dark-to-white-desktop-1.svg"
+        mobileSrc="/waves/dark-to-white-mobile-1.svg"
+        height={100}
+        bleed
+      />
     </div>
   );
 }

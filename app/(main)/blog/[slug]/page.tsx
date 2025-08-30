@@ -12,6 +12,8 @@ import PortableTextRenderer from '@/components/portable-text-renderer';
 import DoctorProfileCard from '@/components/blocks/doctor/DoctorProfile';
 import BlogCommentForm from '@/components/blocks/forms/blog-comment-form';
 import ShareButtons from '@/components/ui/ShareButtons';
+import WaveDivider from '@/components/blocks/wave-divider';
+
 
 import {
   fetchSanityPostBySlug,
@@ -171,18 +173,12 @@ export default async function PostPage({
         </div>
       )}
 
-      <div className="w-screen h-[100px] relative">
-        <img
-          src="/waves/dark-to-white-desktop-1.svg"
-          alt="Wave divider desktop"
-          className="hidden lg:block w-full h-full object-cover absolute top-0 left-0"
-        />
-        <img
-          src="/waves/dark-to-white-mobile-1.svg"
-          alt="Wave divider mobile"
-          className="lg:hidden w-full h-full object-cover absolute top-0 left-0"
-        />
-      </div>
+      <WaveDivider
+        desktopSrc="/waves/dark-to-white-desktop-1.svg"
+        mobileSrc="/waves/dark-to-white-mobile-1.svg"
+        height={100}
+        bleed
+      />
     </section>
   );
 }
