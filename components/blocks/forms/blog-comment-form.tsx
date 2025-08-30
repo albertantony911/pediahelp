@@ -174,7 +174,7 @@ export default function BlogCommentForm({ slug, blogTitle, successMessage }: Pro
       // Create the comment after verify
       setIsSubmitting(true);
       const v = getValues();
-      const createRes = await fetch('/api/comments/submit', {
+      const createRes = await fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

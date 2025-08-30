@@ -21,9 +21,6 @@ const BRAND = process.env.BRAND_NAME || 'Pediahelp';
 const FROM_ADDR = process.env.RESEND_FROM!; // e.g. 'Pediahelp <hello@send.pediahelp.in>'
 const REPLY_TO = process.env.RESEND_REPLY_TO || undefined;
 
-/* -------------------------------------------------------
- * Core sender
- * -----------------------------------------------------*/
 type SendEmailOpts = {
   to: string;
   subject: string;
@@ -40,16 +37,13 @@ async function sendEmail({ to, subject, text, html }: SendEmailOpts) {
     html,
     replyTo: REPLY_TO ? [REPLY_TO] : undefined,
   });
-
   if ((result as any)?.error) {
     const err = (result as any).error;
     throw new Error(err?.message || 'RESEND_SEND_FAILED');
   }
 }
 
-/* -------------------------------------------------------
- * OTP (email channel)
- * -----------------------------------------------------*/
+/* -------------------- OTP (email) -------------------- */
 export async function sendOtpEmail(to: string, code: string, minutes = 10) {
   await sendEmail({
     to,
@@ -59,9 +53,7 @@ export async function sendOtpEmail(to: string, code: string, minutes = 10) {
   });
 }
 
-/* -------------------------------------------------------
- * Contact notification (to you)
- * -----------------------------------------------------*/
+/* -------------------- Contact notify -------------------- */
 export async function sendContactNotification(to: string, payload: {
   name: string;
   email: string;
@@ -76,9 +68,7 @@ export async function sendContactNotification(to: string, payload: {
   });
 }
 
-/* -------------------------------------------------------
- * Careers: link-based application
- * -----------------------------------------------------*/
+/* -------------------- Career (link) -------------------- */
 type CareerBasics = {
   name: string;
   email: string;
@@ -94,7 +84,6 @@ export async function sendCareerApplicationLink(
   resume: ResumeLink
 ) {
   const subject = `${BRAND} — Career Application: ${applicant.name}${applicant.role ? ` (${applicant.role})` : ''}`;
-
   await sendEmail({
     to,
     subject,
@@ -103,19 +92,15 @@ export async function sendCareerApplicationLink(
   });
 }
 
-/* -------------------------------------------------------
- * Doctor Review notification (to you)
- *   - Backward compatible with old callers that send doctorId
- *   - Emails use doctorName; reviewId is never shown
- * -----------------------------------------------------*/
+/* -------------------- Doctor review notify -------------------- */
 export type DoctorReviewPayload = {
-  doctorName?: string;      // preferred
-  doctorId?: string;        // (legacy) tolerated for subject fallback only
+  doctorName?: string;
+  doctorId?: string; // tolerated for fallback only
   name: string;
   email: string;
   rating: number;
   comment: string;
-  phone: string;            // 10 digits (we show +91 in template text)
+  phone: string;
   subject?: string;
 };
 
@@ -125,7 +110,6 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
     (payload.doctorId ? `Doctor ${payload.doctorId}` : 'Doctor');
 
   const subject = payload.subject || `${BRAND} — New review for Dr. ${doctorName}`;
-
   const tmplPayload = {
     doctorName,
     name: payload.name,
@@ -143,12 +127,13 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
   });
 }
 
-/* -------------------------------------------------------
- * Blog Comment notification (with Approve button)
- *   Uses HMAC signer (COMMENT_APPROVE_SECRET) and /api/comments/approve
- * -----------------------------------------------------*/
-
-// signer for approve link
+/* -------------------- Blog comment notify (final) -------------------- */
+/**
+ * This is the single canonical version we use everywhere.
+ * It builds an approval link that hits /api/comments/approve?token=...&sig=...
+ * Signing secret: COMMENT_APPROVE_SECRET
+ * Public site URL: NEXT_PUBLIC_SITE_URL
+ */
 function signApprovePayload(payload: { id: string; slug: string }) {
   const secret = process.env.COMMENT_APPROVE_SECRET!;
   const json = JSON.stringify(payload);
@@ -156,23 +141,19 @@ function signApprovePayload(payload: { id: string; slug: string }) {
   return { token: Buffer.from(json).toString('base64url'), sig };
 }
 
-export async function sendBlogCommentNotification(
-  to: string,
-  payload: {
-    commentId: string;
-    slug: string;
-    postTitle: string;
-    name: string;
-    email: string;
-    phone: string;
-    question: string;
-  }
-) {
+export async function sendBlogCommentNotification(to: string, payload: {
+  commentId: string;
+  slug: string;
+  postTitle: string;
+  name: string;
+  email: string;
+  phone: string;
+  question: string;
+}) {
   const base = process.env.NEXT_PUBLIC_SITE_URL!;
   const { token, sig } = signApprovePayload({ id: payload.commentId, slug: payload.slug });
   const approveUrl = `${base}/api/comments/approve?token=${token}&sig=${sig}`;
-
-  const subject = `${BRAND} — New comment on “${payload.postTitle}”`;
+  const subject = `${BRAND} — New comment on "${payload.postTitle}"`;
 
   await sendEmail({
     to,
