@@ -12,7 +12,13 @@ export async function GET(req: NextRequest) {
   const comments = await client.fetch(
     `*[_type == "blogComment" && post._ref == $postId && approved == true]
       | order(submittedAt desc){
-        _id, name, "comment": question, submittedAt
+        _id,
+        name,
+        "comment": question,
+        submittedAt,
+        answer,
+        answeredAt,
+        answeredBy->{ name, specialty }
       }`,
     { postId }
   );
