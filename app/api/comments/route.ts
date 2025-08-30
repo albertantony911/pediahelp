@@ -55,18 +55,18 @@ export async function POST(req: NextRequest) {
 
     await markUsed(sessionId);
 
-    const notifyTo = process.env.NOTIFY_TO || process.env.RESEND_REPLY_TO || process.env.RESEND_FROM;
-    if (notifyTo) {
-      await sendBlogCommentNotification(notifyTo, {
-        commentId: doc._id,          // ✅ matches the new mailer signature
-        slug,                        // ✅ used in approve URL
-        postTitle: post.title || slug,
-        name,
-        email,
-        phone,
-        question,
-      }).catch(() => {});
-    }
+const notifyTo = process.env.NOTIFY_TO || process.env.RESEND_REPLY_TO || process.env.RESEND_FROM;
+if (notifyTo) {
+  await sendBlogCommentNotification(notifyTo, {
+    commentId: doc._id,
+    slug,
+    postTitle: post.title || slug,
+    name,
+    email,
+    phone,
+    question,
+  });
+}
 
     return NextResponse.json({ ok: true, id: doc._id });
   } catch (e: any) {

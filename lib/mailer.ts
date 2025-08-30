@@ -134,10 +134,11 @@ export async function sendDoctorReviewNotification(to: string, payload: DoctorRe
  * Signing secret: COMMENT_APPROVE_SECRET
  * Public site URL: NEXT_PUBLIC_SITE_URL
  */
+// --- only replace this function in lib/mailer.ts ---
 function signApprovePayload(payload: { id: string; slug: string }) {
   const secret = process.env.COMMENT_APPROVE_SECRET!;
   const json = JSON.stringify(payload);
-  const sig = crypto.createHmac('sha256', secret).update(json).digest('hex');
+  const sig = require('crypto').createHmac('sha256', secret).update(json).digest('hex');
   return { token: Buffer.from(json).toString('base64url'), sig };
 }
 
@@ -150,10 +151,19 @@ export async function sendBlogCommentNotification(to: string, payload: {
   phone: string;
   question: string;
 }) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL!;
-  const { token, sig } = signApprovePayload({ id: payload.commentId, slug: payload.slug });
-  const approveUrl = `${base}/api/comments/approve?token=${token}&sig=${sig}`;
-  const subject = `${BRAND} — New comment on "${payload.postTitle}"`;
+  // ✅ Don’t crash if base URL is missing — just omit the approve button
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    '';
+
+  let approveUrl: string | undefined;
+  if (base && process.env.COMMENT_APPROVE_SECRET) {
+    const { token, sig } = signApprovePayload({ id: payload.commentId, slug: payload.slug });
+    approveUrl = `${base}/api/comments/approve?token=${token}&sig=${sig}`;
+  }
+
+  const subject = `${process.env.BRAND_NAME || 'Pediahelp'} — New comment on "${payload.postTitle}"`;
 
   await sendEmail({
     to,
