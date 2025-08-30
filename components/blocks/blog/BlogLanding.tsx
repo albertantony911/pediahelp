@@ -73,7 +73,7 @@ export default function BlogLanding({ theme = 'dark-shade' }: BlogLandingProps) 
       {/* Themed Content */}
       <Theme variant={theme || 'dark-shade'}>
         {/* Mobile-only SVG Logo (Outside Theme) */}
-        <div className="">
+        <div className="md:hidden">
           <Logo />
         </div>
         <div className="w-full">
