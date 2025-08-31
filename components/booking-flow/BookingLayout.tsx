@@ -16,7 +16,7 @@ export default function BookingLayout() {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 sm:px-5 md:px-6 py-6 md:pt-40">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-5 md:px-6 py-6 md:pt-40">
       <Stepper step={step} />
       <div>{steps[step]}</div>
     </div>
