@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,55 @@ const MAX_RESENDS = 3;
 const OTP_LENGTH = 6;
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string | undefined;
 /** ------------------------------ */
+
+/* --------------------- Glass helpers (match StepSlot) ---------------------- */
+const glassWrap =
+  'rounded-3xl border border-white/20 bg-white/10 dark:bg-white/5 backdrop-blur-xl shadow-[0_12px_60px_-18px_rgba(0,0,0,0.35)]';
+const glassChip =
+  'rounded-xl border border-white/15 bg-white/10 dark:bg-white/5 backdrop-blur-xl shadow-[0_2px_16px_-8px_rgba(0,0,0,0.35)]';
+
+// Define Field OUTSIDE StepForm to prevent re-definition on re-renders
+interface FieldProps {
+  id: 'parentName' | 'childName' | 'email' | 'phone';
+  label: string;
+  type?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  value: string;
+  onChange: (newValue: string) => void;
+  error?: string;
+}
+
+const Field = ({
+  id,
+  label,
+  type = 'text',
+  disabled = false,
+  placeholder,
+  value,
+  onChange,
+  error,
+}: FieldProps) => (
+  <div className="relative">
+    <label htmlFor={id} className="block text-xs md:text-sm text-white/80 mb-1.5">
+      {label}
+    </label>
+    <Input
+      id={id}
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder || label}
+      disabled={disabled}
+      className={cn(
+        'rounded-xl bg-white/80 text-gray-900 placeholder:text-gray-500 border border-white/30 focus:border-teal-500 focus:ring-2 focus:ring-teal-200',
+        disabled && 'opacity-70 pointer-events-none',
+        error && 'border-red-500 focus:ring-red-200 focus:border-red-500'
+      )}
+    />
+    {error && <p className="text-xs text-red-300 mt-1">{error}</p>}
+  </div>
+);
 
 export default function StepForm() {
   const {
@@ -31,6 +80,14 @@ export default function StepForm() {
     appointmentId,
     setSelectedSlot,
   } = useBookingStore();
+
+  // ✅ Local state to prevent input blur/keyboard collapse on phones
+  const [localPatient, setLocalPatient] = useState({
+    parentName: patient.parentName ?? '',
+    childName: patient.childName ?? '',
+    email: patient.email ?? '',
+    phone: patient.phone ?? '',
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [otpSent, setOtpSent] = useState(false);
@@ -48,21 +105,27 @@ export default function StepForm() {
   const otpInputsRef = useRef<HTMLInputElement[]>([]);
   const recaptchaCacheRef = useRef<{ token: string; ts: number } | null>(null);
 
-  /* ----------------------- Helpers ----------------------- */
+  const formattedWhen = useMemo(() => {
+    if (!selectedSlot) return '';
+    const d = new Date(selectedSlot);
+    const date = d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' });
+    const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    return `${date}  •  ${time}`;
+  }, [selectedSlot]);
 
+  const photoUrl = selectedDoctor?.photo?.asset?.url || '/doctor-placeholder.jpg';
+  const docName = selectedDoctor?.name || 'Doctor';
+  const docSpec = selectedDoctor?.specialty || '';
+  const feeAmount = (selectedDoctor as any)?.fee ?? (selectedDoctor as any)?.price ?? null; // adjust keys if needed
+
+  /* ----------------------- Validation & captcha ----------------------- */
   const validateFields = () => {
     const next: Record<string, string> = {};
-    if (!patient.parentName) next.parentName = 'Parent’s name is required';
-    if (!patient.childName) next.childName = 'Child’s name is required';
-    if (!patient.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patient.email)) {
-      next.email = 'Valid email is required';
-    }
-    if (!patient.phone || !/^\d{10}$/.test(patient.phone)) {
-      next.phone = 'Valid 10-digit phone is required';
-    }
-    if (!selectedDoctor?._id || !selectedSlot) {
-      next.meta = 'Please select a slot again';
-    }
+    if (!localPatient.parentName) next.parentName = 'Parent’s name is required';
+    if (!localPatient.childName) next.childName = 'Child’s name is required';
+    if (!localPatient.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(localPatient.email)) next.email = 'Valid email is required';
+    if (!localPatient.phone || !/^\d{10}$/.test(localPatient.phone)) next.phone = 'Valid 10-digit phone is required';
+    if (!selectedDoctor?._id || !selectedSlot) next.meta = 'Please select a slot again';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -90,16 +153,14 @@ export default function StepForm() {
   };
 
   /* ------------------- Countdown (resend) ------------------- */
-
   useEffect(() => {
     if (!otpSent || otpVerified || timer === 0) return;
     const id = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(id);
   }, [timer, otpSent, otpVerified]);
 
-  /* ------------------- OTP send / verify ------------------- */
-
-  const handleSendOtp = async () => {
+  /* ------------------- Flow: Continue -> Send OTP ------------------- */
+  const handleContinue = async () => {
     if (!validateFields()) {
       const first = Object.values(errors)[0];
       if (first) toast.error(first);
@@ -112,17 +173,25 @@ export default function StepForm() {
 
     setIsSendingOtp(true);
     try {
+      // ✅ Push local form snapshot to global store ONLY once (prevents re-renders while typing)
+      setPatient({
+        ...patient,
+        parentName: localPatient.parentName,
+        childName: localPatient.childName,
+        email: localPatient.email,
+        phone: localPatient.phone,
+      });
+
       const token = await getRecaptchaToken();
       if (!token) {
         toast.error('reCAPTCHA not ready — try again in a moment');
         return;
       }
 
-      // Prefer email if valid, else SMS (+91)
       const identifier =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patient.email)
-          ? patient.email.trim()
-          : `+91${patient.phone}`;
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(localPatient.email)
+          ? localPatient.email.trim()
+          : `+91${localPatient.phone}`;
 
       const res = await fetch('/api/verify/start', {
         method: 'POST',
@@ -144,7 +213,7 @@ export default function StepForm() {
       setTimer(RESEND_COOLDOWN_BASE + resendCount * 10);
       setResendCount((c) => c + 1);
       setOtp(''); // clear input
-      otpInputsRef.current[0]?.focus();
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 60);
       toast.success('OTP sent');
     } catch (e: any) {
       toast.error(e?.message || 'Failed to send OTP');
@@ -154,6 +223,12 @@ export default function StepForm() {
     }
   };
 
+  const handleResend = async () => {
+    if (resendCount >= MAX_RESENDS || isSendingOtp) return;
+    await handleContinue();
+  };
+
+  /* ------------------- Verify + Create + Pay ------------------- */
   const handleVerifyOtp = async () => {
     if (!sessionId || otp.length !== OTP_LENGTH) return;
     setIsVerifying(true);
@@ -178,10 +253,10 @@ export default function StepForm() {
           doctorId: selectedDoctor!._id,
           slot: selectedSlot!,
           patient: {
-            parentName: patient.parentName,
-            childName: patient.childName,
-            phone: patient.phone,
-            email: patient.email,
+            parentName: localPatient.parentName,
+            childName: localPatient.childName,
+            phone: localPatient.phone,
+            email: localPatient.email,
           },
         }),
       });
@@ -189,7 +264,6 @@ export default function StepForm() {
       if (!create.ok || !createJson.bookingId) throw new Error(createJson.error || 'Failed to create booking');
 
       setConfirmedBookingId(createJson.bookingId);
-      // Go pay
       await handlePayment(createJson.bookingId);
     } catch (e: any) {
       toast.error(e?.message || 'Verification failed, please try again.');
@@ -199,8 +273,6 @@ export default function StepForm() {
       setIsVerifying(false);
     }
   };
-
-  /* ------------------- Payment ------------------- */
 
   const handlePayment = async (bookingId: string) => {
     setIsPaying(true);
@@ -235,8 +307,7 @@ export default function StepForm() {
     }
   };
 
-  /* ------------------- OTP input UI ------------------- */
-
+  /* ------------------- OTP input handlers ------------------- */
   const handleOtpChange = (index: number, value: string, e?: React.ChangeEvent<HTMLInputElement>) => {
     if (!/^\d?$/.test(value)) return;
     const arr = otp.split('');
@@ -254,7 +325,6 @@ export default function StepForm() {
       otpInputsRef.current[index - 1]?.focus();
     }
   };
-
   const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Backspace' && !otpInputsRef.current[index]?.value && index > 0) {
       otpInputsRef.current[index - 1]?.focus();
@@ -268,166 +338,260 @@ export default function StepForm() {
     }
   };
 
-  const renderField = (id: keyof typeof patient, label: string, type: string = 'text') => (
-    <div className="relative">
-      <Input
-        id={id}
-        type={type}
-        value={patient[id]}
-        onChange={(e) => setPatient({ ...patient, [id]: e.target.value })}
-        placeholder={label}
-        className={cn(errors[id] && 'border-red-500')}
-      />
-      {errors[id] && <p className="text-xs text-red-500 mt-1">{errors[id]}</p>}
-    </div>
-  );
-
   /* ------------------- Back to slots ------------------- */
-
   const handleBackToSlots = () => {
-    // Clear slot + go to first step
     setSelectedSlot(null);
     setStep(0);
   };
 
-  /* ------------------- UI ------------------- */
-
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      {/* If using reCAPTCHA v3 */}
       <Script src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY ?? ''}`} strategy="lazyOnload" />
 
-      <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6 border border-gray-100">
-        {/* Back row */}
-        <div className="flex items-center justify-between -mt-1">
-          <button
-            type="button"
-            onClick={handleBackToSlots}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Change slot
-          </button>
-          {selectedSlot && (
-            <span className="text-xs text-gray-500">
-              {new Date(selectedSlot).toLocaleString('en-IN', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              })}
-            </span>
-          )}
+      {/* Background wash to match StepSlot */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 opacity-80"
+        style={{
+          background:
+            'radial-gradient(62rem 62rem at 18% -12%, rgba(202,215,110,0.18), transparent 60%), ' +
+            'radial-gradient(52rem 52rem at 90% 10%, rgba(28,148,123,0.20), transparent 60%)',
+        }}
+      />
+
+      <div className={cn(glassWrap, 'max-w-md mx-auto px-5 sm:px-6 py-5 text-white')}>
+        {/* Summary header row */}
+        <div className={cn(glassChip, 'p-4')}>
+          <div className="flex items-start gap-4">
+            <motion.img
+              initial={{ opacity: 0.85 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              src={photoUrl}
+              alt={docName}
+              className="w-[56px] h-[65px] sm:w-[64px] sm:h-[84px] md:w-[65px] md:h-[80px] rounded-2xl object-cover border border-white/30 shadow shrink-0"
+              style={{ aspectRatio: '3 / 4' }}
+            />
+            <div className="flex-1 min-w-0">
+              {/* ✅ Title above doctor name */}
+              <div className="text-sm md:text-lg tracking-[0.14em] text-white/70 mb-1 font-thin">
+                APPOINTMENT WITH
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm md:text-base min-w-0">
+                <span className="font-semibold uppercase truncate max-w-[65%]" title={docName}>
+                  {docName}
+                </span>
+                {docSpec && (
+                  <span className="text-xs md:text-sm text-white/80 truncate max-w-[35%]" title={docSpec}>
+                    {docSpec}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs md:text-sm text-white/90">
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 opacity-80" />
+                  {formattedWhen || <span className="text-white/60">Choose a date & time</span>}
+                </span>
+                {feeAmount != null && (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 opacity-80" />
+                    <span className="font-semibold">₹{feeAmount}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <h2 className="text-lg font-semibold text-center">Confirm Your Appointment</h2>
-
-        {/* Patient fields */}
-        {!otpSent && (
+        {/* Form card */}
+        <div className={cn(glassChip, 'p-4 mt-4')}>
           <div className="space-y-3">
-            {renderField('parentName', "Parent's Name")}
-            {renderField('childName', "Child's Name")}
-            {renderField('email', 'Email', 'email')}
-            {renderField('phone', 'Phone (10 digits)', 'tel')}
+            <Field
+              id="parentName"
+              label="Parent's Name"
+              disabled={otpSent}
+              placeholder="Your full name"
+              value={localPatient.parentName}
+              onChange={(newValue) => setLocalPatient({ ...localPatient, parentName: newValue })}
+              error={errors.parentName}
+            />
+            <Field
+              id="childName"
+              label="Child's Name"
+              disabled={otpSent}
+              placeholder="Your child's name"
+              value={localPatient.childName}
+              onChange={(newValue) => setLocalPatient({ ...localPatient, childName: newValue })}
+              error={errors.childName}
+            />
+            <Field
+              id="email"
+              label="Email"
+              type="email"
+              disabled={otpSent}
+              placeholder="name@example.com"
+              value={localPatient.email}
+              onChange={(newValue) => setLocalPatient({ ...localPatient, email: newValue })}
+              error={errors.email}
+            />
 
-            <Button onClick={handleSendOtp} disabled={isSendingOtp} className="w-full rounded-xl">
-              {isSendingOtp ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…
-                </>
-              ) : (
-                'Send OTP & Continue'
-              )}
-            </Button>
-            {errors.meta && <p className="text-xs text-red-500">{errors.meta}</p>}
-          </div>
-        )}
-
-        {/* OTP step */}
-        {otpSent && (
-          <div className="space-y-3">
-            <label className="text-sm text-gray-600">Enter the 6-digit OTP</label>
-
-            <div className="flex justify-center gap-2 rounded-xl p-1.5 bg-gray-50">
-              {Array.from({ length: OTP_LENGTH }).map((_, i) => (
-                <motion.input
-                  key={i}
-                  type="text"
+            {/* Phone with 🇮🇳 +91 chip */}
+            <div className="relative">
+              <label htmlFor="phone" className="block text-xs md:text-sm text-white/80 mb-1.5">
+                Phone Number
+              </label>
+              <div
+                className={cn(
+                  'rounded-xl border border-white/30 bg-white/80 text-gray-900',
+                  'focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-200',
+                  'flex items-center overflow-hidden',
+                  errors.phone && 'border-red-500 focus-within:ring-red-200 focus-within:border-red-500'
+                )}
+              >
+                <span className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-800 bg-gray-100/70 select-none">
+                  🇮🇳 <span className="opacity-80">+91</span>
+                </span>
+                <input
+                  id="phone"
+                  type="tel"
                   inputMode="numeric"
-                  maxLength={1}
-                  className="w-10 h-12 text-lg text-center rounded-md border border-gray-300 bg-white/70 focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                  ref={(el) => {
-                    if (el) otpInputsRef.current[i] = el;
+                  pattern="[0-9]*"
+                  autoComplete="tel"
+                  disabled={otpSent}
+                  placeholder="10-digit number"
+                  aria-invalid={!!errors.phone}
+                  className="flex-1 px-3 py-2 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-500"
+                  value={localPatient.phone}
+                  onChange={(e) => {
+                    const only = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setLocalPatient({ ...localPatient, phone: only });
                   }}
-                  value={otp[i] || ''}
-                  onChange={(e) => handleOtpChange(i, e.target.value, e)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
                 />
-              ))}
+              </div>
+              {errors.phone && <p className="text-xs text-red-300 mt-1">{errors.phone}</p>}
             </div>
 
-            {!otpVerified && (
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                {timer > 0 ? (
-                  <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
-                ) : (
-                  <button
-                    onClick={handleSendOtp}
-                    disabled={resendCount >= MAX_RESENDS || isSendingOtp}
-                    className={cn(
-                      'text-teal-700 font-medium',
-                      (resendCount >= MAX_RESENDS || isSendingOtp) && 'opacity-50 cursor-not-allowed'
-                    )}
-                  >
-                    Resend OTP
-                  </button>
-                )}
-                <span className="text-gray-400">via email/SMS</span>
-              </div>
-            )}
+            {/* Inline OTP row (reveals after Continue) */}
+            <AnimatePresence initial={false}>
+              {otpSent && (
+                <motion.div
+                  key="otp-row"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                >
+                  <label className="text-xs md:text-sm text-white/80 block mb-2">
+                    Enter the {OTP_LENGTH}-digit OTP
+                  </label>
+                  <div className="flex justify-center gap-2 rounded-xl p-2 bg-white/10 border border-white/15">
+                    {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                      <input
+                        key={i}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        aria-label={`Digit ${i + 1}`}
+                        className="w-10 h-12 text-lg text-center rounded-md border border-white/20 bg-white/70 text-gray-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                        ref={(el) => {
+                          if (el) otpInputsRef.current[i] = el;
+                        }}
+                        value={otp[i] || ''}
+                        onChange={(e) => handleOtpChange(i, e.target.value, e)}
+                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      />
+                    ))}
+                  </div>
 
-            {!otpVerified && (
+                  {/* Resend / status */}
+                  {!otpVerified && (
+                    <div className="mt-2 flex items-center justify-between text-xs text-white/80">
+                      {timer > 0 ? (
+                        <span>Resend in 0:{timer.toString().padStart(2, '0')}</span>
+                      ) : (
+                        <button
+                          onClick={handleResend}
+                          disabled={resendCount >= MAX_RESENDS || isSendingOtp}
+                          className={cn(
+                            'text-teal-200 hover:text-teal-100 font-medium',
+                            (resendCount >= MAX_RESENDS || isSendingOtp) && 'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          Resend OTP
+                        </button>
+                      )}
+                      <span className="text-white/60">via email/SMS</span>
+                    </div>
+                  )}
+
+                  {/* Verified note */}
+                  <AnimatePresence>
+                    {otpVerified && (
+                      <motion.div
+                        className="mt-2 flex items-center justify-center gap-2 text-green-300"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <p className="text-sm">OTP Verified</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {errors.meta && <p className="text-xs text-red-300">{errors.meta}</p>}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSlot(null);
+                setStep(0);
+              }}
+              className="col-span-1 text-sm font-medium text-white/95 py-2 px-4 rounded-xl border border-white/25 bg-white/10 hover:bg-white/20 transition"
+            >
+              Go Back
+            </button>
+
+            {!otpSent ? (
+              <Button
+                onClick={handleContinue}
+                disabled={isSendingOtp}
+                className="col-span-2 rounded-xl"
+              >
+                {isSendingOtp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…
+                  </>
+                ) : (
+                  'Continue'
+                )}
+              </Button>
+            ) : (
               <Button
                 onClick={handleVerifyOtp}
-                disabled={otp.length !== OTP_LENGTH || isVerifying}
-                className="w-full rounded-xl"
+                disabled={otp.length !== OTP_LENGTH || isVerifying || isPaying}
+                className="col-span-2 rounded-xl"
               >
-                {isVerifying ? (
+                {isVerifying || isPaying ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isVerifying ? 'Verifying…' : 'Processing…'}
                   </>
                 ) : (
                   'Verify & Pay'
                 )}
               </Button>
             )}
-
-            <AnimatePresence>
-              {otpVerified && (
-                <motion.div
-                  className="flex items-center justify-center gap-2 text-green-600"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <p className="text-sm">OTP Verified</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {otpVerified && (
-              <Button disabled={isPaying} onClick={() => {}} className="w-full rounded-xl">
-                {isPaying ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…
-                  </>
-                ) : (
-                  'Processing Payment…'
-                )}
-              </Button>
-            )}
           </div>
-        )}
+        </div>
       </div>
     </>
   );
