@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     tick('begin');
     const {
       identifier,
-      channel = 'auto',
+      channel = 'email',
       scope = 'contact',
       recaptchaToken,
       honeypot,
