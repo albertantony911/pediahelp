@@ -1,86 +1,64 @@
-export const runtime = 'nodejs';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { NextResponse } from 'next/server';
-
-/** minimal address parser: "Name <mail@domain>" | "mail@domain" */
 function parseAddress(input: string) {
   const m = input.match(/^\s*([^<]+?)\s*<\s*([^>]+)\s*>\s*$/);
   if (m) return { name: m[1].trim(), email: m[2].trim() };
   return { email: input.trim() };
 }
 
-export async function POST(req: Request) {
-  const t0 = Date.now();
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   try {
     const {
       to = process.env.TEST_EMAIL_TO,
-      from = process.env.EMAIL_FROM, // e.g. "PediaHelp <hello@mail.pediahelp.com>"
-      replyTo = process.env.EMAIL_REPLY_TO, // optional
+      from = process.env.EMAIL_FROM,
+      replyTo = process.env.EMAIL_REPLY_TO,
       subject = 'MSG91 direct test',
       text = 'Hello from /api/_email/test-msg91',
-      html,            // optional
-      dry = false,     // when true, just echo the request body that would be sent to MSG91
-    } = await req.json().catch(() => ({}));
+      html,
+      dry = false,
+    } = (req.body || {}) as any;
 
-    if (!to)  return NextResponse.json({ error: 'Missing "to" or TEST_EMAIL_TO' }, { status: 400 });
-    if (!from) return NextResponse.json({ error: 'Missing EMAIL_FROM in env' }, { status: 400 });
+    if (!to)  return res.status(400).json({ error: 'Missing "to" or TEST_EMAIL_TO' });
+    if (!from) return res.status(400).json({ error: 'Missing EMAIL_FROM in env' });
 
     const AUTH = process.env.MSG91_AUTH_KEY;
-    if (!AUTH) return NextResponse.json({ error: 'Missing MSG91_AUTH_KEY in env' }, { status: 400 });
+    if (!AUTH) return res.status(400).json({ error: 'Missing MSG91_AUTH_KEY in env' });
 
     const fromParsed = parseAddress(from);
     const toList = String(to).split(',').map((s) => parseAddress(s));
     const replyToList = replyTo ? String(replyTo).split(',').map((s) => parseAddress(s)) : undefined;
 
     const payload = {
-      from: fromParsed,                 // { email, name? }
-      recipients: [{ to: toList }],     // [{ to: [{email,name?},...] }]
+      from: fromParsed,
+      recipients: [{ to: toList }],
       subject,
       text: text || undefined,
       html: html || undefined,
-      reply_to: replyToList,            // [{email,name?}]
+      reply_to: replyToList,
     };
 
-    if (dry) {
-      return NextResponse.json({ ok: true, dryRun: true, payload });
-    }
+    if (dry) return res.status(200).json({ ok: true, dryRun: true, payload });
 
-    const res = await fetch('https://control.msg91.com/api/v5/email/send', {
+    const r = await fetch('https://control.msg91.com/api/v5/email/send', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-        authkey: AUTH,
-      },
+      headers: { 'content-type': 'application/json', accept: 'application/json', authkey: AUTH },
       body: JSON.stringify(payload),
     });
 
-    const rawText = await res.text().catch(() => '');
-    let json: any = {};
-    try { json = rawText ? JSON.parse(rawText) : {}; } catch {}
+    const raw = await r.text().catch(() => '');
+    let json: any = {}; try { json = raw ? JSON.parse(raw) : {}; } catch {}
+    console.log('[test-msg91] status=', r.status, 'json=', json || raw?.slice(0, 400));
 
-    // Log useful details to server logs
-    console.log('[test-msg91] status=', res.status, 'json=', json || rawText?.slice(0, 400));
-
-    if (!res.ok || json?.type === 'error') {
-      const msg = json?.message || json?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${res.status}`;
-      return NextResponse.json({
-        ok: false,
-        status: res.status,
-        error: msg,
-        response: json || rawText,
-        elapsedMs: Date.now() - t0,
-      }, { status: 502 });
+    if (!r.ok || json?.type === 'error') {
+      const msg = json?.message || json?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${r.status}`;
+      return res.status(502).json({ ok: false, status: r.status, error: msg, response: json || raw });
     }
 
-    return NextResponse.json({
-      ok: true,
-      status: res.status,
-      response: json || rawText,
-      elapsedMs: Date.now() - t0,
-    });
+    return res.status(200).json({ ok: true, status: r.status, response: json || raw });
   } catch (e: any) {
     console.error('[test-msg91] error', e?.message || e);
-    return NextResponse.json({ ok: false, error: e?.message || 'send_failed' }, { status: 500 });
+    return res.status(500).json({ ok: false, error: e?.message || 'send_failed' });
   }
 }
