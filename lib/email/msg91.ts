@@ -14,29 +14,22 @@ function parseAddress(addr: string) {
   if (m) return { name: m[1]?.trim() || undefined, email: m[2].trim() };
   return { email: addr.trim() };
 }
-
-export async function sendEmailViaMsg91({
-  from, to, subject, text, html, replyTo,
-}: SendArgs): Promise<void> {
+export async function sendEmailViaMsg91({ from, to, subject, text, html, replyTo }: SendArgs) {
   const AUTH = process.env.MSG91_AUTH_KEY!;
   if (!AUTH) throw new Error('MSG91_AUTH_KEY missing');
+  if (!from) throw new Error('EMAIL_FROM missing');
+  if (!to?.length) throw new Error('NO_RECIPIENTS');
 
   const fromParsed = parseAddress(from);
   const toList = to.map(parseAddress);
 
   const body = {
-    // Minimal, template-less payload
-    from: fromParsed,                        // { email, name? }
-    recipients: [
-      {
-        to: toList,                          // [{ email, name? }, ...]
-        // variables: {...}                   // optional if you use MSG91 templates
-      },
-    ],
+    from: fromParsed,
+    recipients: [{ to: toList }],
     subject,
     text: text || undefined,
     html: html || undefined,
-    reply_to: replyTo?.map(parseAddress),    // [{ email, name? }]
+    reply_to: replyTo?.map(parseAddress),
   };
 
   const res = await fetch('https://control.msg91.com/api/v5/email/send', {
@@ -49,9 +42,13 @@ export async function sendEmailViaMsg91({
     body: JSON.stringify(body),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || (data?.type === 'error')) {
-    const msg = data?.message || data?.errors?.[0]?.message || 'MSG91_EMAIL_SEND_FAILED';
+  const textBody = await res.text().catch(() => '');
+  let json: any = {};
+  try { json = textBody ? JSON.parse(textBody) : {}; } catch {}
+
+  if (!res.ok || json?.type === 'error') {
+    console.error('[MSG91] email send fail', { status: res.status, json, text: textBody?.slice(0,400) });
+    const msg = json?.message || json?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${res.status}`;
     throw new Error(msg);
   }
 }
