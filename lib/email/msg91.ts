@@ -22,24 +22,29 @@ export async function sendEmailViaMsg91({ from, to, subject, text, html, replyTo
 
   const base = process.env.MSG91_EMAIL_BASE_URL || 'https://control.msg91.com/api/v5/email';
 
+  // Pick exactly one body: prefer HTML if provided
+  const body =
+    (html && { type: 'html' as const, data: html }) ||
+    (text && { type: 'text' as const, data: text });
+
+  if (!body || !body.data?.trim()) {
+    throw new Error('EMAIL_BODY_EMPTY'); // defensive: avoid 422
+  }
+
   const payload: any = {
     from: parseAddress(from),
     recipients: [{ to: to.map(parseAddress) }],
     subject,
-    // 🔑 MSG91 expects ONE body object when not using template_id
-    body: html
-      ? { type: 'html', data: html }
-      : { type: 'text', data: text || '' },
+    body,
   };
-
   if (replyTo?.length) payload.reply_to = replyTo.map(parseAddress);
 
   const res = await fetch(`${base}/send`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'accept': 'application/json',
-      'authkey': AUTH,
+      accept: 'application/json',
+      authkey: AUTH,
     },
     body: JSON.stringify(payload),
   });
@@ -49,16 +54,9 @@ export async function sendEmailViaMsg91({ from, to, subject, text, html, replyTo
   try { json = raw ? JSON.parse(raw) : {}; } catch {}
 
   if (!res.ok || json?.hasError || json?.type === 'error') {
-    // redact emails + body length for logs
-    const redacted = {
-      ...payload,
-      recipients: [{ to: payload.recipients[0].to.map((t: any) => ({ ...t, email: t.email.replace(/(.{2}).+(@)/, '$1***$2') })) }],
-      body: { ...payload.body, data: `[${payload.body.type} ${String(payload.body.data?.length || 0)} chars]` }
-    };
-    console.error('[MSG91] send fail', { status: res.status, response: json || raw, redacted });
+    console.error('[MSG91] send fail', { status: res.status, response: json || raw });
     const msg = json?.message || json?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${res.status}`;
     throw new Error(msg);
   }
-
   return json;
 }
