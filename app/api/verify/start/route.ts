@@ -27,7 +27,14 @@ export async function POST(req: Request) {
       tick('bad_identifier');
       return NextResponse.json({ error: 'bad_identifier' }, { status: 400 });
     }
-    if (!recaptchaToken) {
+
+    // Bypass configuration — useful for local / preview testing.
+    // Set RECAPTCHA_DISABLE=true in .env.local to bypass recaptcha checks.
+    // NOTE: By default this also bypasses the parallel guards (recaptcha + rate-limit)
+    // while NODE_ENV !== 'production'. Remove NODE_ENV condition if you prefer stricter parity.
+    const BYPASS = process.env.RECAPTCHA_DISABLE === 'true' || process.env.NODE_ENV !== 'production';
+
+    if (!recaptchaToken && !BYPASS) {
       tick('no_recaptcha');
       return NextResponse.json({ error: 'no_recaptcha' }, { status: 400 });
     }
@@ -44,27 +51,31 @@ export async function POST(req: Request) {
 
     // ---- Guards: reCAPTCHA + rate limit (in parallel) ----
     tick('guards_start');
-    await Promise.all([
-      (async () => {
-        const ok = await Promise.race([
-          verifyRecaptcha(recaptchaToken),
-          new Promise<boolean>((_, rej) => setTimeout(() => rej(new Error('RECAPTCHA_TIMEOUT')), 4000)),
-        ]).catch(() => false);
-        if (!ok) throw new Error('recaptcha_failed');
-      })(),
-      (async () => {
-        try {
-          const ipMax = Number(process.env.RL_IP_MAX || 50);
-          const idMax = Number(process.env.RL_ID_MAX || 30);
-          await bumpRateOrThrow(`otp:ip:${ip}`, 3600, ipMax);
-          await bumpRateOrThrow(`otp:id:${identifier}`, 3600, idMax);
-        } catch (e: any) {
-          if (e?.message === 'RATE_LIMITED') throw e;
-          tick('ratelimit_soft_fail');
-        }
-      })(),
-    ]);
-    tick('guards_ok');
+    if (!BYPASS) {
+      await Promise.all([
+        (async () => {
+          const ok = await Promise.race([
+            verifyRecaptcha(recaptchaToken),
+            new Promise<boolean>((_, rej) => setTimeout(() => rej(new Error('RECAPTCHA_TIMEOUT')), 4000)),
+          ]).catch(() => false);
+          if (!ok) throw new Error('recaptcha_failed');
+        })(),
+        (async () => {
+          try {
+            const ipMax = Number(process.env.RL_IP_MAX || 50);
+            const idMax = Number(process.env.RL_ID_MAX || 30);
+            await bumpRateOrThrow(`otp:ip:${ip}`, 3600, ipMax);
+            await bumpRateOrThrow(`otp:id:${identifier}`, 3600, idMax);
+          } catch (e: any) {
+            if (e?.message === 'RATE_LIMITED') throw e;
+            tick('ratelimit_soft_fail');
+          }
+        })(),
+      ]);
+      tick('guards_ok');
+    } else {
+      tick('guards_bypassed');
+    }
 
     // ---- Session + Code ----
     const sessionId = randomId(12);
