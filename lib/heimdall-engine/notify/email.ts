@@ -1,5 +1,5 @@
 // lib/heimdall-engine/notify/email.ts
-import { sendEmailViaMsg91 } from '@/lib/email/msg91';
+import { Resend } from 'resend';
 
 interface BookingPayload {
   bookingId: string;
@@ -8,18 +8,27 @@ interface BookingPayload {
   phone: string;
   email: string;
   slot: string;
-  doctor: { name: string; email?: string; whatsappNumber?: string };
+  doctor: {
+    name: string;
+    email?: string;
+    whatsappNumber?: string;
+  };
 }
 
-const FROM_ADDR = process.env.EMAIL_FROM!;
-const BRAND     = process.env.BRAND_NAME || 'PediaHelp';
-const REPLY_TO  = process.env.EMAIL_REPLY_TO ? [process.env.EMAIL_REPLY_TO] : undefined;
+const resend = new Resend(process.env.RESEND_API_KEY!);
+const FROM_ADDR = process.env.RESEND_FROM!;
+const BRAND = process.env.BRAND_NAME || 'PediaHelp';
+const REPLY_TO = process.env.RESEND_REPLY_TO || undefined;
 
 export async function sendEmail(booking: BookingPayload) {
   const slotReadable = new Date(booking.slot).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
-    weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   const subject = `🩺 Appointment Confirmed — ${BRAND}`;
@@ -35,11 +44,16 @@ export async function sendEmail(booking: BookingPayload) {
 
   const toList = [booking.email, booking.doctor?.email].filter(Boolean) as string[];
 
-  await sendEmailViaMsg91({
+  const result = await resend.emails.send({
     from: FROM_ADDR,
     to: toList,
     subject,
     text,
-    replyTo: REPLY_TO,
+    replyTo: REPLY_TO ? [REPLY_TO] : undefined,
   });
+
+  if ((result as any)?.error) {
+    const err = (result as any).error;
+    throw new Error(err?.message || 'RESEND_SEND_FAILED');
+  }
 }
