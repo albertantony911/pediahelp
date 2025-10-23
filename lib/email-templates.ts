@@ -259,3 +259,104 @@ export function blogCommentNotifyHtml(p: {
     </div>` : ''}
   </div>`;
 }
+
+
+// --- Appointment confirm (patient & doctor) ---
+
+export function appointmentPatientText(p: {
+  patientName: string;
+  childName?: string;
+  doctorName: string;
+  slotReadable: string;
+  joinUrl?: string;
+  brand?: string;
+}) {
+  const brand = p.brand || BRAND_NAME;
+  return [
+    `Hello ${p.patientName},`,
+    ``,
+    `Your appointment${p.childName ? ` for ${p.childName}` : ''} with Dr. ${p.doctorName} is confirmed.`,
+    `📅 ${p.slotReadable}`,
+    p.joinUrl ? `🔗 Join link: ${p.joinUrl}` : '',
+    ``,
+    `Thank you for using ${brand}!`,
+  ].filter(Boolean).join('\n');
+}
+
+export function appointmentPatientHtml(p: {
+  patientName: string;
+  childName?: string;
+  doctorName: string;
+  slotReadable: string;
+  joinUrl?: string;
+  brand?: string;
+}) {
+  const brand = esc(p.brand || BRAND_NAME);
+  const lineChild = p.childName ? ` for <strong>${esc(p.childName)}</strong>` : '';
+  const join = p.joinUrl
+    ? `<p style="margin:12px 0 0 0"><a href="${esc(p.joinUrl)}" style="background:${COLOR_TEAL};color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;display:inline-block">Join the call</a></p>`
+    : '';
+  return `
+  <div style="background:#ffffff;margin:0;padding:0;width:100%">
+    <div style="max-width:640px;margin:0 auto;padding:24px 20px;
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${COLOR_INK};line-height:1.6;">
+      <div style="font-size:14px;font-weight:700;color:${COLOR_TEAL};margin-bottom:12px;">${brand}</div>
+      <h1 style="font-size:18px;font-weight:700;margin:0 0 10px 0;color:${COLOR_DARK}">Appointment confirmed</h1>
+      <p>Hello ${esc(p.patientName)},</p>
+      <p>Your appointment${lineChild} with <strong>Dr. ${esc(p.doctorName)}</strong> is confirmed.</p>
+      <p style="margin:8px 0 0 0">📅 ${esc(p.slotReadable)}</p>
+      ${join}
+      <hr style="border:none;height:1px;background:${COLOR_LIGHT};margin:20px 0" />
+      <p style="font-size:12px;color:${COLOR_LIGHT};margin:0">If you have questions, reply to this email.</p>
+    </div>
+  </div>`;
+}
+
+export function appointmentDoctorText(p: {
+  doctorName: string;
+  patientName: string;
+  childName?: string;
+  slotReadable: string;
+  joinUrl?: string;
+  brand?: string;
+}) {
+  const brand = p.brand || BRAND_NAME;
+  return [
+    `Hello Dr. ${p.doctorName},`,
+    ``,
+    `You have a confirmed appointment with ${p.patientName}${p.childName ? ` (child: ${p.childName})` : ''}.`,
+    `📅 ${p.slotReadable}`,
+    p.joinUrl ? `🔗 Join link: ${p.joinUrl}` : '',
+    ``,
+    `${brand}`,
+  ].filter(Boolean).join('\n');
+}
+
+export function appointmentDoctorHtml(p: {
+  doctorName: string;
+  patientName: string;
+  childName?: string;
+  slotReadable: string;
+  joinUrl?: string;
+  brand?: string;
+}) {
+  const brand = esc(p.brand || BRAND_NAME);
+  const lineChild = p.childName ? ` (child: <strong>${esc(p.childName)}</strong>)` : '';
+  const join = p.joinUrl
+    ? `<p style="margin:12px 0 0 0"><a href="${esc(p.joinUrl)}" style="background:${COLOR_TEAL};color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;display:inline-block">Join the call</a></p>`
+    : '';
+  return `
+  <div style="background:#ffffff;margin:0;padding:0;width:100%">
+    <div style="max-width:640px;margin:0 auto;padding:24px 20px;
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${COLOR_INK};line-height:1.6;">
+      <div style="font-size:14px;font-weight:700;color:${COLOR_TEAL};margin-bottom:12px;">${brand}</div>
+      <h1 style="font-size:18px;font-weight:700;margin:0 0 10px 0;color:${COLOR_DARK}">New appointment</h1>
+      <p>Hello Dr. ${esc(p.doctorName)},</p>
+      <p>You have a confirmed appointment with <strong>${esc(p.patientName)}</strong>${lineChild}.</p>
+      <p style="margin:8px 0 0 0">📅 ${esc(p.slotReadable)}</p>
+      ${join}
+      <hr style="border:none;height:1px;background:${COLOR_LIGHT};margin:20px 0" />
+      <p style="font-size:12px;color:${COLOR_LIGHT};margin:0">${brand}</p>
+    </div>
+  </div>`;
+}

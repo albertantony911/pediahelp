@@ -83,6 +83,11 @@ export const booking = defineType({
       title: 'Internal Notes (optional)',
       type: 'text',
     }),
+    defineField({
+    name: 'meeting',
+    title: 'Meeting',
+    type: 'meetingInfo',
+  }),
   ],
 
   preview: {

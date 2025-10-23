@@ -275,37 +275,63 @@ export default function StepForm() {
   };
 
   const handlePayment = async (bookingId: string) => {
-    setIsPaying(true);
-    try {
-      const res = await fetch('/api/heimdall/pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.orderId) {
-        toast.error(data?.error || 'Failed to initialize payment');
-        return;
-      }
-
-      const razorpay = new (window as any).Razorpay({
-        key: data.keyId,
-        amount: data.amount,
-        currency: 'INR',
-        name: data.doctor.name,
-        description: 'PediaHelp Appointment',
-        order_id: data.orderId,
-        handler: () => setStep(2),
-        notes: { appointmentId },
-        theme: { color: '#00B4D8' },
-      });
-      razorpay.open();
-    } catch (e: any) {
-      toast.error(e?.message || 'Payment failed to start');
-    } finally {
-      setIsPaying(false);
+  setIsPaying(true);
+  try {
+    const res = await fetch('/api/payment/pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.orderId) {
+      toast.error(data?.error || 'Failed to initialize payment');
+      return;
     }
-  };
+
+    const razorpay = new (window as any).Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: 'INR',
+      name: data.doctor.name,
+      description: 'PediaHelp Appointment',
+      order_id: data.orderId,
+      notes: { bookingId },
+      theme: { color: '#00B4D8' },
+
+      handler: async function (response: any) {
+        try {
+          const verifyRes = await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              bookingId,
+            }),
+          });
+
+          const verifyJson = await verifyRes.json();
+
+          if (verifyJson.success) {
+            toast.success('Payment verified successfully!');
+            setStep(2);
+          } else {
+            toast.error(verifyJson.error || 'Payment verification failed');
+          }
+        } catch (err: any) {
+          toast.error(err?.message || 'Payment verification failed');
+        }
+      },
+    });
+
+    razorpay.open();
+  } catch (e: any) {
+    toast.error(e?.message || 'Payment failed to start');
+  } finally {
+    setIsPaying(false);
+  }
+};
 
   /* ------------------- OTP input handlers ------------------- */
   const handleOtpChange = (index: number, value: string, e?: React.ChangeEvent<HTMLInputElement>) => {

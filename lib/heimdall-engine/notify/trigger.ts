@@ -1,40 +1,46 @@
+// lib/heimdall-engine/notify/trigger.ts
 import { sendEmail } from './email';
-import { sendSms } from './sms';
-import { sendWhatsApp } from './whatsapp';
+
+type Links = {
+  patientJoinUrl?: string;
+  doctorJoinUrl?: string;
+};
 
 interface BookingPayload {
   bookingId: string;
   patientName: string;
-  childName: string;
+  childName?: string; // optional everywhere
   phone: string;
-  email: string;
-  slot: string;
+  email?: string;
+  slot: string; // ISO
   doctor: {
     name: string;
-    email: string;
-    whatsappNumber: string;
+    email?: string;
+    whatsappNumber?: string;
   };
+}
+
+// Stub functions until SMS/WhatsApp are implemented
+async function sendSms(_booking: BookingPayload) {
+  // no-op
+  console.log('[NotifyAll] SMS integration skipped.');
+}
+async function sendWhatsApp(_booking: BookingPayload) {
+  // no-op
+  console.log('[NotifyAll] WhatsApp integration skipped.');
 }
 
 export async function notifyAll(
   booking: BookingPayload,
-  channels: {
-    email?: boolean;
-    sms?: boolean;
-    whatsapp?: boolean;
-  }
+  channels: { email?: boolean; sms?: boolean; whatsapp?: boolean },
+  links?: Links
 ): Promise<{ email: boolean; sms: boolean; whatsapp: boolean }> {
-  const result = {
-    email: false,
-    sms: false,
-    whatsapp: false,
-  };
-
+  const result = { email: false, sms: false, whatsapp: false };
   const failures: string[] = [];
 
   if (channels.email) {
     try {
-      await sendEmail(booking);
+      await sendEmail(booking, links);
       result.email = true;
     } catch (err) {
       console.error('[NotifyAll] Email failed:', err);
@@ -62,7 +68,7 @@ export async function notifyAll(
     }
   }
 
-  if (failures.length > 0) {
+  if (failures.length) {
     console.warn(`[NotifyAll] Some notifications failed: ${failures.join(', ')}`);
   }
 
@@ -71,13 +77,11 @@ export async function notifyAll(
 
 export async function triggerNotification(
   booking: BookingPayload,
-  type: 'confirmation' | 'reminder' | 'cancellation'
+  type: 'confirmation' | 'reminder' | 'cancellation',
+  links?: Links
 ): Promise<{ email: boolean; sms: boolean; whatsapp: boolean }> {
   console.log(`[Notify] Triggering type: ${type.toUpperCase()}`);
 
-  return await notifyAll(booking, {
-    email: true,
-    sms: true,
-    whatsapp: true,
-  });
+  // For now, only email notifications are active
+  return notifyAll(booking, { email: true }, links);
 }
