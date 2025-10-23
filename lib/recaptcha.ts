@@ -1,7 +1,9 @@
 // lib/recaptcha.ts
 export async function verifyRecaptcha(token: string): Promise<boolean> {
-  // DEV/preview bypass
-  if (process.env.RECAPTCHA_DISABLE === 'true') return true;
+  if (process.env.RECAPTCHA_DISABLE === 'true') {
+    console.warn('[recaptcha] Bypassed (RECAPTCHA_DISABLE=true)');
+    return true;
+  }
 
   const secret = process.env.RECAPTCHA_SECRET;
   if (!secret) {
@@ -9,10 +11,13 @@ export async function verifyRecaptcha(token: string): Promise<boolean> {
     return false;
   }
 
-  // Two endpoints (some networks block one of them)
   const endpoints = [
+    // primary
     'https://www.google.com/recaptcha/api/siteverify',
+    // alternate: less likely to be blocked
     'https://recaptcha.google.com/recaptcha/api/siteverify',
+    // egress workaround for some edge regions
+    'https://www.recaptcha.net/recaptcha/api/siteverify',
   ];
 
   const makeReq = (url: string) =>
@@ -23,29 +28,33 @@ export async function verifyRecaptcha(token: string): Promise<boolean> {
     });
 
   try {
-    // simple timeout guard
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 4500);
+    const timeout = setTimeout(() => controller.abort(), 4000);
 
-    let res = await makeReq(endpoints[0]).catch(() => undefined);
-    if (!res) res = await makeReq(endpoints[1]).catch(() => undefined);
-
-    clearTimeout(t);
+    let res: Response | undefined;
+    for (const url of endpoints) {
+      try {
+        res = await makeReq(url);
+        if (res.ok) break;
+      } catch {
+        continue;
+      }
+    }
+    clearTimeout(timeout);
 
     if (!res) {
-      console.error('[recaptcha] fetch failed to both endpoints');
-      return false;
-    }
-    const data = await res.json().catch(() => ({} as any));
-    if (!data?.success) {
-      console.warn('[recaptcha] verification failed:', data);
+      console.error('[recaptcha] All fetch attempts failed');
       return false;
     }
 
-    // If you’re on v3, enforce a floor score; otherwise just return success.
+    const data = await res.json().catch(() => ({}));
+    if (!data?.success) {
+      console.warn('[recaptcha] Failed:', data);
+      return false;
+    }
     return data.score == null || data.score >= 0.3;
-  } catch (e: any) {
-    console.error('[recaptcha] exception:', e?.message || e);
+  } catch (err: any) {
+    console.error('[recaptcha] exception:', err?.message || err);
     return false;
   }
 }
