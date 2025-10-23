@@ -1,6 +1,6 @@
 // lib/email/msg91.ts
 type SendArgs = {
-  from: string;            // 'Brand <no-reply@yourdomain.com>'
+  from: string;            // 'Pediahelp <no-reply@mail.pediahelp.com>'
   to: string[];            // recipients
   subject: string;
   text?: string;
@@ -25,19 +25,17 @@ export async function sendEmailViaMsg91({ from, to, subject, text, html, replyTo
   const fromParsed = parseAddress(from);
   const toList = to.map(parseAddress);
 
-  // ✅ MSG91 expects a `content` array; include only the parts you have
-  const content: Array<{ type: 'html' | 'text'; value: string }> = [];
-  if (html) content.push({ type: 'html', value: html });
-  if (text) content.push({ type: 'text', value: text });
+  // 🔑 MSG91 expects `body` with { type, data }
+  const bodyParts: Array<{ type: 'html' | 'text'; data: string }> = [];
+  if (html) bodyParts.push({ type: 'html', data: html });
+  if (text) bodyParts.push({ type: 'text', data: text });
 
-  const body = {
+  const payload = {
     from: fromParsed,
-    recipients: [{ to: toList }],             // cc/bcc can be added here if needed
+    recipients: [{ to: toList }],
     subject,
-    content,                                   // <-- key change
-    ...(replyTo?.length
-      ? { reply_to: replyTo.map(parseAddress) }
-      : {}),
+    ...(replyTo?.length ? { reply_to: replyTo.map(parseAddress) } : {}),
+    ...(bodyParts.length ? { body: bodyParts } : {}), // or use template_id flow instead
   };
 
   const res = await fetch(`${base}/send`, {
@@ -45,20 +43,26 @@ export async function sendEmailViaMsg91({ from, to, subject, text, html, replyTo
     headers: {
       'content-type': 'application/json',
       accept: 'application/json',
-      authkey: AUTH,                            // header name must be `authkey`
+      authkey: AUTH,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 
-  const textBody = await res.text().catch(() => '');
-  let json: any = {};
-  try { json = textBody ? JSON.parse(textBody) : {}; } catch {}
+  const responseText = await res.text().catch(() => '');
+  let responseJson: any = {};
+  try { responseJson = responseText ? JSON.parse(responseText) : {}; } catch {}
 
-  if (!res.ok || json?.type === 'error') {
-    console.error('[MSG91] email send fail', { status: res.status, json, text: textBody?.slice(0, 400) });
-    const msg = json?.message || json?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${res.status}`;
+  if (!res.ok || responseJson?.hasError || responseJson?.type === 'error') {
+    // helpful debug (redacted)
+    const redacted = {
+      ...payload,
+      recipients: [{ to: toList.map(t => ({ ...t, email: t.email.replace(/(.{2}).+(@)/, '$1***$2') })) }],
+      body: bodyParts.map(p => ({ ...p, data: `[${p.type} ${p.data.length} chars]` })),
+    };
+    console.error('[MSG91] send fail', { status: res.status, responseJson: responseJson || responseText, redacted });
+    const msg = responseJson?.message || responseJson?.errors?.[0]?.message || `MSG91_EMAIL_FAILED_${res.status}`;
     throw new Error(msg);
   }
 
-  return json;
+  return responseJson;
 }
