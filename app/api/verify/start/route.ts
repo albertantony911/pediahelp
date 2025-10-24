@@ -10,10 +10,12 @@ import { createSession, setChannelUsed } from '@/lib/otp-store-redis';
 
 export async function POST(req: Request) {
   const t0 = Date.now();
-  const tick = (l: string) => console.log(`[verify/start] ${l} +${Date.now() - t0}ms`);
+  const tick = (label: string) =>
+    console.log(`[verify/start] ${label} +${Date.now() - t0}ms`);
 
   try {
     tick('begin');
+
     const {
       identifier,
       channel = 'auto',
@@ -23,16 +25,15 @@ export async function POST(req: Request) {
       startedAt,
     } = await req.json();
 
+    // ---- Basic Validation ----
     if (!identifier || typeof identifier !== 'string') {
       tick('bad_identifier');
       return NextResponse.json({ error: 'bad_identifier' }, { status: 400 });
     }
 
-    // Bypass configuration — useful for local / preview testing.
-    // Set RECAPTCHA_DISABLE=true in .env.local to bypass recaptcha checks.
-    // NOTE: By default this also bypasses the parallel guards (recaptcha + rate-limit)
-    // while NODE_ENV !== 'production'. Remove NODE_ENV condition if you prefer stricter parity.
-    const BYPASS = process.env.RECAPTCHA_DISABLE === 'true' || process.env.NODE_ENV !== 'production';
+    const BYPASS =
+      process.env.RECAPTCHA_DISABLE === 'true' ||
+      process.env.NODE_ENV !== 'production';
 
     if (!recaptchaToken && !BYPASS) {
       tick('no_recaptcha');
@@ -42,24 +43,44 @@ export async function POST(req: Request) {
       tick('bot_detected');
       return NextResponse.json({ error: 'bot_detected' }, { status: 400 });
     }
-    if (startedAt && Date.now() - Number(startedAt) < Number(process.env.START_MIN_DELAY_MS || 1200)) {
+    if (
+      startedAt &&
+      Date.now() - Number(startedAt) <
+        Number(process.env.START_MIN_DELAY_MS || 1200)
+    ) {
       tick('too_fast');
       return NextResponse.json({ error: 'too_fast' }, { status: 400 });
     }
 
-    const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'ip') as string;
+    const ip =
+      (req.headers.get('cf-connecting-ip') ||
+        req.headers.get('x-forwarded-for') ||
+        'ip') as string;
 
-    // ---- Guards: reCAPTCHA + rate limit (in parallel) ----
+    // ---- Guards: reCAPTCHA + Rate limit ----
     tick('guards_start');
     if (!BYPASS) {
       await Promise.all([
         (async () => {
-          const ok = await Promise.race([
-            verifyRecaptcha(recaptchaToken),
-            new Promise<boolean>((_, rej) => setTimeout(() => rej(new Error('RECAPTCHA_TIMEOUT')), 4000)),
-          ]).catch(() => false);
-          if (!ok) throw new Error('recaptcha_failed');
+          try {
+            const ok = await Promise.race([
+              verifyRecaptcha(recaptchaToken),
+              new Promise<boolean>((_, rej) =>
+                setTimeout(() => rej(new Error('RECAPTCHA_TIMEOUT')), 4000),
+              ),
+            ]).catch((e) => {
+              console.warn(
+                '[verify/start] recaptcha exception:',
+                e?.message || e,
+              );
+              return false;
+            });
+            if (!ok) throw new Error('recaptcha_failed');
+          } catch (err) {
+            throw err;
+          }
         })(),
+
         (async () => {
           try {
             const ipMax = Number(process.env.RL_IP_MAX || 50);
@@ -77,7 +98,7 @@ export async function POST(req: Request) {
       tick('guards_bypassed');
     }
 
-    // ---- Session + Code ----
+    // ---- Session + OTP ----
     const sessionId = randomId(12);
     const code = randomOtp();
     const expiresAt = nowSec() + 600;
@@ -93,7 +114,7 @@ export async function POST(req: Request) {
     });
     tick('session_saved');
 
-    // ---- FAST mode: send in background, respond immediately ----
+    // ---- FAST_SEND mode ----
     if (process.env.FAST_SEND === 'true') {
       (async () => {
         try {
@@ -101,7 +122,10 @@ export async function POST(req: Request) {
           try {
             await setChannelUsed(sessionId, chUsed);
           } catch (metaErr: any) {
-            console.warn('[verify/start:bg] setChannelUsed soft-fail:', metaErr?.message || metaErr);
+            console.warn(
+              '[verify/start:bg] setChannelUsed soft-fail:',
+              metaErr?.message || metaErr,
+            );
           }
           console.log('[verify/start:bg] sent ok via', chUsed);
         } catch (e: any) {
@@ -112,29 +136,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ sessionId, channelUsed: null, queued: true });
     }
 
-    // ---- Synchronous send ----
+    // ---- SYNC SEND mode ----
     tick('otp_send_start');
-    const channelUsed = await Promise.race([
-      sendWithPolicy(identifier, code, effectiveChannel),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('OTP_SEND_TIMEOUT')), 8000)),
-    ]);
-    tick('otp_sent');
+    let channelUsed: Channel;
+    try {
+      channelUsed = await Promise.race([
+        sendWithPolicy(identifier, code, effectiveChannel),
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error('OTP_SEND_TIMEOUT')), 8000),
+        ),
+      ]);
+      tick('otp_sent');
+    } catch (e: any) {
+      console.error('[verify/start] otp send error:', e?.message || e);
+      throw e;
+    }
 
-    // Soft-fail metadata update so a Redis hiccup doesn't break UX
+    // ---- Update session metadata (soft fail) ----
     try {
       await setChannelUsed(sessionId, channelUsed);
       tick('session_updated');
     } catch (metaErr: any) {
-      console.warn('[verify/start] setChannelUsed soft-fail:', metaErr?.message || metaErr);
+      console.warn(
+        '[verify/start] setChannelUsed soft-fail:',
+        metaErr?.message || metaErr,
+      );
     }
 
     return NextResponse.json({ sessionId, channelUsed });
   } catch (e: any) {
     const msg = e?.message || 'start_failed';
     console.error('[verify/start] error:', msg);
-    if (msg === 'OTP_SEND_TIMEOUT') return NextResponse.json({ error: 'otp_delivery_timeout' }, { status: 504 });
-    if (msg === 'RATE_LIMITED') return NextResponse.json({ error: 'RATE_LIMITED' }, { status: 429 });
-    if (msg === 'recaptcha_failed') return NextResponse.json({ error: 'recaptcha_failed' }, { status: 400 });
+
+    // ---- Explicit error mapping ----
+    if (msg === 'OTP_SEND_TIMEOUT')
+      return NextResponse.json(
+        { error: 'otp_delivery_timeout' },
+        { status: 504 },
+      );
+
+    if (msg === 'RATE_LIMITED')
+      return NextResponse.json({ error: 'RATE_LIMITED' }, { status: 429 });
+
+    if (msg === 'recaptcha_failed')
+      return NextResponse.json({ error: 'recaptcha_failed' }, { status: 400 });
+
+    if (/fetch failed|ECONNREFUSED|ENOTFOUND|ECONNRESET/i.test(msg))
+      return NextResponse.json(
+        { error: 'delivery_fetch_failed' },
+        { status: 502 },
+      );
+
     return NextResponse.json({ error: msg }, { status: 400 });
   } finally {
     console.log(`[verify/start] end total=${Date.now() - t0}ms`);
